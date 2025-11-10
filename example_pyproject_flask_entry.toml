@@ -1,0 +1,22 @@
+# Example pyproject.toml showing Darren's suggested Flask entry point approach
+
+[project]
+name = "openbb-flask-financial-extension"
+version = "1.0.0"
+description = "Financial data extension converted from Flask"
+
+[project.entry-points."openbb_core_extension"]
+# Direct Flask instance reference - no wrapper extension needed
+flask_financial_api = "demo_direct_flask_entry_point:app"
+
+# Multiple Flask apps can be registered
+flask_market_data = "market_data_app:app"
+flask_portfolio_api = "portfolio_service:application"
+
+[project.entry-points."openbb_provider_extension"]
+# Providers can still be registered normally
+custom_data_provider = "custom_provider:provider"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
