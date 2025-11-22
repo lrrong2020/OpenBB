@@ -163,10 +163,26 @@ class ExtensionLoader(metaclass=SingletonMeta):
             """Return a dictionary of core objects."""
             # pylint: disable=import-outside-toplevel
             from openbb_core.app.router import Router
+            from openbb_core.app.utils.flask import FlaskExtensionLoader
 
-            return {
-                ep.name: entry for ep in eps if isinstance((entry := ep.load()), Router)
-            }
+            entries: dict = {}
+            for ep in eps:
+                try:
+                    entry = ep.load()
+                    if isinstance(entry, Router):
+                        entries[ep.name] = entry
+                    elif FlaskExtensionLoader.detect_flask_entry_point(ep.value):
+                        # Convert Flask app to OpenBB extension
+                        flask_extension = FlaskExtensionLoader.load_flask_extension(
+                            ep.value, ep.name
+                        )
+                        if flask_extension:
+                            # Create a dynamic router from Flask extension
+                            # This would need additional implementation
+                            pass
+                except (ModuleNotFoundError, ImportError):
+                    continue
+            return entries
 
         def load_provider(eps: EntryPoints) -> dict[str, "Provider"]:
             """
