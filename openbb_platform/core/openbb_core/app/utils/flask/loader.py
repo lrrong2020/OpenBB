@@ -2,7 +2,7 @@
 
 from typing import Any, Optional
 from .introspection import _check_flask_available
-from .adapter import FlaskToOpenBBAdapter
+
 
 class FlaskExtensionLoader:
     """Integrates Flask app loading with OpenBB's extension system."""
@@ -30,12 +30,12 @@ class FlaskExtensionLoader:
             flask_app = getattr(module, app_name)
             
             if FlaskExtensionLoader.validate_flask_app(flask_app):
-                adapter = FlaskToOpenBBAdapter(flask_app, f"{prefix}_provider")
-                return {
-                    'provider_code': adapter.generate_provider_code(),
-                    'router_code': adapter.generate_router_code(),
-                    'models': adapter.generate_pydantic_models()
-                }
+                from openbb_core.app.router import Router
+                from fastapi.middleware.wsgi import WSGIMiddleware
+
+                router = Router()
+                router.api_router.mount("/", WSGIMiddleware(flask_app))
+                return router
             return None
         except Exception as e:
             print(f"Error loading Flask extension {entry_point}: {e}")
