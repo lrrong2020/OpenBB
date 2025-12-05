@@ -4,6 +4,7 @@ from enum import Enum
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any
 
+from fastapi import APIRouter, FastAPI
 from importlib_metadata import EntryPoint, EntryPoints, entry_points
 from openbb_core.app.model.abstract.singleton import SingletonMeta
 from openbb_core.app.model.extension import Extension
@@ -165,21 +166,28 @@ class ExtensionLoader(metaclass=SingletonMeta):
             from openbb_core.app.router import Router
             from openbb_core.app.utils.flask import FlaskExtensionLoader
 
-            entries: dict = {}
+            entries: dict[str, Router] = {}
             for ep in eps:
-                try:
-                    entry = ep.load()
-                    if isinstance(entry, Router):
-                        entries[ep.name] = entry
-                    elif FlaskExtensionLoader.detect_flask_entry_point(ep.value):
-                        # Convert Flask app to OpenBB extension
+                entry = ep.load()
+                if isinstance(entry, Router):
+                    entries[ep.name] = entry
+                    continue
+                if isinstance(entry, FastAPI):
+                    entry = entry.router
+                if isinstance(entry, APIRouter):
+                    entries[ep.name] = Router.from_fastapi(entry)
+                    continue
+                if "flask" in str(type(entry)).lower():
+                    # Convert Flask app
+                    try:
                         flask_extension = FlaskExtensionLoader.load_flask_extension(
                             ep.value, ep.name
                         )
                         if flask_extension:
                             entries[ep.name] = flask_extension
-                except (ModuleNotFoundError, ImportError):
-                    continue
+                    except (ModuleNotFoundError, ImportError):
+                        continue
+
             return entries
 
         def load_provider(eps: EntryPoints) -> dict[str, "Provider"]:
