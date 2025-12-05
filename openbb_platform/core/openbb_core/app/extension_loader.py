@@ -177,9 +177,7 @@ class ExtensionLoader(metaclass=SingletonMeta):
                             ep.value, ep.name
                         )
                         if flask_extension:
-                            # Create a dynamic router from Flask extension
-                            # This would need additional implementation
-                            pass
+                            entries[ep.name] = flask_extension
                 except (ModuleNotFoundError, ImportError):
                     continue
             return entries
