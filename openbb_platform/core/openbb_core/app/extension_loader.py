@@ -164,7 +164,6 @@ class ExtensionLoader(metaclass=SingletonMeta):
             """Return a dictionary of core objects."""
             # pylint: disable=import-outside-toplevel
             from openbb_core.app.router import Router
-            from openbb_core.app.utils.flask import FlaskExtensionLoader
 
             entries: dict[str, Router] = {}
             for ep in eps:
@@ -178,7 +177,12 @@ class ExtensionLoader(metaclass=SingletonMeta):
                     entries[ep.name] = Router.from_fastapi(entry)
                     continue
                 if "flask" in str(type(entry)).lower():
-                    # Convert Flask app
+                    try:
+                        import flask  # noqa: F401
+                    except ImportError:
+                        continue
+                    from openbb_core.app.utils.flask import FlaskExtensionLoader
+
                     try:
                         flask_extension = FlaskExtensionLoader.load_flask_extension(
                             ep.value, ep.name

@@ -3,8 +3,11 @@
 import inspect
 import re
 import sys
-from typing import Any, Dict, List, Optional
-from werkzeug.routing import Rule
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
+
+if TYPE_CHECKING:
+    from werkzeug.routing import Rule
+
 
 def _check_flask_available() -> bool:
     """Check if Flask is available without importing it."""
@@ -39,7 +42,7 @@ class FlaskIntrospector:
         
         return routes_info
     
-    def _analyze_single_route(self, rule: Rule) -> Optional[Dict[str, Any]]:
+    def _analyze_single_route(self, rule: "Rule") -> Optional[Dict[str, Any]]:
         """Analyze a single Flask route."""
         try:
             view_function = self.flask_app.view_functions.get(rule.endpoint)

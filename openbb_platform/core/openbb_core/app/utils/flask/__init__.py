@@ -1,6 +1,25 @@
-"""Flask integration utilities for OpenBB Core."""
+"""Flask integration utilities for OpenBB Core.
 
-from .introspection import FlaskIntrospector, _check_flask_available
-from .loader import FlaskExtensionLoader
+This module provides Flask app integration capabilities.
+All imports are lazy to avoid ImportError when Flask is not installed.
+"""
+
+
+def __getattr__(name: str):
+    """Lazy import to avoid ImportError when Flask is not installed."""
+    if name == "FlaskExtensionLoader":
+        from .loader import FlaskExtensionLoader
+
+        return FlaskExtensionLoader
+    if name == "FlaskIntrospector":
+        from .introspection import FlaskIntrospector
+
+        return FlaskIntrospector
+    if name == "_check_flask_available":
+        from .introspection import _check_flask_available
+
+        return _check_flask_available
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = ["FlaskIntrospector", "FlaskExtensionLoader", "_check_flask_available"]
