@@ -49,6 +49,8 @@ class FlaskIntrospector:
             if not view_function:
                 return None
             
+            docstring_info = self._parse_docstring(view_function)
+            
             route_info = {
                 'rule': rule.rule,
                 'endpoint': rule.endpoint,
@@ -56,8 +58,9 @@ class FlaskIntrospector:
                 'function_name': view_function.__name__,
                 'function': view_function,
                 'url_parameters': list(rule.arguments),
-                'query_parameters': self._extract_query_parameters(view_function),
+                'query_parameters': self._extract_query_parameters(view_function, docstring_info),
                 'docstring': self._extract_docstring(view_function),
+                'docstring_info': docstring_info,
                 'return_type': self._infer_return_type(view_function),
                 'openbb_command_name': self._generate_openbb_command_name(rule.rule, view_function.__name__),
                 'pydantic_model_name': self._generate_model_name(view_function.__name__),
@@ -69,7 +72,40 @@ class FlaskIntrospector:
             print(f"Warning: Could not analyze route {rule.rule}: {e}")
             return None
     
-    def _extract_query_parameters(self, view_function) -> List[Dict[str, Any]]:
+    def _parse_docstring(self, view_function) -> Dict[str, Any]:
+        """Parse Google-style docstring into structured metadata."""
+        docstring = inspect.getdoc(view_function)
+        if not docstring:
+            return {'summary': None, 'description': None, 'params': {}}
+        
+        lines = docstring.split('\n')
+        summary = lines[0].strip() if lines else None
+        description_lines = []
+        param_descriptions = {}
+        
+        in_args_section = False
+        in_description = True
+        
+        for line in lines[1:]:
+            stripped = line.strip()
+            
+            # Detect section headers
+            if stripped.lower() in ['args:', 'arguments:', 'parameters:', 'returns:', 'return:', 'raises:', 'examples:', 'example:', 'note:', 'notes:']:
+                in_description = False
+                in_args_section = stripped.lower() in ['args:', 'arguments:', 'parameters:']
+                continue
+            
+            if in_args_section and stripped:
+                param_match = re.match(r'(\w+)(?:\s*\([^)]+\))?:\s*(.+)', stripped)
+                if param_match:
+                    param_descriptions[param_match.group(1)] = param_match.group(2).strip()
+            elif in_description and stripped:
+                description_lines.append(stripped)
+        
+        description = ' '.join(description_lines) if description_lines else None
+        return {'summary': summary, 'description': description, 'params': param_descriptions}
+    
+    def _extract_query_parameters(self, view_function, docstring_info: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Extract query parameters from Flask view function."""
         query_params = []
         
@@ -86,7 +122,8 @@ class FlaskIntrospector:
                     'name': param_name,
                     'default': default_value,
                     'type': self._infer_parameter_type(default_value),
-                    'required': default_value is None
+                    'required': default_value is None,
+                    'description': docstring_info['params'].get(param_name)
                 })
                 
         except Exception as e:
