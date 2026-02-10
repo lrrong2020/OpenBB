@@ -1,7 +1,8 @@
 """Flask extension loading integration."""
 
 from typing import Any, Optional
-from .introspection import _check_flask_available
+from .introspection import _check_flask_available, FlaskIntrospector
+from .adapter import OpenAPISpecGenerator
 
 
 class FlaskExtensionLoader:
@@ -20,7 +21,7 @@ class FlaskExtensionLoader:
     
     @staticmethod
     def load_flask_extension(entry_point: str, prefix: str) -> Optional[Any]:
-        """Load Flask app as OpenBB extension."""
+        """Load Flask app as OpenBB extension with OpenAPI metadata."""
         try:
             if not _check_flask_available():
                 return None
@@ -35,6 +36,15 @@ class FlaskExtensionLoader:
 
                 router = Router()
                 router.api_router.mount("/", WSGIMiddleware(flask_app))
+                
+                # Generate and attach OpenAPI spec
+                introspector = FlaskIntrospector(flask_app)
+                routes = introspector.analyze_routes()
+                openapi_spec = OpenAPISpecGenerator.generate_spec(routes)
+                
+                # Attach spec to router for downstream OpenAPI assembly
+                router.openbb_openapi_spec_ext = openapi_spec
+                
                 return router
             return None
         except Exception as e:

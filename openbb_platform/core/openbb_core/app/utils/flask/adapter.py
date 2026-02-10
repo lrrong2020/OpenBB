@@ -1,9 +1,8 @@
 """Flask-to-OpenBB conversion logic."""
 
-from typing import Any
-from openbb_core.app.router import Router
-from openbb_core.app.model.obbject import OBBject
-from .introspection import FlaskIntrospector
+from typing import Any, Dict, List
+from .introspection import FlaskIntrospector, FlaskRouteInfo
+
 
 def is_flask_available() -> bool:
     """Check if Flask is available."""
@@ -13,35 +12,83 @@ def is_flask_available() -> bool:
     except ImportError:
         return False
 
-def create_flask_router(flask_app: Any, prefix: str = "/flask") -> Router:
-    """Create OpenBB router from Flask app with metadata layer."""
-    if not is_flask_available():
-        raise ImportError("Flask is not available")
-    
-    router = Router(prefix=prefix)
-    introspector = FlaskIntrospector(flask_app)
-    routes = introspector.analyze_routes()
-    
-    for route_info in routes:
-        _add_flask_route_to_router(router, route_info, flask_app)
-    
-    return router
 
-def _add_flask_route_to_router(router: Router, route_info: dict, flask_app: Any) -> None:
-    """Add a Flask route to OpenBB router with metadata."""
-    docstring_info = route_info.get('docstring_info', {})
+class OpenAPISpecGenerator:
+    """Generate OpenAPI specification from Flask route metadata."""
     
-    def flask_wrapper(**kwargs) -> OBBject:
-        with flask_app.test_client() as client:
-            response = client.get(route_info['rule'], query_string=kwargs)
-            return OBBject(results=response.get_json())
+    TYPE_MAP = {
+        'str': 'string',
+        'int': 'integer',
+        'float': 'number',
+        'bool': 'boolean',
+    }
     
-    flask_wrapper.__name__ = route_info['openbb_command_name']
-    flask_wrapper.__doc__ = route_info.get('docstring', '')
+    @classmethod
+    def generate_spec(cls, routes: List[FlaskRouteInfo]) -> Dict[str, Any]:
+        """Generate OpenAPI spec dictionary from Flask routes."""
+        paths: Dict[str, Any] = {}
+        schemas: Dict[str, Any] = {}
+        
+        for route in routes:
+            openapi_path = cls._convert_flask_path(route['path'])
+            if openapi_path not in paths:
+                paths[openapi_path] = {}
+            
+            for method in route['methods']:
+                operation = cls._generate_operation(route, schemas)
+                paths[openapi_path][method.lower()] = operation
+        
+        return {
+            'paths': paths,
+            'components': {'schemas': schemas}
+        }
     
-    router.command(
-        flask_wrapper,
-        methods=['GET'],
-        summary=docstring_info.get('summary'),
-        description=docstring_info.get('description'),
-    )
+    @classmethod
+    def _convert_flask_path(cls, flask_path: str) -> str:
+        """Convert Flask path format to OpenAPI format."""
+        import re
+        return re.sub(r'<(?:int:)?(?:float:)?(?:path:)?([^>]+)>', r'{\1}', flask_path)
+    
+    @classmethod
+    def _generate_operation(cls, route: FlaskRouteInfo, schemas: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate OpenAPI operation object for a route."""
+        operation: Dict[str, Any] = {
+            'summary': route['summary'] or f"{route['function_name']}",
+            'operationId': f"{route['function_name']}_{route['path'].replace('/', '_').strip('_')}",
+            'parameters': [],
+            'responses': {
+                '200': {'description': 'Successful Response'},
+                '400': {'description': 'Bad Request'},
+            }
+        }
+        
+        if route['description']:
+            operation['description'] = route['description']
+        
+        for param in route['path_params']:
+            operation['parameters'].append(cls._generate_parameter(param, 'path'))
+        
+        for param in route['query_params']:
+            operation['parameters'].append(cls._generate_parameter(param, 'query'))
+        
+        return operation
+    
+    @classmethod
+    def _generate_parameter(cls, param: Dict[str, Any], location: str) -> Dict[str, Any]:
+        """Generate OpenAPI parameter object."""
+        param_spec: Dict[str, Any] = {
+            'name': param['name'],
+            'in': location,
+            'required': param['required'],
+            'schema': {
+                'type': cls.TYPE_MAP.get(param['type'], 'string'),
+            }
+        }
+        
+        if param.get('description'):
+            param_spec['description'] = param['description']
+        
+        if not param['required'] and param.get('default') is not None:
+            param_spec['schema']['default'] = param['default']
+        
+        return param_spec

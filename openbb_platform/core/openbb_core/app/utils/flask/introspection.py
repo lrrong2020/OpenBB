@@ -3,10 +3,30 @@
 import inspect
 import re
 import sys
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, TypedDict
 
 if TYPE_CHECKING:
     from werkzeug.routing import Rule
+
+
+class FlaskParam(TypedDict):
+    """Flask parameter metadata."""
+    name: str
+    type: str
+    required: bool
+    default: Any
+    description: Optional[str]
+
+
+class FlaskRouteInfo(TypedDict):
+    """Flask route metadata structure."""
+    path: str
+    methods: List[str]
+    summary: Optional[str]
+    description: Optional[str]
+    function_name: str
+    path_params: List[FlaskParam]
+    query_params: List[FlaskParam]
 
 
 def _check_flask_available() -> bool:
@@ -30,7 +50,7 @@ class FlaskIntrospector:
         self.flask_app = flask_app
         self.url_map = flask_app.url_map
     
-    def analyze_routes(self) -> List[Dict[str, Any]]:
+    def analyze_routes(self) -> List[FlaskRouteInfo]:
         """Analyze all routes in the Flask application."""
         routes_info = []
         
@@ -42,7 +62,7 @@ class FlaskIntrospector:
         
         return routes_info
     
-    def _analyze_single_route(self, rule: "Rule") -> Optional[Dict[str, Any]]:
+    def _analyze_single_route(self, rule: "Rule") -> Optional[FlaskRouteInfo]:
         """Analyze a single Flask route."""
         try:
             view_function = self.flask_app.view_functions.get(rule.endpoint)
@@ -50,20 +70,17 @@ class FlaskIntrospector:
                 return None
             
             docstring_info = self._parse_docstring(view_function)
+            path_params = [{'name': arg, 'type': 'str', 'required': True, 'default': None, 'description': None} for arg in rule.arguments]
+            query_params = self._extract_query_parameters(view_function, docstring_info)
             
-            route_info = {
-                'rule': rule.rule,
-                'endpoint': rule.endpoint,
+            route_info: FlaskRouteInfo = {
+                'path': rule.rule,
                 'methods': list(rule.methods - {'HEAD', 'OPTIONS'}),
+                'summary': docstring_info.get('summary'),
+                'description': docstring_info.get('description'),
                 'function_name': view_function.__name__,
-                'function': view_function,
-                'url_parameters': list(rule.arguments),
-                'query_parameters': self._extract_query_parameters(view_function, docstring_info),
-                'docstring': self._extract_docstring(view_function),
-                'docstring_info': docstring_info,
-                'return_type': self._infer_return_type(view_function),
-                'openbb_command_name': self._generate_openbb_command_name(rule.rule, view_function.__name__),
-                'pydantic_model_name': self._generate_model_name(view_function.__name__),
+                'path_params': path_params,
+                'query_params': query_params,
             }
             
             return route_info
@@ -105,9 +122,9 @@ class FlaskIntrospector:
         description = ' '.join(description_lines) if description_lines else None
         return {'summary': summary, 'description': description, 'params': param_descriptions}
     
-    def _extract_query_parameters(self, view_function, docstring_info: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def _extract_query_parameters(self, view_function, docstring_info: Dict[str, Any]) -> List[FlaskParam]:
         """Extract query parameters from Flask view function."""
-        query_params = []
+        query_params: List[FlaskParam] = []
         
         try:
             source = inspect.getsource(view_function)
@@ -118,13 +135,14 @@ class FlaskIntrospector:
                 param_name = match[0]
                 default_value = match[1] if len(match) > 1 and match[1] else None
                 
-                query_params.append({
+                param: FlaskParam = {
                     'name': param_name,
                     'default': default_value,
                     'type': self._infer_parameter_type(default_value),
                     'required': default_value is None,
                     'description': docstring_info['params'].get(param_name)
-                })
+                }
+                query_params.append(param)
                 
         except Exception as e:
             print(f"Warning: Could not extract query parameters from {view_function.__name__}: {e}")
@@ -140,27 +158,6 @@ class FlaskIntrospector:
             return ' '.join(cleaned_lines)
         return None
     
-    def _infer_return_type(self, view_function) -> str:
-        """Infer the return type of a Flask view function."""
-        try:
-            signature = inspect.signature(view_function)
-            if signature.return_annotation != inspect.Signature.empty:
-                return str(signature.return_annotation)
-            
-            source = inspect.getsource(view_function)
-            
-            if 'json.dumps' in source or 'jsonify' in source:
-                return 'Dict[str, Any]'
-            elif 'return {' in source:
-                return 'Dict[str, Any]'
-            elif 'return [' in source:
-                return 'List[Dict[str, Any]]'
-            else:
-                return 'Any'
-                
-        except Exception:
-            return 'Any'
-    
     def _infer_parameter_type(self, default_value: Optional[str]) -> str:
         """Infer parameter type from default value."""
         if default_value is None:
@@ -171,29 +168,3 @@ class FlaskIntrospector:
             return 'bool'
         else:
             return 'str'
-    
-    def _generate_openbb_command_name(self, rule: str, function_name: str) -> str:
-        """Generate OpenBB command name from Flask route."""
-        clean_rule = rule.lstrip('/')
-        clean_rule = re.sub(r'<[^>]+>', '', clean_rule)
-        clean_rule = clean_rule.strip('/')
-        
-        command_name = clean_rule.replace('/', '_').replace('-', '_')
-        
-        if not command_name or command_name == '_':
-            command_name = function_name
-        
-        command_name = re.sub(r'_+', '_', command_name)
-        command_name = command_name.strip('_')
-        
-        return command_name or function_name
-    
-    def _generate_model_name(self, function_name: str) -> str:
-        """Generate Pydantic model name from function name."""
-        words = function_name.split('_')
-        model_name = ''.join(word.capitalize() for word in words)
-        
-        if not model_name.endswith(('Data', 'Response', 'Model')):
-            model_name += 'Data'
-        
-        return model_name

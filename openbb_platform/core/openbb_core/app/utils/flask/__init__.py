@@ -15,6 +15,10 @@ def __getattr__(name: str):
         from .introspection import FlaskIntrospector
 
         return FlaskIntrospector
+    if name == "OpenAPISpecGenerator":
+        from .adapter import OpenAPISpecGenerator
+
+        return OpenAPISpecGenerator
     if name == "_check_flask_available":
         from .introspection import _check_flask_available
 
@@ -22,4 +26,9 @@ def __getattr__(name: str):
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
-__all__ = ["FlaskIntrospector", "FlaskExtensionLoader", "_check_flask_available"]
+__all__ = [
+    "FlaskIntrospector",
+    "FlaskExtensionLoader",
+    "OpenAPISpecGenerator",
+    "_check_flask_available",
+]
