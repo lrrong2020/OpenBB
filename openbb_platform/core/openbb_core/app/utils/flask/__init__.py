@@ -19,6 +19,10 @@ def __getattr__(name: str):
         from .adapter import OpenAPISpecGenerator
 
         return OpenAPISpecGenerator
+    if name == "FlaskMountRegistry":
+        from .registry import FlaskMountRegistry
+
+        return FlaskMountRegistry
     if name == "_check_flask_available":
         from .introspection import _check_flask_available
 
@@ -30,5 +34,6 @@ __all__ = [
     "FlaskIntrospector",
     "FlaskExtensionLoader",
     "OpenAPISpecGenerator",
+    "FlaskMountRegistry",
     "_check_flask_available",
 ]

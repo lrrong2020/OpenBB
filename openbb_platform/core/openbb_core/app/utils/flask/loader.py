@@ -3,6 +3,7 @@
 from typing import Any, Optional
 from .introspection import _check_flask_available, FlaskIntrospector
 from .adapter import OpenAPISpecGenerator
+from .registry import FlaskMountRegistry
 
 
 class FlaskExtensionLoader:
@@ -20,7 +21,7 @@ class FlaskExtensionLoader:
             return False
     
     @staticmethod
-    def load_flask_extension(entry_point: str, prefix: str) -> Optional[Any]:
+    def load_flask_extension(entry_point: str, prefix: str = "/") -> Optional[Any]:
         """Load Flask app as OpenBB extension with OpenAPI metadata."""
         try:
             if not _check_flask_available():
@@ -37,13 +38,17 @@ class FlaskExtensionLoader:
                 router = Router()
                 router.api_router.mount("/", WSGIMiddleware(flask_app))
                 
-                # Generate and attach OpenAPI spec
+                # Generate OpenAPI spec and register in centralized registry
                 introspector = FlaskIntrospector(flask_app)
                 routes = introspector.analyze_routes()
                 openapi_spec = OpenAPISpecGenerator.generate_spec(routes)
                 
-                # Attach spec to router for downstream OpenAPI assembly
-                router.openbb_openapi_spec_ext = openapi_spec
+                FlaskMountRegistry.register_mount(
+                    prefix=prefix,
+                    flask_app=flask_app,
+                    openapi_spec=openapi_spec,
+                    router=router
+                )
                 
                 return router
             return None

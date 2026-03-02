@@ -72,11 +72,69 @@ def test_openapi_generation():
         return False
 
 
+def test_registry():
+    """Test FlaskMountRegistry for multiple mount management."""
+    try:
+        from flask import Flask
+        from openbb_core.app.utils.flask.registry import FlaskMountRegistry
+        from openbb_core.app.utils.flask.introspection import FlaskIntrospector
+        from openbb_core.app.utils.flask.adapter import OpenAPISpecGenerator
+        
+        # Clear registry for clean test
+        FlaskMountRegistry.clear()
+        
+        # Create two Flask apps
+        app_v1 = Flask('v1')
+        @app_v1.route('/users')
+        def v1_users():
+            """V1 users endpoint."""
+            return {'version': 'v1'}
+        
+        app_v2 = Flask('v2')
+        @app_v2.route('/users')
+        def v2_users():
+            """V2 users endpoint."""
+            return {'version': 'v2'}
+        
+        # Register both mounts
+        for prefix, app in [('/api/v1', app_v1), ('/api/v2', app_v2)]:
+            introspector = FlaskIntrospector(app)
+            routes = introspector.analyze_routes()
+            spec = OpenAPISpecGenerator.generate_spec(routes)
+            FlaskMountRegistry.register_mount(prefix, app, spec)
+        
+        # Test registry operations
+        assert len(FlaskMountRegistry.list_mounts()) == 2
+        assert '/api/v1' in FlaskMountRegistry.list_mounts()
+        assert '/api/v2' in FlaskMountRegistry.list_mounts()
+        
+        # Test aggregated spec
+        aggregated = FlaskMountRegistry.get_aggregated_spec()
+        assert '/api/v1/users' in aggregated['paths']
+        assert '/api/v2/users' in aggregated['paths']
+        
+        # Test individual mount retrieval
+        v1_mount = FlaskMountRegistry.get_mount('/api/v1')
+        assert v1_mount is not None
+        assert v1_mount['app'].name == 'v1'
+        
+        print("✓ Registry test passed")
+        return True
+    except Exception as e:
+        print(f"✗ Registry test failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
 def test_loader_integration():
-    """Test Flask extension loader with metadata attachment."""
+    """Test Flask extension loader with registry integration."""
     try:
         from flask import Flask
         from openbb_core.app.utils.flask.loader import FlaskExtensionLoader
+        from openbb_core.app.utils.flask.registry import FlaskMountRegistry
+        
+        FlaskMountRegistry.clear()
         
         app = Flask(__name__)
         
@@ -94,8 +152,12 @@ def test_loader_integration():
             routes = introspector.analyze_routes()
             spec = OpenAPISpecGenerator.generate_spec(routes)
             
+            # Register in registry
+            FlaskMountRegistry.register_mount('/test', app, spec)
+            
             assert 'paths' in spec
             assert 'components' in spec
+            assert len(FlaskMountRegistry.list_mounts()) == 1
             
             print("✓ Loader integration test passed")
             return True
@@ -110,6 +172,7 @@ if __name__ == '__main__':
     results = []
     results.append(test_introspection())
     results.append(test_openapi_generation())
+    results.append(test_registry())
     results.append(test_loader_integration())
     
     print(f"\n{'='*50}")
