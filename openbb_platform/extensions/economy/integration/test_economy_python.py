@@ -46,6 +46,14 @@ def obb(pytestconfig):  # pylint: disable=inconsistent-return-statements
                 "end_date": "2023-11-03",
             }
         ),
+        (
+            {
+                "provider": "fred",
+                "start_date": "2025-07-01",
+                "end_date": "2025-07-02",
+                "release_id": None,
+            }
+        ),
     ],
 )
 @pytest.mark.integration
@@ -919,7 +927,7 @@ def test_economy_primary_dealer_positioning(params, obb):
 )
 @pytest.mark.integration
 def test_economy_survey_nonfarm_payrolls(params, obb):
-    """Test the economy survery nonfarm payrolls endpoint"""
+    """Test the economy survey nonfarm payrolls endpoint"""
     params = {p: v for p, v in params.items() if v}
 
     result = obb.economy.survey.nonfarm_payrolls(**params)
