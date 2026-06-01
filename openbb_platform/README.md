@@ -68,7 +68,6 @@ These packages are not installed when `pip install openbb` is run.  They are ava
 | openbb-tradier | [Tradier](https://tradier.com) data connector | pip install openbb-tradier | None |
 | openbb-wsj | [Wall Street Journal](https://www.wsj.com/) data connector | pip install openbb-wsj | None |
 
-
 ```bash
 pip install openbb-equity openbb-yfinance
 ```
@@ -89,7 +88,6 @@ pip install openbb-equity openbb-yfinance
 | 2025-10-02 | 256.58  | 258.18 | 254.15 |  257.13 |
 | 2025-10-03 | 254.67  | 259.24 | 253.95 |  258.02 |
 | 2025-10-06 | 257.945 | 259.07 | 255.05 |  256.69 |
-
 
 ## API keys
 
