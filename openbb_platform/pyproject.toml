@@ -64,7 +64,6 @@ openbb-technical = { version = "^1.6.2", optional = true }
 openbb-mcp-server = { version = "^1.4.1", optional = true }
 
 [tool.poetry.extras]
-alpha_vantage = ["openbb-alpha-vantage"]
 cboe = ["openbb-cboe"]
 charting = ["openbb-charting"]
 deribit = ["openbb-deribit"]
