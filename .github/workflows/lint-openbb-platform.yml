@@ -1,0 +1,121 @@
+name: 🧹 General Linting
+
+env:
+  PIP_DEFAULT_TIMEOUT: 100
+
+on:
+  pull_request:
+    types: [opened, synchronize, edited]
+    paths:
+      - 'openbb_platform/**'
+      - '.github/workflows/general-linting.yml'
+  merge_group:
+    types: [checks_requested]
+
+concurrency:
+  group: ${{ github.event_name }}-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  code-linting:
+    name: General Code Linting
+    runs-on: ubuntu-latest
+    env:
+      UV_CACHE_DIR: ${{ github.workspace }}/.uv-cache
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6 # actions/checkout v3.0.2
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          fetch-depth: 20
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch base branch
+        run: git fetch --no-tags --depth=20 origin ${{ github.base_ref }}
+
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.10"
+          architecture: x64
+
+      - name: Get changed files in openbb_platform for PR
+        if: github.event_name == 'pull_request'
+        run: |
+          # "Checking PR diff"
+          echo "diff_files=$(git diff --diff-filter=d --name-only origin/${{ github.base_ref }}...${HEAD_REF} | grep -E '^openbb_platform/.*\.py$' | grep -v 'openbb_platform/core/openbb/package' | grep -v 'integration' | grep -v 'tests' | xargs)" >> $GITHUB_ENV
+          echo $diff_files
+
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+      - name: Cache uv (built wheels)
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.uv-cache
+          key: uv-${{ runner.os }}-py3.10-lint-${{ hashFiles('openbb_platform/**/pyproject.toml', 'cli/pyproject.toml') }}
+          restore-keys: |
+            uv-${{ runner.os }}-py3.10-lint-
+
+      - name: Install tooling (ruff + ty + codespell)
+        run: |
+          python -m pip install --upgrade pip uv
+          uv pip install --system -e ./openbb_platform/extensions/devtools
+
+      - name: Install changed packages (so ty resolves their declared deps)
+        if: env.diff_files != ''
+        run: |
+          # Install each touched package so ty has the package's declared
+          # third-party deps (pandas-ta, scipy, statsmodels, etc.) available
+          # for type resolution. Optional cross-package peers (e.g.
+          # openbb_charting) that aren't installed surface as `warn`-level
+          # diagnostics under the package ty.toml rather than build errors.
+          touched=$(echo "${{ env.diff_files }}" | tr ' ' '\n' \
+            | grep -oE '^(openbb_platform/(extensions|providers|obbject_extensions)|cli)/[^/]+' \
+            | sort -u)
+          for pkg in $touched; do
+            if [ -f "$pkg/pyproject.toml" ]; then
+              echo "Installing $pkg"
+              uv pip install --system -e "./$pkg" || echo "skip $pkg (install failed)"
+            fi
+          done
+      - run: codespell --ignore-words=.codespell.ignore --skip="$(tr '\n' ',' < .codespell.skip | sed 's/,$//')" --quiet-level=2
+      - run: |
+          # Run linters for openbb_platform | cli
+          if [ -n "${{ env.diff_files }}" ]; then
+            ruff format --check ${{ env.diff_files }}
+            ruff check ${{ env.diff_files }}
+            ty check ${{ env.diff_files }}
+          else
+            echo "No Python files changed in openbb_platform | cli"
+          fi
+
+  markdown-link-check:
+    name: Markdown Linting
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        name: Check out the code
+      - name: Lint Code Base
+        uses: docker://avtodev/markdown-lint:v1
+        with:
+          args: "./*.md ./changelogs/*.md ./openbb_platform/**/*.md"
+
+  json-yaml-validate:
+    name: JSON Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: json-yaml-validate
+        id: json-yaml-validate
+        uses: GrantBirki/json-yaml-validate@9bbaa8474e3af4e91f25eda8ac194fdc30564d96 # v4
+        with:
+          yaml_exclude_regex: "construct.yaml"
+          use_gitignore: false
