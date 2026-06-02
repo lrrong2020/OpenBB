@@ -1,6 +1,5 @@
 """SEC Litigation RSS Feed Model."""
 
-
 from datetime import datetime
 from typing import Any
 

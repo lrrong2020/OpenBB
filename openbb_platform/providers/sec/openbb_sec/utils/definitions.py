@@ -1,6 +1,5 @@
 """SEC Definitions and Models."""
 
-
 from typing import Literal
 
 QUARTERS = Literal[1, 2, 3, 4]

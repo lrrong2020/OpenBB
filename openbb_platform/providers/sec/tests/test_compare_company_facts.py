@@ -77,9 +77,7 @@ class TestCompareCompanyFacts:
             instantaneous=False,
             use_cache=False,
         )
-        monkeypatch.setattr(
-            "openbb_sec.utils.frames.get_frame", _async_return({})
-        )
+        monkeypatch.setattr("openbb_sec.utils.frames.get_frame", _async_return({}))
         # Empty frame -> EmptyDataError
         with pytest.raises(EmptyDataError):
             _run(SecCompareCompanyFactsFetcher.aextract_data(q, None))
@@ -106,6 +104,4 @@ class TestCompareCompanyFacts:
 
     def test_transform_data_empty_raises(self):
         with pytest.raises(EmptyDataError):
-            SecCompareCompanyFactsFetcher.transform_data(
-                types.SimpleNamespace(), {}
-            )
+            SecCompareCompanyFactsFetcher.transform_data(types.SimpleNamespace(), {})

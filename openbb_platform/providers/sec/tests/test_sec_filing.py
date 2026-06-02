@@ -107,9 +107,7 @@ class TestSecFilingDownloadFile:
     """SecBaseFiling.download_file branches."""
 
     def test_non_html_with_read_table_warns_and_returns(self, monkeypatch):
-        monkeypatch.setattr(
-            SecBaseFiling, "_adownload_file", _async_return("rawtext")
-        )
+        monkeypatch.setattr(SecBaseFiling, "_adownload_file", _async_return("rawtext"))
         with pytest.warns(Warning, match="not a HTML file"):
             out = SecBaseFiling.download_file(
                 "https://www.sec.gov/x.txt",
@@ -135,9 +133,7 @@ class TestSecFilingDownloadFile:
 
         monkeypatch.setattr(SecBaseFiling, "_adownload_file", boom)
         with pytest.raises(RuntimeError, match="Failed to download file"):
-            SecBaseFiling.download_file(
-                "https://www.sec.gov/x.htm", use_cache=False
-            )
+            SecBaseFiling.download_file("https://www.sec.gov/x.htm", use_cache=False)
 
     def test_plain_download_returns_raw_response(self, monkeypatch):
         # read_html_table=False returns the raw downloaded payload untouched.
@@ -165,19 +161,13 @@ class TestSecFilingIndexHeaders:
                 # so instead give a minimal valid frame.
                 import pandas
 
-                return [
-                    pandas.DataFrame(
-                        {0: ["Document Type"], 1: ["8-K"]}
-                    )
-                ]
+                return [pandas.DataFrame({0: ["Document Type"], 1: ["8-K"]})]
             return _INDEX_HTML
 
         monkeypatch.setattr(
             SecBaseFiling, "download_file", staticmethod(fake_download_file)
         )
-        monkeypatch.setattr(
-            "openbb_sec.utils.helpers.cik_map", _async_return("KO")
-        )
+        monkeypatch.setattr("openbb_sec.utils.helpers.cik_map", _async_return("KO"))
         f = SecBaseFiling(_FILING_URL, use_cache=False)
         assert f.base_url.endswith("/000031754024000045/")
         assert f.name == "ACME CORP"
@@ -206,9 +196,7 @@ class TestSecFilingIndexHeaders:
         monkeypatch.setattr(
             SecBaseFiling, "download_file", staticmethod(fake_download_file)
         )
-        monkeypatch.setattr(
-            "openbb_sec.utils.helpers.cik_map", _async_return("KO")
-        )
+        monkeypatch.setattr("openbb_sec.utils.helpers.cik_map", _async_return("KO"))
         f = SecBaseFiling(_FILING_URL, use_cache=False)
         # __repr__ reads ``model_computed_fields`` off the instance, which is
         # deprecated in Pydantic >=2.11 and emits a deprecation warning.
@@ -222,9 +210,7 @@ class TestSecFilingIndexHeaders:
         def boom(url, read_html_table=False, use_cache=True):
             raise RuntimeError("network down")
 
-        monkeypatch.setattr(
-            SecBaseFiling, "download_file", staticmethod(boom)
-        )
+        monkeypatch.setattr(SecBaseFiling, "download_file", staticmethod(boom))
         with pytest.raises(RuntimeError, match="index headers table"):
             SecBaseFiling(_FILING_URL, use_cache=False)
 
@@ -259,9 +245,7 @@ class TestSecFilingIndexHeaders:
         monkeypatch.setattr(
             SecBaseFiling, "download_file", staticmethod(fake_download_file)
         )
-        monkeypatch.setattr(
-            "openbb_sec.utils.helpers.cik_map", _async_return(None)
-        )
+        monkeypatch.setattr("openbb_sec.utils.helpers.cik_map", _async_return(None))
         f = SecBaseFiling(_FILING_URL, use_cache=False)
         # Break hit at the 9th item -> trailing period line never processed.
         assert f.period_ending is None
@@ -310,9 +294,7 @@ class TestSecFilingCoverPage:
             SecBaseFiling, "download_file", staticmethod(fake_download_file)
         )
         # cik_map returns None -> the cover-page trading symbols are used.
-        monkeypatch.setattr(
-            "openbb_sec.utils.helpers.cik_map", _async_return(None)
-        )
+        monkeypatch.setattr("openbb_sec.utils.helpers.cik_map", _async_return(None))
         f = SecBaseFiling(_FILING_URL, use_cache=True)
         cover = f.cover_page
         assert cover["Document Fiscal Year Focus"] == "2024"
@@ -354,9 +336,7 @@ class TestSecFilingCoverPage:
         monkeypatch.setattr(
             SecBaseFiling, "download_file", staticmethod(fake_download_file)
         )
-        monkeypatch.setattr(
-            "openbb_sec.utils.helpers.cik_map", _async_return(None)
-        )
+        monkeypatch.setattr("openbb_sec.utils.helpers.cik_map", _async_return(None))
         f = SecBaseFiling(_FILING_URL, use_cache=True)
         # MultiIndex columns are dropped to a single level; cover parsed fine.
         assert f.cover_page["Document Fiscal Period Focus"] == "FY"
@@ -390,9 +370,7 @@ class TestSecFilingCoverPage:
         monkeypatch.setattr(
             SecBaseFiling, "download_file", staticmethod(fake_download_file)
         )
-        monkeypatch.setattr(
-            "openbb_sec.utils.helpers.cik_map", _async_return(None)
-        )
+        monkeypatch.setattr("openbb_sec.utils.helpers.cik_map", _async_return(None))
         f = SecBaseFiling(_FILING_URL, use_cache=True)
         # shares_outstanding stored as {date: shares * multiplier}
         assert f._shares_outstanding == {"2024-07-31": 1_000_000}
@@ -407,9 +385,7 @@ class TestSecFilingCoverPage:
         monkeypatch.setattr(
             SecBaseFiling, "download_file", staticmethod(fake_download_file)
         )
-        monkeypatch.setattr(
-            "openbb_sec.utils.helpers.cik_map", _async_return(None)
-        )
+        monkeypatch.setattr("openbb_sec.utils.helpers.cik_map", _async_return(None))
         with pytest.raises(RuntimeError, match="cover page table"):
             SecBaseFiling(_FILING_URL, use_cache=True)
 
@@ -424,12 +400,8 @@ class TestSecFilingCoverPage:
         monkeypatch.setattr(
             SecBaseFiling, "download_file", staticmethod(fake_download_file)
         )
-        monkeypatch.setattr(
-            "openbb_sec.utils.helpers.cik_map", _async_return(None)
-        )
-        with pytest.raises(
-            RuntimeError, match="Failed to download cover page table"
-        ):
+        monkeypatch.setattr("openbb_sec.utils.helpers.cik_map", _async_return(None))
+        with pytest.raises(RuntimeError, match="Failed to download cover page table"):
             SecBaseFiling(_FILING_URL, use_cache=True)
 
     def test_cover_page_empty_dataframe_raises(self, monkeypatch):
@@ -445,12 +417,8 @@ class TestSecFilingCoverPage:
         monkeypatch.setattr(
             SecBaseFiling, "download_file", staticmethod(fake_download_file)
         )
-        monkeypatch.setattr(
-            "openbb_sec.utils.helpers.cik_map", _async_return(None)
-        )
-        with pytest.raises(
-            RuntimeError, match="Failed to read cover page table"
-        ):
+        monkeypatch.setattr("openbb_sec.utils.helpers.cik_map", _async_return(None))
+        with pytest.raises(RuntimeError, match="Failed to read cover page table"):
             SecBaseFiling(_FILING_URL, use_cache=True)
 
     def test_cover_page_index_error_swallowed(self, monkeypatch):
@@ -467,9 +435,7 @@ class TestSecFilingCoverPage:
         monkeypatch.setattr(
             SecBaseFiling, "download_file", staticmethod(fake_download_file)
         )
-        monkeypatch.setattr(
-            "openbb_sec.utils.helpers.cik_map", _async_return(None)
-        )
+        monkeypatch.setattr("openbb_sec.utils.helpers.cik_map", _async_return(None))
         f = SecBaseFiling(_FILING_URL, use_cache=True)
         # IndexError was swallowed -> cover page never populated.
         assert f._cover_page is None
@@ -500,9 +466,7 @@ class TestSecFilingFetcher:
         monkeypatch.setattr(
             SecBaseFiling, "download_file", staticmethod(fake_download_file)
         )
-        monkeypatch.setattr(
-            "openbb_sec.utils.helpers.cik_map", _async_return("KO")
-        )
+        monkeypatch.setattr("openbb_sec.utils.helpers.cik_map", _async_return("KO"))
         q = types.SimpleNamespace(url=_FILING_URL, use_cache=False)
         out = _run(SecFilingFetcher.aextract_data(q, None))
         assert isinstance(out, dict)

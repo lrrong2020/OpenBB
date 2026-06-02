@@ -19,8 +19,9 @@ def test_equity_ftd_aextract_no_results():
         return []
 
     query = SecEquityFtdQueryParams(symbol="AAPL", limit=1, use_cache=False)
-    with patch("openbb_sec.utils.helpers.get_ftd_urls", _urls), patch(
-        "openbb_sec.utils.helpers.download_zip_file", _download
+    with (
+        patch("openbb_sec.utils.helpers.get_ftd_urls", _urls),
+        patch("openbb_sec.utils.helpers.download_zip_file", _download),
     ):
         with pytest.raises(EmptyDataError) as exc:
             asyncio.run(SecEquityFtdFetcher.aextract_data(query, None))

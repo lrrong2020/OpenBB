@@ -41,11 +41,14 @@ def test_command_delegates_to_from_query(command_name):
     """Each command builds a Query and awaits OBBject.from_query."""
     sentinel = object()
     command = getattr(sec_router, command_name)
-    with patch.object(sec_router, "Query", MagicMock()) as mock_query, patch.object(
-        sec_router.OBBject,
-        "from_query",
-        new=AsyncMock(return_value=sentinel),
-    ) as mock_from_query:
+    with (
+        patch.object(sec_router, "Query", MagicMock()) as mock_query,
+        patch.object(
+            sec_router.OBBject,
+            "from_query",
+            new=AsyncMock(return_value=sentinel),
+        ) as mock_from_query,
+    ):
         result = asyncio.run(
             command(
                 cc=None,

@@ -131,7 +131,10 @@ def test_transform_data_diagnostics_and_serializer(fetcher, data_cls, statement,
         _record("2023-12-31", 2023, tag, 100.0, source="10-K"),
         _record("2022-12-31", 2022, tag, nan, source=""),
     ]
-    data = {"result": _result(statement, records, [_diagnostic()]), "statement": statement}
+    data = {
+        "result": _result(statement, records, [_diagnostic()]),
+        "statement": statement,
+    }
 
     with pytest.warns(Warning):
         result = fetcher.transform_data(SimpleNamespace(limit=None), data)

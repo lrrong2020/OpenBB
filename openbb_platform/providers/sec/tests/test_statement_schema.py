@@ -51,7 +51,9 @@ _M = 1_000_000  # magnitudes must exceed the 1M tolerance cap to register
 # ---------------------------------------------------------------------------
 
 
-def _entry(end, start=None, *, form="10-K", filed="2024-02-15", fy=None, fp="FY", val=1.0):
+def _entry(
+    end, start=None, *, form="10-K", filed="2024-02-15", fy=None, fp="FY", val=1.0
+):
     """Build a single XBRL fact entry dict."""
     e = {"end": end, "val": val, "form": form, "filed": filed, "fp": fp}
     if start is not None:
@@ -145,11 +147,31 @@ class TestDetectType:
     def test_insurance_wins_when_total_exceeds_financial(self):
         facts = _facts(
             [
-                ("us-gaap", "PremiumsEarnedNet", "USD", [_entry("2023-12-31", "2023-01-01")]),
-                ("us-gaap", "LiabilityForFuturePolicyBenefits", "USD", [_entry("2023-12-31")]),
+                (
+                    "us-gaap",
+                    "PremiumsEarnedNet",
+                    "USD",
+                    [_entry("2023-12-31", "2023-01-01")],
+                ),
+                (
+                    "us-gaap",
+                    "LiabilityForFuturePolicyBenefits",
+                    "USD",
+                    [_entry("2023-12-31")],
+                ),
                 ("us-gaap", "UnearnedPremiums", "USD", [_entry("2023-12-31")]),
-                ("us-gaap", "InterestIncomeExpenseNet", "USD", [_entry("2023-12-31", "2023-01-01")]),
-                ("us-gaap", "NoninterestIncome", "USD", [_entry("2023-12-31", "2023-01-01")]),
+                (
+                    "us-gaap",
+                    "InterestIncomeExpenseNet",
+                    "USD",
+                    [_entry("2023-12-31", "2023-01-01")],
+                ),
+                (
+                    "us-gaap",
+                    "NoninterestIncome",
+                    "USD",
+                    [_entry("2023-12-31", "2023-01-01")],
+                ),
             ]
         )
         # ins_total = 3 (1 IS + 2 BS), fin_count = 2 -> insurance
@@ -158,10 +180,30 @@ class TestDetectType:
     def test_financial_wins_when_count_exceeds_insurance_total(self):
         facts = _facts(
             [
-                ("us-gaap", "PremiumsEarnedNet", "USD", [_entry("2023-12-31", "2023-01-01")]),
-                ("us-gaap", "LiabilityForFuturePolicyBenefits", "USD", [_entry("2023-12-31")]),
-                ("us-gaap", "InterestIncomeExpenseNet", "USD", [_entry("2023-12-31", "2023-01-01")]),
-                ("us-gaap", "NoninterestIncome", "USD", [_entry("2023-12-31", "2023-01-01")]),
+                (
+                    "us-gaap",
+                    "PremiumsEarnedNet",
+                    "USD",
+                    [_entry("2023-12-31", "2023-01-01")],
+                ),
+                (
+                    "us-gaap",
+                    "LiabilityForFuturePolicyBenefits",
+                    "USD",
+                    [_entry("2023-12-31")],
+                ),
+                (
+                    "us-gaap",
+                    "InterestIncomeExpenseNet",
+                    "USD",
+                    [_entry("2023-12-31", "2023-01-01")],
+                ),
+                (
+                    "us-gaap",
+                    "NoninterestIncome",
+                    "USD",
+                    [_entry("2023-12-31", "2023-01-01")],
+                ),
             ]
         )
         # ins_total = 2, fin_count = 2 -> not > so financial branch:
@@ -171,8 +213,18 @@ class TestDetectType:
     def test_insurance_only(self):
         facts = _facts(
             [
-                ("us-gaap", "PremiumsEarnedNet", "USD", [_entry("2023-12-31", "2023-01-01")]),
-                ("us-gaap", "LiabilityForFuturePolicyBenefits", "USD", [_entry("2023-12-31")]),
+                (
+                    "us-gaap",
+                    "PremiumsEarnedNet",
+                    "USD",
+                    [_entry("2023-12-31", "2023-01-01")],
+                ),
+                (
+                    "us-gaap",
+                    "LiabilityForFuturePolicyBenefits",
+                    "USD",
+                    [_entry("2023-12-31")],
+                ),
             ]
         )
         assert detect_type(facts, **_DETECT_KW) == "insurance"
@@ -180,8 +232,18 @@ class TestDetectType:
     def test_financial_only(self):
         facts = _facts(
             [
-                ("us-gaap", "InterestIncomeExpenseNet", "USD", [_entry("2023-12-31", "2023-01-01")]),
-                ("us-gaap", "NoninterestIncome", "USD", [_entry("2023-12-31", "2023-01-01")]),
+                (
+                    "us-gaap",
+                    "InterestIncomeExpenseNet",
+                    "USD",
+                    [_entry("2023-12-31", "2023-01-01")],
+                ),
+                (
+                    "us-gaap",
+                    "NoninterestIncome",
+                    "USD",
+                    [_entry("2023-12-31", "2023-01-01")],
+                ),
             ]
         )
         assert detect_type(facts, **_DETECT_KW) == "financial"
@@ -210,7 +272,12 @@ class TestDetectType:
                     "USD",
                     [_entry("2005-12-31", "2005-01-01", form="10-K")],
                 ),
-                ("us-gaap", "CostsAndExpenses", "USD", [_entry("2024-12-31", "2024-01-01")]),
+                (
+                    "us-gaap",
+                    "CostsAndExpenses",
+                    "USD",
+                    [_entry("2024-12-31", "2024-01-01")],
+                ),
             ]
         )
         assert detect_type(facts, **_DETECT_KW) == "diversified"
@@ -221,26 +288,50 @@ class TestDetectType:
 
     def test_non_dict_namespace_skipped(self):
         # detect_type iterates facts.values(); non-dict values are ignored.
-        facts = {"weird": ["not", "a", "dict"], "us-gaap": {"CostsAndExpenses": {"units": {}}}}
+        facts = {
+            "weird": ["not", "a", "dict"],
+            "us-gaap": {"CostsAndExpenses": {"units": {}}},
+        }
         assert detect_type(facts, **_DETECT_KW) == "diversified"
 
 
 class TestHasRecentData:
     def test_true_for_recent_annual(self):
         facts = _facts(
-            [("us-gaap", "CostOfRevenue", "USD", [_entry("2024-12-31", "2024-01-01", form="10-K")])]
+            [
+                (
+                    "us-gaap",
+                    "CostOfRevenue",
+                    "USD",
+                    [_entry("2024-12-31", "2024-01-01", form="10-K")],
+                )
+            ]
         )
         assert _has_recent_data(facts, "CostOfRevenue") is True
 
     def test_false_for_old(self):
         facts = _facts(
-            [("us-gaap", "CostOfRevenue", "USD", [_entry("2005-12-31", "2005-01-01", form="10-K")])]
+            [
+                (
+                    "us-gaap",
+                    "CostOfRevenue",
+                    "USD",
+                    [_entry("2005-12-31", "2005-01-01", form="10-K")],
+                )
+            ]
         )
         assert _has_recent_data(facts, "CostOfRevenue") is False
 
     def test_false_for_non_annual_form(self):
         facts = _facts(
-            [("us-gaap", "CostOfRevenue", "USD", [_entry("2024-09-30", "2024-07-01", form="10-Q")])]
+            [
+                (
+                    "us-gaap",
+                    "CostOfRevenue",
+                    "USD",
+                    [_entry("2024-09-30", "2024-07-01", form="10-Q")],
+                )
+            ]
         )
         assert _has_recent_data(facts, "CostOfRevenue") is False
 
@@ -253,7 +344,12 @@ class TestGetFilingDates:
     def test_annual_basic(self):
         facts = _facts(
             [
-                ("us-gaap", "Assets", "USD", [_entry(f"{y}-12-31") for y in (2022, 2023)]),
+                (
+                    "us-gaap",
+                    "Assets",
+                    "USD",
+                    [_entry(f"{y}-12-31") for y in (2022, 2023)],
+                ),
                 (
                     "us-gaap",
                     "Revenues",
@@ -306,7 +402,9 @@ class TestGetFilingDates:
 
     def test_canonical_month_filter_keeps_offcycle_without_neighbor(self):
         # >3 annual dates, dominant 12-31, plus an isolated 06-30 far from any canonical.
-        rev = [_entry(f"{y}-12-31", f"{y}-01-01") for y in (2020, 2021, 2022, 2023, 2024)]
+        rev = [
+            _entry(f"{y}-12-31", f"{y}-01-01") for y in (2020, 2021, 2022, 2023, 2024)
+        ]
         assets = [_entry(f"{y}-12-31") for y in (2020, 2021, 2022, 2023, 2024)]
         rev.append(_entry("2016-06-30", "2015-07-01"))
         assets.append(_entry("2016-06-30"))
@@ -363,7 +461,12 @@ class TestGetFiscalMeta:
         # get_fiscal_meta forces the earlier to be next_fy - 1.
         facts = _facts(
             [
-                ("us-gaap", "Assets", "USD", [_entry("2022-12-31"), _entry("2023-12-31")]),
+                (
+                    "us-gaap",
+                    "Assets",
+                    "USD",
+                    [_entry("2022-12-31"), _entry("2023-12-31")],
+                ),
                 (
                     "us-gaap",
                     "Revenues",
@@ -385,7 +488,12 @@ class TestGetFiscalMeta:
         facts = _facts(
             [
                 ("us-gaap", "Assets", "USD", [_entry("2023-12-31", fy=None, fp="")]),
-                ("us-gaap", "Revenues", "USD", [_entry("2023-12-31", "2023-01-01", fp="")]),
+                (
+                    "us-gaap",
+                    "Revenues",
+                    "USD",
+                    [_entry("2023-12-31", "2023-01-01", fp="")],
+                ),
             ]
         )
         dates = {"2023-12-31"}
@@ -409,8 +517,12 @@ class TestGetFiscalMeta:
                     "Revenues",
                     "USD",
                     [
-                        _entry("2023-09-30", "2023-07-01", form="10-Q", fy=2023, fp="Q3"),
-                        _entry("2023-12-31", "2023-01-01", form="10-K", fy=2023, fp="FY"),
+                        _entry(
+                            "2023-09-30", "2023-07-01", form="10-Q", fy=2023, fp="Q3"
+                        ),
+                        _entry(
+                            "2023-12-31", "2023-01-01", form="10-K", fy=2023, fp="FY"
+                        ),
                     ],
                 ),
             ]
@@ -514,8 +626,12 @@ class TestGetAnnualValues:
                     "Revenues",
                     "USD",
                     [
-                        _entry("2023-12-31", "2023-01-01", filed="2024-02-01", val=500.0),
-                        _entry("2023-12-31", "2023-01-01", filed="2025-02-01", val=510.0),
+                        _entry(
+                            "2023-12-31", "2023-01-01", filed="2024-02-01", val=500.0
+                        ),
+                        _entry(
+                            "2023-12-31", "2023-01-01", filed="2025-02-01", val=510.0
+                        ),
                     ],
                 )
             ]
@@ -528,8 +644,18 @@ class TestGetAnnualValues:
     def test_tag_chain_priority(self):
         facts = _facts(
             [
-                ("us-gaap", "RevA", "USD", [_entry("2023-12-31", "2023-01-01", val=100.0)]),
-                ("us-gaap", "RevB", "USD", [_entry("2023-12-31", "2023-01-01", val=200.0)]),
+                (
+                    "us-gaap",
+                    "RevA",
+                    "USD",
+                    [_entry("2023-12-31", "2023-01-01", val=100.0)],
+                ),
+                (
+                    "us-gaap",
+                    "RevB",
+                    "USD",
+                    [_entry("2023-12-31", "2023-01-01", val=200.0)],
+                ),
             ]
         )
         row = _rd("total_revenue", xbrl=[("RevA", "us-gaap"), ("RevB", "us-gaap")])
@@ -539,7 +665,14 @@ class TestGetAnnualValues:
     def test_duration_window_filter(self):
         # A 200-day duration is not annual (300-400) -> excluded.
         facts = _facts(
-            [("us-gaap", "Revenues", "USD", [_entry("2023-07-01", "2022-12-01", val=9.0)])]
+            [
+                (
+                    "us-gaap",
+                    "Revenues",
+                    "USD",
+                    [_entry("2023-07-01", "2022-12-01", val=9.0)],
+                )
+            ]
         )
         row = _rd("total_revenue", xbrl=[("Revenues", "us-gaap")])
         assert _get_annual_values(facts, row) == {}
@@ -558,8 +691,12 @@ class TestGetYtd9Values:
                     "Revenues",
                     "USD",
                     [
-                        _entry("2023-12-31", "2023-01-01", filed="2024-02-01", val=1000.0),
-                        _entry("2023-09-30", "2023-01-01", filed="2024-02-01", val=700.0),
+                        _entry(
+                            "2023-12-31", "2023-01-01", filed="2024-02-01", val=1000.0
+                        ),
+                        _entry(
+                            "2023-09-30", "2023-01-01", filed="2024-02-01", val=700.0
+                        ),
                     ],
                 )
             ]
@@ -570,7 +707,14 @@ class TestGetYtd9Values:
 
     def test_missing_ytd_returns_empty(self):
         facts = _facts(
-            [("us-gaap", "Revenues", "USD", [_entry("2023-12-31", "2023-01-01", val=1000.0)])]
+            [
+                (
+                    "us-gaap",
+                    "Revenues",
+                    "USD",
+                    [_entry("2023-12-31", "2023-01-01", val=1000.0)],
+                )
+            ]
         )
         row = _rd("total_revenue", xbrl=[("Revenues", "us-gaap")])
         assert _get_ytd9_values(facts, row) == {}
@@ -579,7 +723,14 @@ class TestGetYtd9Values:
 class TestExtractRowValues:
     def test_annual_simple(self):
         facts = _facts(
-            [("us-gaap", "Revenues", "USD", [_entry("2023-12-31", "2023-01-01", val=500.0)])]
+            [
+                (
+                    "us-gaap",
+                    "Revenues",
+                    "USD",
+                    [_entry("2023-12-31", "2023-01-01", val=500.0)],
+                )
+            ]
         )
         row = _rd("total_revenue", xbrl=[("Revenues", "us-gaap")])
         vals, srcs = extract_row_values(facts, row, "annual", "USD")
@@ -587,14 +738,23 @@ class TestExtractRowValues:
         assert srcs["2023-12-31"] == "us-gaap:Revenues"
 
     def test_instant_balance_sheet(self):
-        facts = _facts([("us-gaap", "Assets", "USD", [_entry("2023-12-31", val=999.0)])])
+        facts = _facts(
+            [("us-gaap", "Assets", "USD", [_entry("2023-12-31", val=999.0)])]
+        )
         row = _rd("total_assets", period_type="instant", xbrl=[("Assets", "us-gaap")])
         vals, _ = extract_row_values(facts, row, "annual", "USD")
         assert vals["2023-12-31"] == 999.0
 
     def test_cross_target_identity_lock(self):
         facts = _facts(
-            [("us-gaap", "ProfitLoss", "USD", [_entry("2023-12-31", "2023-01-01", val=42.0)])]
+            [
+                (
+                    "us-gaap",
+                    "ProfitLoss",
+                    "USD",
+                    [_entry("2023-12-31", "2023-01-01", val=42.0)],
+                )
+            ]
         )
         row = _rd("net_income", xbrl=[("ProfitLoss", "us-gaap")])
         vals, srcs = extract_row_values(
@@ -611,7 +771,14 @@ class TestExtractRowValues:
     def test_ref_filed_fallback_when_exact_missing(self):
         # ref_filed_map points to a date not in the filings -> fallback path.
         facts = _facts(
-            [("us-gaap", "Revenues", "USD", [_entry("2023-12-31", "2023-01-01", filed="2024-02-01", val=500.0)])]
+            [
+                (
+                    "us-gaap",
+                    "Revenues",
+                    "USD",
+                    [_entry("2023-12-31", "2023-01-01", filed="2024-02-01", val=500.0)],
+                )
+            ]
         )
         row = _rd("total_revenue", xbrl=[("Revenues", "us-gaap")])
         vals, srcs = extract_row_values(
@@ -725,7 +892,11 @@ class TestQuarterlyRefFilings:
                     "us-gaap",
                     "Revenues",
                     "USD",
-                    [_entry("2023-12-31", "2023-01-01", form="10-K", filed="2024-02-15")],
+                    [
+                        _entry(
+                            "2023-12-31", "2023-01-01", form="10-K", filed="2024-02-15"
+                        )
+                    ],
                 )
             ]
         )
@@ -827,10 +998,15 @@ class TestSchemaObject:
 
     def test_get_row_missing_returns_none(self, schema):
         assert schema.get_row("does_not_exist", "balance_sheet", "industrial") is None
-        assert schema.get_tag_chain("does_not_exist", "balance_sheet", "industrial") == ()
+        assert (
+            schema.get_tag_chain("does_not_exist", "balance_sheet", "industrial") == ()
+        )
 
     def test_get_period_type(self, schema):
-        assert schema.get_period_type("total_assets", "balance_sheet", "industrial") == "instant"
+        assert (
+            schema.get_period_type("total_assets", "balance_sheet", "industrial")
+            == "instant"
+        )
         assert schema.get_period_type("nope", "balance_sheet", "industrial") is None
 
     def test_extract_all_raises_for_annual_only_filer_on_quarterly(self, schema):
@@ -856,8 +1032,16 @@ class TestSchemaObject:
             schema.extract_all(facts_json, frequency="quarterly")
 
     def test_merge_facts_combines_units(self, schema):
-        a = {"facts": _facts([("us-gaap", "Assets", "USD", [_entry("2022-12-31", val=1.0)])])}
-        b = {"facts": _facts([("us-gaap", "Assets", "USD", [_entry("2023-12-31", val=2.0)])])}
+        a = {
+            "facts": _facts(
+                [("us-gaap", "Assets", "USD", [_entry("2022-12-31", val=1.0)])]
+            )
+        }
+        b = {
+            "facts": _facts(
+                [("us-gaap", "Assets", "USD", [_entry("2023-12-31", val=2.0)])]
+            )
+        }
         merged = schema.merge_facts(a, b)
         assert len(merged["us-gaap"]["Assets"]["units"]["USD"]) == 2
 
@@ -897,9 +1081,7 @@ class TestGetFilingDatesSemiAnnual:
                 ),
             ]
         )
-        with_prelim = get_filing_dates(
-            facts, "quarterly", include_preliminary=True
-        )
+        with_prelim = get_filing_dates(facts, "quarterly", include_preliminary=True)
         assert "2023-09-30" in with_prelim
         # Without the flag the 8-K quarter is ignored.
         assert "2023-09-30" not in get_filing_dates(facts, "quarterly")
@@ -1212,7 +1394,14 @@ class TestGetAnnualValuesEdges:
         # A tag absent from facts hits the `if not tag_data` continue (72-73);
         # the second (present) tag still resolves.
         facts = _facts(
-            [("us-gaap", "RevB", "USD", [_entry("2023-12-31", "2023-01-01", val=200.0)])]
+            [
+                (
+                    "us-gaap",
+                    "RevB",
+                    "USD",
+                    [_entry("2023-12-31", "2023-01-01", val=200.0)],
+                )
+            ]
         )
         row = _rd("total_revenue", xbrl=[("RevA", "us-gaap"), ("RevB", "us-gaap")])
         res = _get_annual_values(facts, row)
@@ -1531,10 +1720,18 @@ class TestExtractRowValuesEdges:
         # the requested ref is absent for the YTD date -> the
         # `before/min(ytd_fdata)` fallback (line 492-494) runs.
         entries = [
-            _entry("2023-12-31", "2023-01-01", form="10-K", filed="2024-02-15", val=1000.0),
-            _entry("2023-03-31", "2023-01-01", form="10-Q", filed="2023-05-01", val=200.0),
-            _entry("2023-06-30", "2023-04-01", form="10-Q", filed="2023-08-01", val=250.0),
-            _entry("2023-09-30", "2023-01-01", form="10-Q", filed="2023-11-01", val=750.0),
+            _entry(
+                "2023-12-31", "2023-01-01", form="10-K", filed="2024-02-15", val=1000.0
+            ),
+            _entry(
+                "2023-03-31", "2023-01-01", form="10-Q", filed="2023-05-01", val=200.0
+            ),
+            _entry(
+                "2023-06-30", "2023-04-01", form="10-Q", filed="2023-08-01", val=250.0
+            ),
+            _entry(
+                "2023-09-30", "2023-01-01", form="10-Q", filed="2023-11-01", val=750.0
+            ),
         ]
         facts = _facts([("us-gaap", "Revenues", "USD", entries)])
         row = _rd("total_revenue", xbrl=[("Revenues", "us-gaap")])
@@ -1555,10 +1752,18 @@ class TestExtractRowValuesEdges:
         # is None and the YTD candidate's `if ref is None: continue` (480-481)
         # runs, so no ytd_derived value is produced for that date.
         entries = [
-            _entry("2023-12-31", "2023-01-01", form="10-K", filed="2024-02-15", val=1000.0),
-            _entry("2023-03-31", "2023-01-01", form="10-Q", filed="2023-05-01", val=200.0),
-            _entry("2023-06-30", "2023-04-01", form="10-Q", filed="2023-08-01", val=250.0),
-            _entry("2023-09-30", "2023-01-01", form="10-Q", filed="2023-11-01", val=750.0),
+            _entry(
+                "2023-12-31", "2023-01-01", form="10-K", filed="2024-02-15", val=1000.0
+            ),
+            _entry(
+                "2023-03-31", "2023-01-01", form="10-Q", filed="2023-05-01", val=200.0
+            ),
+            _entry(
+                "2023-06-30", "2023-04-01", form="10-Q", filed="2023-08-01", val=250.0
+            ),
+            _entry(
+                "2023-09-30", "2023-01-01", form="10-Q", filed="2023-11-01", val=750.0
+            ),
         ]
         facts = _facts([("us-gaap", "Revenues", "USD", entries)])
         row = _rd("total_revenue", xbrl=[("Revenues", "us-gaap")])
@@ -1600,9 +1805,7 @@ class TestComputeRefFilingsEdges:
                 "RevA": {"units": {}},
                 "RevB": {
                     "units": {
-                        "USD": [
-                            _entry("2023-12-31", "2023-01-01", filed="2024-02-01")
-                        ]
+                        "USD": [_entry("2023-12-31", "2023-01-01", filed="2024-02-01")]
                     }
                 },
             }
@@ -1655,7 +1858,11 @@ class TestComputeRefFilingsEdges:
                     "us-gaap",
                     "Revenues",
                     "USD",
-                    [_entry("2023-06-30", "2023-01-01", form="6-K", filed="2023-08-01")],
+                    [
+                        _entry(
+                            "2023-06-30", "2023-01-01", form="6-K", filed="2023-08-01"
+                        )
+                    ],
                 )
             ]
         )
@@ -1672,7 +1879,11 @@ class TestComputeRefFilingsEdges:
                     "us-gaap",
                     "Revenues",
                     "USD",
-                    [_entry("2023-09-30", "2023-01-01", form="6-K", filed="2023-11-01")],
+                    [
+                        _entry(
+                            "2023-09-30", "2023-01-01", form="6-K", filed="2023-11-01"
+                        )
+                    ],
                 )
             ]
         )
@@ -1689,7 +1900,11 @@ class TestComputeRefFilingsEdges:
                     "us-gaap",
                     "Revenues",
                     "USD",
-                    [_entry("2023-09-30", "2023-01-01", form="10-Q", filed="2023-11-01")],
+                    [
+                        _entry(
+                            "2023-09-30", "2023-01-01", form="10-Q", filed="2023-11-01"
+                        )
+                    ],
                 )
             ]
         )
@@ -1890,11 +2105,36 @@ class TestSchemaExtractCashFlow:
             start = f"{y}-01-01"
             tags.extend(
                 [
-                    ("us-gaap", op, "USD", [_entry(d, start, form="10-K", val=500.0 * _M)]),
-                    ("us-gaap", inv, "USD", [_entry(d, start, form="10-K", val=-200.0 * _M)]),
-                    ("us-gaap", fin, "USD", [_entry(d, start, form="10-K", val=-150.0 * _M)]),
-                    ("us-gaap", fx, "USD", [_entry(d, start, form="10-K", val=50.0 * _M)]),
-                    ("us-gaap", ncd, "USD", [_entry(d, start, form="10-K", val=nc_val)]),
+                    (
+                        "us-gaap",
+                        op,
+                        "USD",
+                        [_entry(d, start, form="10-K", val=500.0 * _M)],
+                    ),
+                    (
+                        "us-gaap",
+                        inv,
+                        "USD",
+                        [_entry(d, start, form="10-K", val=-200.0 * _M)],
+                    ),
+                    (
+                        "us-gaap",
+                        fin,
+                        "USD",
+                        [_entry(d, start, form="10-K", val=-150.0 * _M)],
+                    ),
+                    (
+                        "us-gaap",
+                        fx,
+                        "USD",
+                        [_entry(d, start, form="10-K", val=50.0 * _M)],
+                    ),
+                    (
+                        "us-gaap",
+                        ncd,
+                        "USD",
+                        [_entry(d, start, form="10-K", val=nc_val)],
+                    ),
                     ("us-gaap", eop, "USD", [_entry(d, form="10-K", val=eop_vals[d])]),
                     # Assets instant anchors the annual date resolution.
                     ("us-gaap", "Assets", "USD", [_entry(d, form="10-K")]),
@@ -1911,7 +2151,9 @@ class TestSchemaExtractCashFlow:
             eop_vals={"2022-12-31": 1000.0 * _M, "2023-12-31": 1200.0 * _M},
         )
         res = schema.extract({"facts": facts}, "cash_flow", frequency="annual")
-        bop = next((r for r in res.rows if r.tag == "cash_at_beginning_of_period"), None)
+        bop = next(
+            (r for r in res.rows if r.tag == "cash_at_beginning_of_period"), None
+        )
         assert bop is not None
         # BOP(2023) derived from EOP(2022) = 1000M.
         assert bop.values.get("2023-12-31") == 1000.0 * _M
@@ -1931,7 +2173,6 @@ class TestSchemaExtractCashFlow:
         assert bop.values["2023-12-31"] == 1300.0 * _M
         assert "identity-enforced" in bop.sources["2023-12-31"]
 
-
     def test_eop_stale_filing_recovered_via_instant_fallback(self, schema):
         # The EOP tag's only filing is stale (filed > 450 days after the
         # period end) so compute_ref_filings excludes it from the shared ref
@@ -1948,8 +2189,20 @@ class TestSchemaExtractCashFlow:
                     op,
                     "USD",
                     [
-                        _entry("2022-12-31", "2022-01-01", form="10-K", filed="2023-02-15", val=400.0 * _M),
-                        _entry("2023-12-31", "2023-01-01", form="10-K", filed="2024-02-15", val=500.0 * _M),
+                        _entry(
+                            "2022-12-31",
+                            "2022-01-01",
+                            form="10-K",
+                            filed="2023-02-15",
+                            val=400.0 * _M,
+                        ),
+                        _entry(
+                            "2023-12-31",
+                            "2023-01-01",
+                            form="10-K",
+                            filed="2024-02-15",
+                            val=500.0 * _M,
+                        ),
                     ],
                 ),
                 # EOP cash for 2023 filed > 450 days late -> dropped from the
@@ -1958,7 +2211,14 @@ class TestSchemaExtractCashFlow:
                     "us-gaap",
                     eop,
                     "USD",
-                    [_entry("2023-12-31", form="10-K", filed="2025-06-01", val=1200.0 * _M)],
+                    [
+                        _entry(
+                            "2023-12-31",
+                            form="10-K",
+                            filed="2025-06-01",
+                            val=1200.0 * _M,
+                        )
+                    ],
                 ),
                 (
                     "us-gaap",
@@ -1972,9 +2232,7 @@ class TestSchemaExtractCashFlow:
             ]
         )
         res = schema.extract({"facts": facts}, "cash_flow", frequency="annual")
-        eop_row = next(
-            (r for r in res.rows if r.tag == "cash_at_end_of_period"), None
-        )
+        eop_row = next((r for r in res.rows if r.tag == "cash_at_end_of_period"), None)
         # The stale 2023 EOP was backfilled via the standalone extraction.
         assert eop_row is not None
         assert eop_row.values.get("2023-12-31") == 1200.0 * _M

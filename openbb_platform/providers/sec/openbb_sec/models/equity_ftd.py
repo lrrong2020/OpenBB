@@ -1,6 +1,5 @@
 """SEC Equity FTD Model."""
 
-
 from typing import Any
 
 from openbb_core.provider.abstract.fetcher import Fetcher

@@ -1,6 +1,5 @@
 """SEC NPORT Holings Model."""
 
-
 from datetime import date as dateType
 from typing import Any
 from warnings import warn
@@ -416,15 +415,9 @@ class SecNportDisclosureFetcher(
                             "descRefInstrmnt"
                         ].get("nestedDerivInfo", {}).get("fwdDeriv", {}).get(
                             "derivAddlInfo", {}
-                        ).get(
-                            "title"
-                        ) or option_swaption_warrant_deriv[
+                        ).get("title") or option_swaption_warrant_deriv[
                             "descRefInstrmnt"
-                        ].get(
-                            "otherRefInst", {}
-                        ).get(
-                            "issueTitle"
-                        )
+                        ].get("otherRefInst", {}).get("issueTitle")
                         df.loc[i, "option_type"] = option_swaption_warrant_deriv.get(
                             "putOrCall"
                         )

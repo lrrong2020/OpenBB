@@ -1,6 +1,5 @@
 """SEC HTM/HTML File Model."""
 
-
 from typing import Any, cast
 
 from openbb_core.app.model.abstract.error import OpenBBError

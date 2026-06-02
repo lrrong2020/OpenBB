@@ -1,6 +1,5 @@
 """SEC XBRL Taxonomy Explorer Model."""
 
-
 from typing import Any, Literal
 
 from openbb_core.app.model.abstract.error import OpenBBError

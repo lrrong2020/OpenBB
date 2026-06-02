@@ -1,6 +1,5 @@
 """SEC Insider Trading Model."""
 
-
 from datetime import date as dateType
 from typing import Any
 
@@ -154,7 +153,9 @@ class SecInsiderTradingData(InsiderTradingData):
         return (
             "Acquisition"
             if v.strip() == "A"
-            else "Disposition" if v.strip() == "D" else v
+            else "Disposition"
+            if v.strip() == "D"
+            else v
         )
 
     @field_validator("transaction_type", mode="before", check_fields=False)

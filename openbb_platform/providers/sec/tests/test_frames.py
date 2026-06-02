@@ -71,8 +71,9 @@ def test_get_frame_quarter():
     async def _companies(use_cache=True):
         return _frame_companies()
 
-    with patch.object(fr, "fetch_data", _fetch), patch.object(
-        fr, "get_all_companies", _companies
+    with (
+        patch.object(fr, "fetch_data", _fetch),
+        patch.object(fr, "get_all_companies", _companies),
     ):
         res = asyncio.run(fr.get_frame(fact="Revenues", year=2023, fiscal_period="q1"))
     assert res["metadata"]["frame"] == "CY2023Q1"
@@ -96,8 +97,9 @@ def test_get_frame_defaults_to_current_period():
     async def _companies(use_cache=True):
         return _frame_companies()
 
-    with patch.object(fr, "fetch_data", _fetch), patch.object(
-        fr, "get_all_companies", _companies
+    with (
+        patch.object(fr, "fetch_data", _fetch),
+        patch.object(fr, "get_all_companies", _companies),
     ):
         asyncio.run(fr.get_frame(fact="Revenues"))
     year = datetime.now().date().year
@@ -118,8 +120,9 @@ def test_get_frame_period_without_year_defaults_year():
     async def _companies(use_cache=True):
         return _frame_companies()
 
-    with patch.object(fr, "fetch_data", _fetch), patch.object(
-        fr, "get_all_companies", _companies
+    with (
+        patch.object(fr, "fetch_data", _fetch),
+        patch.object(fr, "get_all_companies", _companies),
     ):
         asyncio.run(fr.get_frame(fact="Revenues", year=None, fiscal_period="q1"))
     year = datetime.now().date().year
@@ -138,8 +141,9 @@ def test_get_frame_shares_units():
     async def _companies(use_cache=True):
         return _frame_companies()
 
-    with patch.object(fr, "fetch_data", _fetch), patch.object(
-        fr, "get_all_companies", _companies
+    with (
+        patch.object(fr, "fetch_data", _fetch),
+        patch.object(fr, "get_all_companies", _companies),
     ):
         asyncio.run(
             fr.get_frame(
@@ -160,8 +164,9 @@ def test_get_frame_per_share_units_instantaneous():
     async def _companies(use_cache=True):
         return _frame_companies()
 
-    with patch.object(fr, "fetch_data", _fetch), patch.object(
-        fr, "get_all_companies", _companies
+    with (
+        patch.object(fr, "fetch_data", _fetch),
+        patch.object(fr, "get_all_companies", _companies),
     ):
         asyncio.run(
             fr.get_frame(fact="EarningsPerShareBasic", year=2023, instantaneous=True)
@@ -183,8 +188,9 @@ def test_get_frame_instantaneous_retry():
     async def _companies(use_cache=True):
         return _frame_companies()
 
-    with patch.object(fr, "fetch_data", _fetch), patch.object(
-        fr, "get_all_companies", _companies
+    with (
+        patch.object(fr, "fetch_data", _fetch),
+        patch.object(fr, "get_all_companies", _companies),
     ):
         with pytest.warns(Warning):
             res = asyncio.run(
@@ -213,8 +219,9 @@ def test_get_frame_quarter_retry_instantaneous():
     async def _companies(use_cache=True):
         return _frame_companies()
 
-    with patch.object(fr, "fetch_data", _fetch), patch.object(
-        fr, "get_all_companies", _companies
+    with (
+        patch.object(fr, "fetch_data", _fetch),
+        patch.object(fr, "get_all_companies", _companies),
     ):
         with pytest.warns(Warning):
             res = asyncio.run(
@@ -234,8 +241,9 @@ def test_get_frame_instantaneous_double_failure_raises():
     async def _companies(use_cache=True):
         return _frame_companies()
 
-    with patch.object(fr, "fetch_data", _fetch), patch.object(
-        fr, "get_all_companies", _companies
+    with (
+        patch.object(fr, "fetch_data", _fetch),
+        patch.object(fr, "get_all_companies", _companies),
     ):
         with pytest.warns(Warning):
             with pytest.raises(OpenBBError, match="No frame was found"):
@@ -258,8 +266,9 @@ def test_get_frame_quarter_double_failure_raises():
     async def _companies(use_cache=True):
         return _frame_companies()
 
-    with patch.object(fr, "fetch_data", _fetch), patch.object(
-        fr, "get_all_companies", _companies
+    with (
+        patch.object(fr, "fetch_data", _fetch),
+        patch.object(fr, "get_all_companies", _companies),
     ):
         with pytest.warns(Warning):
             with pytest.raises(OpenBBError, match="No frame was found"):
@@ -277,8 +286,9 @@ def test_get_frame_annual_failure_raises():
     async def _companies(use_cache=True):
         return _frame_companies()
 
-    with patch.object(fr, "fetch_data", _fetch), patch.object(
-        fr, "get_all_companies", _companies
+    with (
+        patch.object(fr, "fetch_data", _fetch),
+        patch.object(fr, "get_all_companies", _companies),
     ):
         with pytest.raises(OpenBBError, match="No frame was found"):
             asyncio.run(fr.get_frame(fact="Revenues", year=2023))
@@ -293,8 +303,20 @@ _CONCEPT_RESP = {
     "entityName": "Apple",
     "units": {
         "USD": [
-            {"fy": 2023, "fp": "FY", "filed": "2024-01-01", "end": "2023-12-31", "val": 100},
-            {"fy": 2022, "fp": "FY", "filed": "2023-01-01", "end": "2022-12-31", "val": 90},
+            {
+                "fy": 2023,
+                "fp": "FY",
+                "filed": "2024-01-01",
+                "end": "2023-12-31",
+                "val": 100,
+            },
+            {
+                "fy": 2022,
+                "fp": "FY",
+                "filed": "2023-01-01",
+                "end": "2022-12-31",
+                "val": 90,
+            },
         ]
     },
 }
@@ -309,8 +331,9 @@ def test_get_concept_happy_path_with_year_filter():
     async def _fetch(url, use_cache, persist):
         return _CONCEPT_RESP
 
-    with patch.object(fr, "symbol_map", _symbol_map), patch.object(
-        fr, "fetch_data", _fetch
+    with (
+        patch.object(fr, "symbol_map", _symbol_map),
+        patch.object(fr, "fetch_data", _fetch),
     ):
         res = asyncio.run(fr.get_concept("AAPL", fact="Revenues", year=2023))
     assert res["metadata"]["AAPL"]["units"] == "USD"  # single unit unwrapped
@@ -331,8 +354,9 @@ def test_get_concept_year_filter_miss_returns_all():
     async def _fetch(url, use_cache, persist):
         return _CONCEPT_RESP
 
-    with patch.object(fr, "symbol_map", _symbol_map), patch.object(
-        fr, "fetch_data", _fetch
+    with (
+        patch.object(fr, "symbol_map", _symbol_map),
+        patch.object(fr, "fetch_data", _fetch),
     ):
         with pytest.warns(Warning):
             res = asyncio.run(fr.get_concept("AAPL", fact="Revenues", year=1999))
@@ -349,10 +373,22 @@ def test_get_concept_multi_unit():
         "entityName": "Foo",
         "units": {
             "USD": [
-                {"fy": 2023, "fp": "FY", "filed": "2024-01-01", "end": "2023-12-31", "val": 1}
+                {
+                    "fy": 2023,
+                    "fp": "FY",
+                    "filed": "2024-01-01",
+                    "end": "2023-12-31",
+                    "val": 1,
+                }
             ],
             "CAD": [
-                {"fy": 2023, "fp": "FY", "filed": "2024-01-01", "end": "2023-12-31", "val": 2}
+                {
+                    "fy": 2023,
+                    "fp": "FY",
+                    "filed": "2024-01-01",
+                    "end": "2023-12-31",
+                    "val": 2,
+                }
             ],
         },
     }
@@ -363,8 +399,9 @@ def test_get_concept_multi_unit():
     async def _fetch(url, use_cache, persist):
         return resp
 
-    with patch.object(fr, "symbol_map", _symbol_map), patch.object(
-        fr, "fetch_data", _fetch
+    with (
+        patch.object(fr, "symbol_map", _symbol_map),
+        patch.object(fr, "fetch_data", _fetch),
     ):
         res = asyncio.run(fr.get_concept("FOO"))
     assert set(res["metadata"]["FOO"]["units"]) == {"USD", "CAD"}
@@ -380,8 +417,9 @@ def test_get_concept_no_cik_raises_empty():
     async def _fetch(url, use_cache, persist):
         return {}
 
-    with patch.object(fr, "symbol_map", _symbol_map), patch.object(
-        fr, "fetch_data", _fetch
+    with (
+        patch.object(fr, "symbol_map", _symbol_map),
+        patch.object(fr, "fetch_data", _fetch),
     ):
         with pytest.warns(Warning):
             with pytest.raises(EmptyDataError):
@@ -402,8 +440,9 @@ def test_get_concept_fetch_error_warns_and_raises_empty():
     async def _fetch(url, use_cache, persist):
         raise RuntimeError("frame fetch failed")
 
-    with patch.object(fr, "symbol_map", _symbol_map), patch.object(
-        fr, "fetch_data", _fetch
+    with (
+        patch.object(fr, "symbol_map", _symbol_map),
+        patch.object(fr, "fetch_data", _fetch),
     ):
         with pytest.warns(Warning):
             with pytest.raises(EmptyDataError):

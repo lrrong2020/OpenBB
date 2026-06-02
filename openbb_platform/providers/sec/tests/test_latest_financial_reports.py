@@ -35,7 +35,9 @@ class TestLatestFinancialReportsQuery:
         assert qp.report_type == "10-K"
 
     def test_none_report_type(self):
-        assert SecLatestFinancialReportsQueryParams(report_type=None).report_type is None
+        assert (
+            SecLatestFinancialReportsQueryParams(report_type=None).report_type is None
+        )
 
     def test_invalid_report_type_raises(self):
         with pytest.raises(ValueError, match="Invalid report type"):
@@ -177,9 +179,7 @@ class TestLatestFinancialReportsExtract:
         async def boom(url, **kwargs):
             raise OpenBBError("boom")
 
-        monkeypatch.setattr(
-            "openbb_core.provider.utils.helpers.amake_request", boom
-        )
+        monkeypatch.setattr("openbb_core.provider.utils.helpers.amake_request", boom)
         q = SecLatestFinancialReportsQueryParams(date=date(2024, 11, 5))
         with pytest.raises(OpenBBError, match="Failed to get SEC data"):
             _run(SecLatestFinancialReportsFetcher.aextract_data(q, None))
@@ -206,9 +206,7 @@ class TestLatestFinancialReportsExtract:
         async def fake_amake(url, **kwargs):
             state["n"] += 1
             if state["n"] == 1:
-                return {
-                    "hits": {"total": {"value": 5}, "hits": [{"_id": "a:1"}]}
-                }
+                return {"hits": {"total": {"value": 5}, "hits": [{"_id": "a:1"}]}}
             raise RuntimeError("net down")
 
         monkeypatch.setattr(
@@ -240,9 +238,7 @@ class TestLatestFinancialReportsExtract:
         async def fake_amake(url, **kwargs):
             state["n"] += 1
             if state["n"] == 1:
-                return {
-                    "hits": {"total": {"value": 5}, "hits": [{"_id": "a:1"}]}
-                }
+                return {"hits": {"total": {"value": 5}, "hits": [{"_id": "a:1"}]}}
             # Next page returns no hits -> loop breaks.
             return {"hits": {"total": {"value": 5}, "hits": []}}
 

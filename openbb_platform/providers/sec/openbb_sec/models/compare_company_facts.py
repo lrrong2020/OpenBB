@@ -1,6 +1,5 @@
 """SEC Compare Company Facts Model."""
 
-
 from typing import Any
 from warnings import warn
 

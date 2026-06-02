@@ -1,6 +1,5 @@
 """StatementSchema class: loads the split JSON schema and orchestrates extraction."""
 
-
 from __future__ import annotations
 
 import json
@@ -388,13 +387,17 @@ class StatementSchema:
                         # has no XBRL tags and is never imputed, so a present
                         # ``_bv`` always carries a "derived:" source and the
                         # first branch above always wins.
-                        elif "imputed:" in _nc_src:  # pragma: no cover - bop is always derived
+                        elif (
+                            "imputed:" in _nc_src
+                        ):  # pragma: no cover - bop is always derived
                             _nc.values[date] = _ev - _bv
                             _nc.sources[date] = (
                                 "identity-enforced: cash_at_end_of_period"
                                 " - cash_at_beginning_of_period"
                             )
-                        elif "standalone" in _eop_src:  # pragma: no cover - bop is always derived
+                        elif (
+                            "standalone" in _eop_src
+                        ):  # pragma: no cover - bop is always derived
                             _eop.values[date] = _bv + _nv
                             _eop.sources[date] = (
                                 "identity-enforced: cash_at_beginning_of_period"

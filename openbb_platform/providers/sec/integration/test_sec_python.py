@@ -14,8 +14,6 @@ def obb(pytestconfig):
         return openbb.obb
 
 
-
-
 @pytest.mark.parametrize(
     "params",
     [

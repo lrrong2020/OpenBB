@@ -1,6 +1,5 @@
 """SEC Form 13F-HR Model."""
 
-
 from typing import Any
 
 from openbb_core.provider.abstract.fetcher import Fetcher

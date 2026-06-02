@@ -1,6 +1,5 @@
 """SEC Helpers module."""
 
-
 from openbb_core.app.model.abstract.error import OpenBBError
 from openbb_core.provider.utils.helpers import amake_request
 from pandas import DataFrame

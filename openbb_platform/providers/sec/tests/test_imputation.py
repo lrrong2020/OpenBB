@@ -14,7 +14,6 @@ Tests only -- no source under ``openbb_sec/`` is modified.
 
 # flake8: noqa: D101,D102,D103,D403
 
-
 from unittest.mock import patch
 
 from openbb_sec.utils.statement_schema._imputation import (
@@ -146,8 +145,17 @@ class TestApplyHierarchicalArticulation:
     def test_no_child_values_leaves_parent_untouched(self):
         d = _D
         rows = [
-            _rr("total_assets", {}, period_type="instant", balance="debit", sequence=10),
-            _rr("cash", {}, parent="total_assets", balance="debit", sequence=1, period_type="instant"),
+            _rr(
+                "total_assets", {}, period_type="instant", balance="debit", sequence=10
+            ),
+            _rr(
+                "cash",
+                {},
+                parent="total_assets",
+                balance="debit",
+                sequence=1,
+                period_type="instant",
+            ),
         ]
         _apply_hierarchical_articulation(rows, {d})
         # No child had a value -> parent stays empty, no plug created.
@@ -158,8 +166,21 @@ class TestApplyHierarchicalArticulation:
         # An other_* child that already holds a non-imputed value is left alone.
         d = _D
         rows = [
-            _rr("total_assets", {d: 200.0 * _M}, period_type="instant", balance="debit", sequence=10),
-            _rr("cash", {d: 100.0 * _M}, parent="total_assets", balance="debit", sequence=1, period_type="instant"),
+            _rr(
+                "total_assets",
+                {d: 200.0 * _M},
+                period_type="instant",
+                balance="debit",
+                sequence=10,
+            ),
+            _rr(
+                "cash",
+                {d: 100.0 * _M},
+                parent="total_assets",
+                balance="debit",
+                sequence=1,
+                period_type="instant",
+            ),
             _rr(
                 "other_assets",
                 {d: 7.0 * _M},
@@ -182,8 +203,21 @@ class TestApplyHierarchicalArticulation:
         # children sum and re-plugged to the fresh remainder.
         d = _D
         rows = [
-            _rr("total_assets", {d: 200.0 * _M}, period_type="instant", balance="debit", sequence=10),
-            _rr("cash", {d: 120.0 * _M}, parent="total_assets", balance="debit", sequence=1, period_type="instant"),
+            _rr(
+                "total_assets",
+                {d: 200.0 * _M},
+                period_type="instant",
+                balance="debit",
+                sequence=10,
+            ),
+            _rr(
+                "cash",
+                {d: 120.0 * _M},
+                parent="total_assets",
+                balance="debit",
+                sequence=1,
+                period_type="instant",
+            ),
             _rr(
                 "other_assets",
                 {d: 999.0 * _M},
@@ -231,12 +265,26 @@ class TestImputeEquityMethodPrePass:
                 "total_pretax_income",
                 {_D: 550.0 * _M},
                 sequence=1,
-                sources={_D: "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments"},
+                sources={
+                    _D: "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments"
+                },
             ),
-            _rr("income_tax_expense", {_D: 150.0 * _M}, sequence=2, sources={_D: "us-gaap:IncomeTaxExpenseBenefit"}),
-            _rr("net_income_continuing", {_D: 400.0 * _M}, sequence=3, sources={_D: "us-gaap:IncomeLossFromContinuingOperations"}),
+            _rr(
+                "income_tax_expense",
+                {_D: 150.0 * _M},
+                sequence=2,
+                sources={_D: "us-gaap:IncomeTaxExpenseBenefit"},
+            ),
+            _rr(
+                "net_income_continuing",
+                {_D: 400.0 * _M},
+                sequence=3,
+                sources={_D: "us-gaap:IncomeLossFromContinuingOperations"},
+            ),
         ]
-        out, _ = impute(rows, "income_statement", "diversified", {_D}, facts={"us-gaap": {}})
+        out, _ = impute(
+            rows, "income_statement", "diversified", {_D}, facts={"us-gaap": {}}
+        )
         ptx = _by_tag(out, "total_pretax_income")
         assert ptx.values[_D] == 550.0 * _M
         assert "IncomeLossFromContinuing" in ptx.sources[_D]
@@ -249,14 +297,28 @@ class TestImputeEquityMethodPrePass:
                 "total_pretax_income",
                 {_D: 700.0 * _M},
                 sequence=1,
-                sources={_D: "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments"},
+                sources={
+                    _D: "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments"
+                },
             ),
-            _rr("income_tax_expense", {_D: 150.0 * _M}, sequence=2, sources={_D: "us-gaap:IncomeTaxExpenseBenefit"}),
-            _rr("net_income_continuing", {_D: 400.0 * _M}, sequence=3, sources={_D: "us-gaap:ProfitLoss"}),
+            _rr(
+                "income_tax_expense",
+                {_D: 150.0 * _M},
+                sequence=2,
+                sources={_D: "us-gaap:IncomeTaxExpenseBenefit"},
+            ),
+            _rr(
+                "net_income_continuing",
+                {_D: 400.0 * _M},
+                sequence=3,
+                sources={_D: "us-gaap:ProfitLoss"},
+            ),
             _rr("income_before_equity_method", {}, sequence=4),
             _rr("equity_method_investments", {}, sequence=5),
         ]
-        out, _ = impute(rows, "income_statement", "diversified", {_D}, facts={"us-gaap": {}})
+        out, _ = impute(
+            rows, "income_statement", "diversified", {_D}, facts={"us-gaap": {}}
+        )
         ptx = _by_tag(out, "total_pretax_income")
         # pretax was deleted then may be re-imputed by IS_IMPUTE_COMMON from nic+tax.
         assert ptx.values.get(_D) in (None, 550.0 * _M)
@@ -270,14 +332,28 @@ class TestImputeEquityMethodPrePass:
                 "total_pretax_income",
                 {_D: 900.0 * _M},
                 sequence=1,
-                sources={_D: "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterestEquityMethodInvestments"},
+                sources={
+                    _D: "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterestEquityMethodInvestments"
+                },
             ),
-            _rr("income_tax_expense", {_D: 150.0 * _M}, sequence=2, sources={_D: "us-gaap:IncomeTaxExpenseBenefit"}),
-            _rr("net_income_continuing", {_D: 400.0 * _M}, sequence=3, sources={_D: "us-gaap:IncomeLossFromContinuingOperations"}),
+            _rr(
+                "income_tax_expense",
+                {_D: 150.0 * _M},
+                sequence=2,
+                sources={_D: "us-gaap:IncomeTaxExpenseBenefit"},
+            ),
+            _rr(
+                "net_income_continuing",
+                {_D: 400.0 * _M},
+                sequence=3,
+                sources={_D: "us-gaap:IncomeLossFromContinuingOperations"},
+            ),
             _rr("income_before_equity_method", {}, sequence=4),
             _rr("equity_method_investments", {_D: 0.0}, sequence=5),
         ]
-        out, _ = impute(rows, "income_statement", "diversified", {_D}, facts={"us-gaap": {}})
+        out, _ = impute(
+            rows, "income_statement", "diversified", {_D}, facts={"us-gaap": {}}
+        )
         ptx = _by_tag(out, "total_pretax_income")
         # original EquityMethod-sourced value removed; re-imputed to nic+tax=550.
         assert "EquityMethodInvestments" not in ptx.sources.get(_D, "")
@@ -289,7 +365,9 @@ class TestImputeEquityMethodPrePass:
                 "total_pretax_income",
                 {_D: 700.0 * _M},
                 sequence=1,
-                sources={_D: "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments"},
+                sources={
+                    _D: "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments"
+                },
             ),
             _rr("income_before_equity_method", {}, sequence=2),
             _rr(
@@ -298,10 +376,22 @@ class TestImputeEquityMethodPrePass:
                 sequence=3,
                 sources={_D: "us-gaap:IncomeLossFromEquityMethodInvestments"},
             ),
-            _rr("income_tax_expense", {_D: 150.0 * _M}, sequence=4, sources={_D: "us-gaap:IncomeTaxExpenseBenefit"}),
-            _rr("net_income_continuing", {_D: 600.0 * _M}, sequence=5, sources={_D: "us-gaap:IncomeLossFromContinuingOperations"}),
+            _rr(
+                "income_tax_expense",
+                {_D: 150.0 * _M},
+                sequence=4,
+                sources={_D: "us-gaap:IncomeTaxExpenseBenefit"},
+            ),
+            _rr(
+                "net_income_continuing",
+                {_D: 600.0 * _M},
+                sequence=5,
+                sources={_D: "us-gaap:IncomeLossFromContinuingOperations"},
+            ),
         ]
-        out, _ = impute(rows, "income_statement", "diversified", {_D}, facts={"us-gaap": {}})
+        out, _ = impute(
+            rows, "income_statement", "diversified", {_D}, facts={"us-gaap": {}}
+        )
         beq = _by_tag(out, "income_before_equity_method")
         assert beq.values[_D] == 700.0 * _M
 
@@ -319,7 +409,9 @@ class TestImputeProfitLossDiscAdjust:
             _rr("net_income_discontinued", {_D: 30.0 * _M}, sequence=2),
             _rr("income_tax_expense", {_D: 100.0 * _M}, sequence=3),
         ]
-        out, _ = impute(rows, "income_statement", "industrial", {_D}, facts={"us-gaap": {}})
+        out, _ = impute(
+            rows, "income_statement", "industrial", {_D}, facts={"us-gaap": {}}
+        )
         nic = _by_tag(out, "net_income_continuing")
         assert "(disc-adjusted)" not in nic.sources[_D]
         assert nic.values[_D] == 400.0 * _M
@@ -342,7 +434,9 @@ class TestImputeProfitLossDiscAdjust:
                 sources={_D: "us-gaap:IncomeTaxExpenseBenefit"},
             ),
         ]
-        out, _ = impute(rows, "income_statement", "industrial", {_D}, facts={"us-gaap": {}})
+        out, _ = impute(
+            rows, "income_statement", "industrial", {_D}, facts={"us-gaap": {}}
+        )
         nic = _by_tag(out, "net_income_continuing")
         assert "(disc-adjusted)" not in nic.sources[_D]
         assert nic.values[_D] == 430.0 * _M
@@ -365,7 +459,9 @@ class TestImputeProfitLossDiscAdjust:
                 sources={_D: "us-gaap:IncomeTaxExpenseBenefitContinuingOperations"},
             ),
         ]
-        out, _ = impute(rows, "income_statement", "industrial", {_D}, facts={"us-gaap": {}})
+        out, _ = impute(
+            rows, "income_statement", "industrial", {_D}, facts={"us-gaap": {}}
+        )
         nic = _by_tag(out, "net_income_continuing")
         assert nic.values[_D] == 400.0 * _M  # 430 - 30
         assert "(disc-adjusted)" in nic.sources[_D]
@@ -382,7 +478,9 @@ class TestImputeProfitLossDiscAdjust:
             ),
             _rr("net_income_discontinued", {_D: 30.0 * _M}, sequence=2),
         ]
-        out, _ = impute(rows, "income_statement", "industrial", {_D}, facts={"us-gaap": {}})
+        out, _ = impute(
+            rows, "income_statement", "industrial", {_D}, facts={"us-gaap": {}}
+        )
         nic = _by_tag(out, "net_income_continuing")
         assert nic.values[_D] == 400.0 * _M
         assert "(disc-adjusted)" in nic.sources[_D]
@@ -429,15 +527,25 @@ class TestImputeQuarterlyQ4Correction:
             sequence=1,
             sources={_FY_END: "imputed-rollup: segment_a(+) + segment_b(+)"},
         )
-        child_a = _rr("segment_a", {_FY_END: 80.0 * _M}, parent="total_revenue", factor="+", sequence=2)
+        child_a = _rr(
+            "segment_a",
+            {_FY_END: 80.0 * _M},
+            parent="total_revenue",
+            factor="+",
+            sequence=2,
+        )
         child_b = _rr("segment_b", {}, parent="total_revenue", factor="+", sequence=3)
         rdefs = [
             _rd("total_revenue", period_type="duration"),
             _rd("segment_a", period_type="duration", parent="total_revenue"),
             _rd("segment_b", period_type="duration", parent="total_revenue"),
         ]
-        annual = {"total_revenue": {_FY_END: (_FY_START, 600.0 * _M, "us-gaap:Revenues")}}
-        out, _ = _q4_run([parent, child_a, child_b], rdefs, annual, [_Q1, _Q2, _Q3, _FY_END])
+        annual = {
+            "total_revenue": {_FY_END: (_FY_START, 600.0 * _M, "us-gaap:Revenues")}
+        }
+        out, _ = _q4_run(
+            [parent, child_a, child_b], rdefs, annual, [_Q1, _Q2, _Q3, _FY_END]
+        )
         rev = _by_tag(out, "total_revenue")
         assert rev.values[_FY_END] == 150.0 * _M  # 600 - (100+150+200)
         assert "Q4:" in rev.sources[_FY_END]
@@ -455,12 +563,20 @@ class TestImputeQuarterlyQ4Correction:
             sequence=1,
             sources={_FY_END: "imputed-rollup: segment_a(+)"},
         )
-        child_a = _rr("segment_a", {_FY_END: 80.0 * _M}, parent="total_revenue", factor="+", sequence=2)
+        child_a = _rr(
+            "segment_a",
+            {_FY_END: 80.0 * _M},
+            parent="total_revenue",
+            factor="+",
+            sequence=2,
+        )
         rdefs = [
             _rd("total_revenue", period_type="duration"),
             _rd("segment_a", period_type="duration", parent="total_revenue"),
         ]
-        annual = {"total_revenue": {_FY_END: (_FY_START, 100.0 * _M, "us-gaap:Revenues")}}
+        annual = {
+            "total_revenue": {_FY_END: (_FY_START, 100.0 * _M, "us-gaap:Revenues")}
+        }
         out, _ = _q4_run([parent, child_a], rdefs, annual, [_Q1, _Q2, _Q3, _FY_END])
         rev = _by_tag(out, "total_revenue")
         assert "Q4:" not in rev.sources.get(_FY_END, "")  # correction rejected
@@ -474,14 +590,35 @@ class TestImputeQuarterlyQ4Correction:
             sequence=1,
             sources={_FY_END: "imputed-rollup: a(+)"},
         )
-        child = _rr("share_class_a", {_Q1: 100.0}, parent="weighted_average_shares_outstanding", factor="+", sequence=2)
+        child = _rr(
+            "share_class_a",
+            {_Q1: 100.0},
+            parent="weighted_average_shares_outstanding",
+            factor="+",
+            sequence=2,
+        )
         rdefs = [
-            _rd("weighted_average_shares_outstanding", period_type="duration", unit="shares"),
-            _rd("share_class_a", period_type="duration", unit="shares", parent="weighted_average_shares_outstanding"),
+            _rd(
+                "weighted_average_shares_outstanding",
+                period_type="duration",
+                unit="shares",
+            ),
+            _rd(
+                "share_class_a",
+                period_type="duration",
+                unit="shares",
+                parent="weighted_average_shares_outstanding",
+            ),
         ]
-        annual = {"weighted_average_shares_outstanding": {_FY_END: (_FY_START, 9999.0, "us-gaap:WAS")}}
+        annual = {
+            "weighted_average_shares_outstanding": {
+                _FY_END: (_FY_START, 9999.0, "us-gaap:WAS")
+            }
+        }
         out, _ = _q4_run([parent, child], rdefs, annual, [_Q1, _Q2, _Q3, _FY_END])
-        assert _by_tag(out, "weighted_average_shares_outstanding").values[_FY_END] == 100.0
+        assert (
+            _by_tag(out, "weighted_average_shares_outstanding").values[_FY_END] == 100.0
+        )
 
     def test_parent_not_rollup_sourced_skipped(self):
         parent = _rr(
@@ -490,12 +627,20 @@ class TestImputeQuarterlyQ4Correction:
             sequence=1,
             sources={_FY_END: "us-gaap:Revenues"},
         )
-        child = _rr("segment_a", {_Q1: 100.0 * _M}, parent="total_revenue", factor="+", sequence=2)
+        child = _rr(
+            "segment_a",
+            {_Q1: 100.0 * _M},
+            parent="total_revenue",
+            factor="+",
+            sequence=2,
+        )
         rdefs = [
             _rd("total_revenue", period_type="duration"),
             _rd("segment_a", period_type="duration", parent="total_revenue"),
         ]
-        annual = {"total_revenue": {_FY_END: (_FY_START, 600.0 * _M, "us-gaap:Revenues")}}
+        annual = {
+            "total_revenue": {_FY_END: (_FY_START, 600.0 * _M, "us-gaap:Revenues")}
+        }
         out, _ = _q4_run([parent, child], rdefs, annual, [_Q1, _Q2, _Q3, _FY_END])
         assert _by_tag(out, "total_revenue").sources[_FY_END] == "us-gaap:Revenues"
 
@@ -506,12 +651,20 @@ class TestImputeQuarterlyQ4Correction:
             sequence=1,
             sources={_FY_END: "imputed-rollup: a(+)"},
         )
-        child = _rr("segment_a", {_Q1: 100.0 * _M}, parent="total_revenue", factor="+", sequence=2)
+        child = _rr(
+            "segment_a",
+            {_Q1: 100.0 * _M},
+            parent="total_revenue",
+            factor="+",
+            sequence=2,
+        )
         rdefs = [
             _rd("total_revenue", period_type="duration"),
             _rd("segment_a", period_type="duration", parent="total_revenue"),
         ]
-        annual = {"total_revenue": {_FY_END: (_FY_START, 600.0 * _M, "us-gaap:Revenues")}}
+        annual = {
+            "total_revenue": {_FY_END: (_FY_START, 600.0 * _M, "us-gaap:Revenues")}
+        }
         out, _ = _q4_run([parent, child], rdefs, annual, [_Q1, _Q2, _FY_END])
         assert "imputed-rollup" in _by_tag(out, "total_revenue").sources[_FY_END]
 
@@ -524,7 +677,9 @@ class TestImputeQuarterlyQ4Correction:
             sources={_FY_END: "imputed-rollup: a(+)"},
         )
         rdefs = [_rd("total_revenue", period_type="duration")]
-        annual = {"total_revenue": {_FY_END: (_FY_START, 600.0 * _M, "us-gaap:Revenues")}}
+        annual = {
+            "total_revenue": {_FY_END: (_FY_START, 600.0 * _M, "us-gaap:Revenues")}
+        }
         out, _ = _q4_run([parent], rdefs, annual, [_Q1, _Q2, _Q3, _FY_END])
         assert "imputed-rollup" in _by_tag(out, "total_revenue").sources[_FY_END]
 
@@ -535,13 +690,21 @@ class TestImputeQuarterlyQ4Correction:
             sequence=1,
             sources={_FY_END: "imputed-rollup: a(+)"},
         )
-        child = _rr("segment_a", {_Q1: 100.0 * _M}, parent="total_revenue", factor="+", sequence=2)
+        child = _rr(
+            "segment_a",
+            {_Q1: 100.0 * _M},
+            parent="total_revenue",
+            factor="+",
+            sequence=2,
+        )
         # RowDef marks the parent instant -> the duration guard fails (345-346).
         rdefs = [
             _rd("total_revenue", period_type="instant"),
             _rd("segment_a", period_type="duration", parent="total_revenue"),
         ]
-        annual = {"total_revenue": {_FY_END: (_FY_START, 600.0 * _M, "us-gaap:Revenues")}}
+        annual = {
+            "total_revenue": {_FY_END: (_FY_START, 600.0 * _M, "us-gaap:Revenues")}
+        }
         out, _ = _q4_run([parent, child], rdefs, annual, [_Q1, _Q2, _Q3, _FY_END])
         assert "imputed-rollup" in _by_tag(out, "total_revenue").sources[_FY_END]
 
@@ -552,7 +715,13 @@ class TestImputeQuarterlyQ4Correction:
             sequence=1,
             sources={_FY_END: "imputed-rollup: a(+)"},
         )
-        child = _rr("segment_a", {_Q1: 100.0 * _M}, parent="total_revenue", factor="+", sequence=2)
+        child = _rr(
+            "segment_a",
+            {_Q1: 100.0 * _M},
+            parent="total_revenue",
+            factor="+",
+            sequence=2,
+        )
         rdefs = [
             _rd("total_revenue", period_type="duration"),
             _rd("segment_a", period_type="duration", parent="total_revenue"),
@@ -571,9 +740,24 @@ class TestImputeISCorrectionPasses:
         # gp carries an imputed-rollup source and a stale value; with cogs!=0 and
         # rev present it is recomputed to rev - cogs (407-414).
         rows = [
-            _rr("total_revenue", {_D: 1000.0 * _M}, sequence=1, sources={_D: "us-gaap:Revenues"}),
-            _rr("total_cost_of_revenue", {_D: 300.0 * _M}, sequence=2, sources={_D: "us-gaap:CostOfRevenue"}),
-            _rr("total_gross_profit", {_D: 123.0 * _M}, sequence=3, sources={_D: "imputed-rollup: segment_gp(+)"}),
+            _rr(
+                "total_revenue",
+                {_D: 1000.0 * _M},
+                sequence=1,
+                sources={_D: "us-gaap:Revenues"},
+            ),
+            _rr(
+                "total_cost_of_revenue",
+                {_D: 300.0 * _M},
+                sequence=2,
+                sources={_D: "us-gaap:CostOfRevenue"},
+            ),
+            _rr(
+                "total_gross_profit",
+                {_D: 123.0 * _M},
+                sequence=3,
+                sources={_D: "imputed-rollup: segment_gp(+)"},
+            ),
         ]
         out, _ = impute(rows, "income_statement", "industrial", {_D}, facts={})
         gp = _by_tag(out, "total_gross_profit")
@@ -584,9 +768,24 @@ class TestImputeISCorrectionPasses:
         # gp hard-sourced and rev - cogs - gp violates identity -> cogs corrected
         # to rev - gp (499-506).
         rows = [
-            _rr("total_revenue", {_D: 1000.0 * _M}, sequence=1, sources={_D: "us-gaap:Revenues"}),
-            _rr("total_cost_of_revenue", {_D: 100.0 * _M}, sequence=2, sources={_D: "us-gaap:CostOfRevenue"}),
-            _rr("total_gross_profit", {_D: 700.0 * _M}, sequence=3, sources={_D: "us-gaap:GrossProfit"}),
+            _rr(
+                "total_revenue",
+                {_D: 1000.0 * _M},
+                sequence=1,
+                sources={_D: "us-gaap:Revenues"},
+            ),
+            _rr(
+                "total_cost_of_revenue",
+                {_D: 100.0 * _M},
+                sequence=2,
+                sources={_D: "us-gaap:CostOfRevenue"},
+            ),
+            _rr(
+                "total_gross_profit",
+                {_D: 700.0 * _M},
+                sequence=3,
+                sources={_D: "us-gaap:GrossProfit"},
+            ),
         ]
         out, _ = impute(rows, "income_statement", "industrial", {_D}, facts={})
         cogs = _by_tag(out, "total_cost_of_revenue")
@@ -597,23 +796,55 @@ class TestImputeISCorrectionPasses:
         # opex > gp triggers the opex correction to gp - opinc (527-540); opinc must
         # be hard-sourced so the "imputed" guard does not block it.
         rows = [
-            _rr("total_revenue", {_D: 1000.0 * _M}, sequence=1, sources={_D: "us-gaap:Revenues"}),
-            _rr("total_gross_profit", {_D: 800.0 * _M}, sequence=2, sources={_D: "us-gaap:GrossProfit"}),
-            _rr("total_operating_expenses", {_D: 950.0 * _M}, sequence=3, sources={_D: "us-gaap:OperatingExpenses"}),
-            _rr("total_operating_income", {_D: 300.0 * _M}, sequence=4, sources={_D: "us-gaap:OperatingIncomeLoss"}),
+            _rr(
+                "total_revenue",
+                {_D: 1000.0 * _M},
+                sequence=1,
+                sources={_D: "us-gaap:Revenues"},
+            ),
+            _rr(
+                "total_gross_profit",
+                {_D: 800.0 * _M},
+                sequence=2,
+                sources={_D: "us-gaap:GrossProfit"},
+            ),
+            _rr(
+                "total_operating_expenses",
+                {_D: 950.0 * _M},
+                sequence=3,
+                sources={_D: "us-gaap:OperatingExpenses"},
+            ),
+            _rr(
+                "total_operating_income",
+                {_D: 300.0 * _M},
+                sequence=4,
+                sources={_D: "us-gaap:OperatingIncomeLoss"},
+            ),
         ]
         out, _ = impute(rows, "income_statement", "industrial", {_D}, facts={})
         opex = _by_tag(out, "total_operating_expenses")
         assert opex.values[_D] == 500.0 * _M  # 800 - 300
-        assert "corrected: total_gross_profit - total_operating_income" in opex.sources[_D]
+        assert (
+            "corrected: total_gross_profit - total_operating_income" in opex.sources[_D]
+        )
 
     def test_opex_correction_skips_when_gross_profit_unresolvable(self):
         # No revenue/cogs to derive gp, opinc explicitly imputed -> in the opex
         # correction loop gp_val stays None so the loop `continue`s (524-525).
         rows = [
             _rr("total_gross_profit", {}, sequence=1),
-            _rr("total_operating_expenses", {_D: 950.0 * _M}, sequence=2, sources={_D: "us-gaap:OperatingExpenses"}),
-            _rr("total_operating_income", {_D: 300.0 * _M}, sequence=3, sources={_D: "imputed: x - y"}),
+            _rr(
+                "total_operating_expenses",
+                {_D: 950.0 * _M},
+                sequence=2,
+                sources={_D: "us-gaap:OperatingExpenses"},
+            ),
+            _rr(
+                "total_operating_income",
+                {_D: 300.0 * _M},
+                sequence=3,
+                sources={_D: "imputed: x - y"},
+            ),
         ]
         out, _ = impute(rows, "income_statement", "industrial", {_D}, facts={})
         opex = _by_tag(out, "total_operating_expenses")
@@ -627,15 +858,61 @@ class TestImputeBSEquityReconcileGuard:
         # ENCI != equity + nci (gap present) but L + ENCI + rNCI != L&E -> the
         # second guard `continue` (565-566) blocks the reconciliation.
         rows = [
-            _rr("total_assets", {_D: 1000.0 * _M}, period_type="instant", balance="debit", sequence=1, sources={_D: "us-gaap:Assets"}),
-            _rr("total_liabilities", {_D: 600.0 * _M}, period_type="instant", balance="credit", sequence=2, sources={_D: "us-gaap:Liabilities"}),
+            _rr(
+                "total_assets",
+                {_D: 1000.0 * _M},
+                period_type="instant",
+                balance="debit",
+                sequence=1,
+                sources={_D: "us-gaap:Assets"},
+            ),
+            _rr(
+                "total_liabilities",
+                {_D: 600.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=2,
+                sources={_D: "us-gaap:Liabilities"},
+            ),
             # L&E deliberately inconsistent with L + ENCI so the second guard fails.
-            _rr("total_liabilities_and_equity", {_D: 1000.0 * _M}, period_type="instant", balance="credit", sequence=3, sources={_D: "us-gaap:LiabilitiesAndStockholdersEquity"}),
-            _rr("total_equity_and_noncontrolling_interests", {_D: 200.0 * _M}, period_type="instant", balance="credit", sequence=4, sources={_D: "us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"}),
-            _rr("total_equity", {_D: 999.0 * _M}, period_type="instant", balance="credit", sequence=5, sources={_D: "us-gaap:StockholdersEquity"}),
-            _rr("noncontrolling_interests", {_D: 0.0}, period_type="instant", balance="credit", sequence=6, sources={_D: "us-gaap:MinorityInterest"}),
+            _rr(
+                "total_liabilities_and_equity",
+                {_D: 1000.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=3,
+                sources={_D: "us-gaap:LiabilitiesAndStockholdersEquity"},
+            ),
+            _rr(
+                "total_equity_and_noncontrolling_interests",
+                {_D: 200.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=4,
+                sources={
+                    _D: "us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"
+                },
+            ),
+            _rr(
+                "total_equity",
+                {_D: 999.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=5,
+                sources={_D: "us-gaap:StockholdersEquity"},
+            ),
+            _rr(
+                "noncontrolling_interests",
+                {_D: 0.0},
+                period_type="instant",
+                balance="credit",
+                sequence=6,
+                sources={_D: "us-gaap:MinorityInterest"},
+            ),
         ]
-        out, _ = impute(rows, "balance_sheet", "industrial", {_D}, facts={"us-gaap": {}})
+        out, _ = impute(
+            rows, "balance_sheet", "industrial", {_D}, facts={"us-gaap": {}}
+        )
         eq = _by_tag(out, "total_equity")
         # Reconciliation did NOT fire (would have set 200): equity keeps its own value.
         assert "reconciled" not in eq.sources.get(_D, "")
@@ -649,11 +926,41 @@ class TestImputeBSEquityReconcileGuard:
 def _cf_base(nc_val, nc_src):
     """Five CF rows whose op+inv+fin+fx = 200M, with a mismatching net_change."""
     return [
-        _rr("net_cash_from_operating_activities", {_D: 500.0 * _M}, balance="debit", sequence=1, sources={_D: "us-gaap:NetCashProvidedByUsedInOperatingActivities"}),
-        _rr("net_cash_from_investing_activities", {_D: -200.0 * _M}, balance="debit", sequence=2, sources={_D: "us-gaap:NetCashProvidedByUsedInInvestingActivities"}),
-        _rr("net_cash_from_financing_activities", {_D: -150.0 * _M}, balance="debit", sequence=3, sources={_D: "us-gaap:NetCashProvidedByUsedInFinancingActivities"}),
-        _rr("effect_of_exchange_rate_changes", {_D: 50.0 * _M}, balance="debit", sequence=4, sources={_D: "us-gaap:EffectOfExchangeRateOnCash"}),
-        _rr("net_change_in_cash", {_D: nc_val}, balance="debit", sequence=5, sources={_D: nc_src}),
+        _rr(
+            "net_cash_from_operating_activities",
+            {_D: 500.0 * _M},
+            balance="debit",
+            sequence=1,
+            sources={_D: "us-gaap:NetCashProvidedByUsedInOperatingActivities"},
+        ),
+        _rr(
+            "net_cash_from_investing_activities",
+            {_D: -200.0 * _M},
+            balance="debit",
+            sequence=2,
+            sources={_D: "us-gaap:NetCashProvidedByUsedInInvestingActivities"},
+        ),
+        _rr(
+            "net_cash_from_financing_activities",
+            {_D: -150.0 * _M},
+            balance="debit",
+            sequence=3,
+            sources={_D: "us-gaap:NetCashProvidedByUsedInFinancingActivities"},
+        ),
+        _rr(
+            "effect_of_exchange_rate_changes",
+            {_D: 50.0 * _M},
+            balance="debit",
+            sequence=4,
+            sources={_D: "us-gaap:EffectOfExchangeRateOnCash"},
+        ),
+        _rr(
+            "net_change_in_cash",
+            {_D: nc_val},
+            balance="debit",
+            sequence=5,
+            sources={_D: nc_src},
+        ),
     ]
 
 
@@ -661,7 +968,9 @@ class TestImputeCashFlowFXScope:
     def test_excluding_fx_marker_uses_no_fx_rule(self):
         # net_change marked ExcludingExchangeRateEffect -> the FX-inclusive rule is
         # skipped (640, 651); the no-FX rule (op+inv+fin=150) verifies cleanly.
-        rows = _cf_base(150.0 * _M, "us-gaap:CashPeriodIncreaseDecreaseExcludingExchangeRateEffect")
+        rows = _cf_base(
+            150.0 * _M, "us-gaap:CashPeriodIncreaseDecreaseExcludingExchangeRateEffect"
+        )
         out, diag = impute(rows, "cash_flow", "industrial", {_D}, facts={"us-gaap": {}})
         # 500-200-150 = 150 matches the Excluding-FX net change -> verified, no warning.
         assert all(w.tag != "net_change_in_cash" for w in diag)
@@ -670,7 +979,9 @@ class TestImputeCashFlowFXScope:
         # net_change marked IncludingExchangeRateEffect with NO effect-of-fx row:
         # the FX rules cannot evaluate (source missing) and every no-FX rule is
         # skipped by the Including-scope guard (648) -> no diagnostic emitted.
-        rows = _cf_base(200.0 * _M, "us-gaap:CashPeriodIncreaseDecreaseIncludingExchangeRateEffect")
+        rows = _cf_base(
+            200.0 * _M, "us-gaap:CashPeriodIncreaseDecreaseIncludingExchangeRateEffect"
+        )
         rows = [r for r in rows if r.tag != "effect_of_exchange_rate_changes"]
         out, diag = impute(rows, "cash_flow", "industrial", {_D}, facts={"us-gaap": {}})
         assert all(w.tag != "net_change_in_cash" for w in diag)
@@ -679,8 +990,12 @@ class TestImputeCashFlowFXScope:
         # An activity source carries ContinuingOperations while net_change is FX-
         # scoped -> _cf_scope_mismatch=True (666-667); the engine scope-aligns the
         # net change rather than warning.
-        rows = _cf_base(999.0 * _M, "us-gaap:CashPeriodIncreaseDecreaseExcludingExchangeRateEffect")
-        rows[0].sources[_D] = "us-gaap:NetCashProvidedByUsedInOperatingActivitiesContinuingOperations"
+        rows = _cf_base(
+            999.0 * _M, "us-gaap:CashPeriodIncreaseDecreaseExcludingExchangeRateEffect"
+        )
+        rows[0].sources[_D] = (
+            "us-gaap:NetCashProvidedByUsedInOperatingActivitiesContinuingOperations"
+        )
         out, diag = impute(rows, "cash_flow", "industrial", {_D}, facts={"us-gaap": {}})
         nc = _by_tag(out, "net_change_in_cash")
         assert all(w.tag != "net_change_in_cash" for w in diag)
@@ -700,7 +1015,13 @@ class TestImputeCashFlowDiscFallbacks:
         }
         rows = _cf_base(240.0 * _M, "us-gaap:CashIncludingExchangeRateEffect")
         rows.append(
-            _rr("net_cash_from_discontinued_operations", {_D: 30.0 * _M}, balance="debit", sequence=6, sources={_D: "us-gaap:NetCashProvidedByUsedInDiscontinuedOperations"})
+            _rr(
+                "net_cash_from_discontinued_operations",
+                {_D: 30.0 * _M},
+                balance="debit",
+                sequence=6,
+                sources={_D: "us-gaap:NetCashProvidedByUsedInDiscontinuedOperations"},
+            )
         )
         out, diag = impute(rows, "cash_flow", "industrial", {_D}, facts=facts)
         # 200 + 30 (disc) + 10 (disc-fx) = 240 matches.
@@ -718,7 +1039,13 @@ class TestImputeCashFlowDiscFallbacks:
         }
         rows = _cf_base(230.0 * _M, "us-gaap:CashIncludingExchangeRateEffect")
         rows.append(
-            _rr("net_cash_from_discontinued_operations", {_D: 30.0 * _M}, balance="debit", sequence=6, sources={_D: "us-gaap:NetCashProvidedByUsedInDiscontinuedOperations"})
+            _rr(
+                "net_cash_from_discontinued_operations",
+                {_D: 30.0 * _M},
+                balance="debit",
+                sequence=6,
+                sources={_D: "us-gaap:NetCashProvidedByUsedInDiscontinuedOperations"},
+            )
         )
         out, diag = impute(rows, "cash_flow", "industrial", {_D}, facts=facts)
         # 200 + 30 = 230 (without disc-fx) matches; with disc-fx (240) would not.
@@ -745,7 +1072,13 @@ class TestImputeCashFlowDiscFallbacks:
                 "NetCashProvidedByUsedInDiscontinuedOperations": {
                     "units": {
                         "USD": [
-                            {"end": _D, "start": "bad-date", "val": 99.0 * _M, "form": "10-K", "filed": "2024-01-15"},  # 1082-1083
+                            {
+                                "end": _D,
+                                "start": "bad-date",
+                                "val": 99.0 * _M,
+                                "form": "10-K",
+                                "filed": "2024-01-15",
+                            },  # 1082-1083
                             _dur(_D, "2023-01-01", 30.0 * _M),  # clean -> sums to 30
                         ]
                     }
@@ -765,8 +1098,16 @@ class TestImputeCashFlowDiscFallbacks:
                 "CashProvidedByUsedInOperatingActivitiesDiscontinuedOperations": {
                     "units": {
                         "USD": [
-                            {"end": _D, "start": "nope", "val": 99.0 * _M, "form": "10-K", "filed": "2024-01-15"},  # 1033-1034
-                            _dur(_D, "2023-01-01", 30.0 * _M),  # clean -> 200 + 30 = 230
+                            {
+                                "end": _D,
+                                "start": "nope",
+                                "val": 99.0 * _M,
+                                "form": "10-K",
+                                "filed": "2024-01-15",
+                            },  # 1033-1034
+                            _dur(
+                                _D, "2023-01-01", 30.0 * _M
+                            ),  # clean -> 200 + 30 = 230
                         ]
                     }
                 }
@@ -775,7 +1116,13 @@ class TestImputeCashFlowDiscFallbacks:
         rows = _cf_base(230.0 * _M, "us-gaap:CashIncludingExchangeRateEffect")
         # An explicit disc row routes through the individual-tags fallback (disc_val set).
         rows.append(
-            _rr("net_cash_from_discontinued_operations", {_D: 0.0}, balance="debit", sequence=6, sources={_D: "us-gaap:NetCashProvidedByUsedInDiscontinuedOperations"})
+            _rr(
+                "net_cash_from_discontinued_operations",
+                {_D: 0.0},
+                balance="debit",
+                sequence=6,
+                sources={_D: "us-gaap:NetCashProvidedByUsedInDiscontinuedOperations"},
+            )
         )
         out, diag = impute(rows, "cash_flow", "industrial", {_D}, facts=facts)
         assert all(w.tag != "net_change_in_cash" for w in diag)
@@ -788,7 +1135,13 @@ class TestImputeCashFlowDiscFallbacks:
                 "EffectOfExchangeRateOnCashAndCashEquivalentsDiscontinuedOperations": {
                     "units": {
                         "USD": [
-                            {"end": _D, "start": "xx", "val": 99.0 * _M, "form": "10-K", "filed": "2024-01-15"},  # 990-991
+                            {
+                                "end": _D,
+                                "start": "xx",
+                                "val": 99.0 * _M,
+                                "form": "10-K",
+                                "filed": "2024-01-15",
+                            },  # 990-991
                             _dur(_D, "2023-01-01", 10.0 * _M),  # clean
                         ]
                     }
@@ -797,7 +1150,13 @@ class TestImputeCashFlowDiscFallbacks:
         }
         rows = _cf_base(240.0 * _M, "us-gaap:CashIncludingExchangeRateEffect")
         rows.append(
-            _rr("net_cash_from_discontinued_operations", {_D: 30.0 * _M}, balance="debit", sequence=6, sources={_D: "us-gaap:NetCashProvidedByUsedInDiscontinuedOperations"})
+            _rr(
+                "net_cash_from_discontinued_operations",
+                {_D: 30.0 * _M},
+                balance="debit",
+                sequence=6,
+                sources={_D: "us-gaap:NetCashProvidedByUsedInDiscontinuedOperations"},
+            )
         )
         out, diag = impute(rows, "cash_flow", "industrial", {_D}, facts=facts)
         # 200 + 30 (disc) + 10 (disc-fx) = 240.
@@ -815,8 +1174,16 @@ class TestImputeCashFlowDiscFallbacks:
                 "EffectOfExchangeRateOnCashAndCashEquivalentsDiscontinuedOperations": {
                     "units": {
                         "USD": [
-                            {"end": _D, "start": "zz", "val": 99.0 * _M, "form": "10-K", "filed": "2024-01-15"},  # 1104-1105
-                            _dur(_D, "2023-01-01", 10.0 * _M),  # clean -> 200+30+10 = 240
+                            {
+                                "end": _D,
+                                "start": "zz",
+                                "val": 99.0 * _M,
+                                "form": "10-K",
+                                "filed": "2024-01-15",
+                            },  # 1104-1105
+                            _dur(
+                                _D, "2023-01-01", 10.0 * _M
+                            ),  # clean -> 200+30+10 = 240
                         ]
                     }
                 },
@@ -864,8 +1231,16 @@ class TestImputeCashFlowDiscFallbacks:
                 "CashAndCashEquivalentsPeriodIncreaseDecreaseDisposalGroupIncludingDiscontinuedOperations": {
                     "units": {
                         "USD": [
-                            {"end": _D, "start": "??", "val": 99.0 * _M, "form": "10-K", "filed": "2024-01-15"},  # 1153-1154
-                            _dur(_D, "2023-01-01", 200.0 * _M),  # clean: check reduces to val ~= 200
+                            {
+                                "end": _D,
+                                "start": "??",
+                                "val": 99.0 * _M,
+                                "form": "10-K",
+                                "filed": "2024-01-15",
+                            },  # 1153-1154
+                            _dur(
+                                _D, "2023-01-01", 200.0 * _M
+                            ),  # clean: check reduces to val ~= 200
                         ]
                     }
                 }
@@ -883,8 +1258,16 @@ class TestImputeCashFlowDiscFallbacks:
                 "IncreaseDecreaseInRestrictedCashAndRestrictedCashEquivalents": {
                     "units": {
                         "USD": [
-                            {"end": _D, "start": "!!", "val": 99.0 * _M, "form": "10-K", "filed": "2024-01-15"},  # 1244-1245
-                            _dur(_D, "2023-01-01", 30.0 * _M),  # clean -> 200 + 30 = 230
+                            {
+                                "end": _D,
+                                "start": "!!",
+                                "val": 99.0 * _M,
+                                "form": "10-K",
+                                "filed": "2024-01-15",
+                            },  # 1244-1245
+                            _dur(
+                                _D, "2023-01-01", 30.0 * _M
+                            ),  # clean -> 200 + 30 = 230
                         ]
                     }
                 }
@@ -902,7 +1285,13 @@ class TestImputeCashFlowDiscFallbacks:
             return {
                 "units": {
                     "USD": [
-                        {"end": _D, "start": "##", "val": 99.0 * _M, "form": "10-K", "filed": "2024-01-15"},  # 1325-1326
+                        {
+                            "end": _D,
+                            "start": "##",
+                            "val": 99.0 * _M,
+                            "form": "10-K",
+                            "filed": "2024-01-15",
+                        },  # 1325-1326
                         _dur(_D, "2023-01-01", tot_val),  # clean
                     ]
                 }
@@ -910,9 +1299,15 @@ class TestImputeCashFlowDiscFallbacks:
 
         facts = {
             "us-gaap": {
-                "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations": _pair(500.0 * _M),
-                "NetCashProvidedByUsedInInvestingActivitiesContinuingOperations": _pair(-200.0 * _M),
-                "NetCashProvidedByUsedInFinancingActivitiesContinuingOperations": _pair(-150.0 * _M),
+                "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations": _pair(
+                    500.0 * _M
+                ),
+                "NetCashProvidedByUsedInInvestingActivitiesContinuingOperations": _pair(
+                    -200.0 * _M
+                ),
+                "NetCashProvidedByUsedInFinancingActivitiesContinuingOperations": _pair(
+                    -150.0 * _M
+                ),
                 # A discontinued-ops FX fact triggers the disc-FX combination loop
                 # (1356-1359) that augments the FX option set.
                 "EffectOfExchangeRateOnCashAndCashEquivalentsDiscontinuedOperations": {
@@ -939,10 +1334,17 @@ class TestImputeCashFlowDiscFallbacks:
                 "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents": {
                     "units": {
                         "USD": [
-                            _dur(_D, "2023-01-01", 999.0 * _M),  # has start -> 1409 skip
+                            _dur(
+                                _D, "2023-01-01", 999.0 * _M
+                            ),  # has start -> 1409 skip
                             _inst(_D, 380.0 * _M),  # end-of-period balance
                             _inst(prior, 80.0 * _M),  # prior-period balance
-                            {"end": "garbage", "val": 7.0 * _M, "form": "10-K", "filed": "2024-02-15"},  # 1421-1422
+                            {
+                                "end": "garbage",
+                                "val": 7.0 * _M,
+                                "form": "10-K",
+                                "filed": "2024-02-15",
+                            },  # 1421-1422
                         ]
                     }
                 }
@@ -969,16 +1371,30 @@ class TestImputeISVerifyFallbacks:
         # adjustment (empty tax-src is not a ContinuingOps mismatch), and the verify
         # loop then sees a non-ContinuingOps tax -> short-circuits both pairs.
         rows = [
-            _rr("total_pretax_income", {_D: 900.0 * _M}, sequence=1, sources={_D: "us-gaap:IncomeBeforeTax"}),
+            _rr(
+                "total_pretax_income",
+                {_D: 900.0 * _M},
+                sequence=1,
+                sources={_D: "us-gaap:IncomeBeforeTax"},
+            ),
             _rr("income_tax_expense", {_D: 100.0 * _M}, sequence=2),
-            _rr("net_income_continuing", {_D: 430.0 * _M}, sequence=3, sources={_D: "us-gaap:ProfitLoss"}),
+            _rr(
+                "net_income_continuing",
+                {_D: 430.0 * _M},
+                sequence=3,
+                sources={_D: "us-gaap:ProfitLoss"},
+            ),
             _rr("net_income_discontinued", {_D: 30.0 * _M}, sequence=4),
         ]
-        out, diag = impute(rows, "income_statement", "industrial", {_D}, facts={"us-gaap": {}})
+        out, diag = impute(
+            rows, "income_statement", "industrial", {_D}, facts={"us-gaap": {}}
+        )
         nic = _by_tag(out, "net_income_continuing")
         assert "(disc-adjusted)" in nic.sources[_D]
         # No pretax/nic identity warning despite 900 != 400 + 100.
-        assert all(w.tag not in ("total_pretax_income", "net_income_continuing") for w in diag)
+        assert all(
+            w.tag not in ("total_pretax_income", "net_income_continuing") for w in diag
+        )
 
     def test_profitloss_swap_from_facts_resolves_identity(self):
         # nic from ProfitLoss; a NetIncomeLoss fact (parent-only) makes pretax=nic+tax
@@ -986,13 +1402,32 @@ class TestImputeISVerifyFallbacks:
         # us-gaap NetIncomeLoss lookup.
         facts = {
             "us-gaap": {
-                "NetIncomeLoss": {"units": {"USD": [_dur(_D, "2023-01-01", 550.0 * _M)]}}
+                "NetIncomeLoss": {
+                    "units": {"USD": [_dur(_D, "2023-01-01", 550.0 * _M)]}
+                }
             }
         }
         rows = [
-            _rr("total_pretax_income", {_D: 700.0 * _M}, sequence=1, sources={_D: "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxes"}),
-            _rr("income_tax_expense", {_D: 150.0 * _M}, sequence=2, sources={_D: "us-gaap:IncomeTaxExpenseBenefit"}),
-            _rr("net_income_continuing", {_D: 600.0 * _M}, sequence=3, sources={_D: "us-gaap:ProfitLoss"}),
+            _rr(
+                "total_pretax_income",
+                {_D: 700.0 * _M},
+                sequence=1,
+                sources={
+                    _D: "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxes"
+                },
+            ),
+            _rr(
+                "income_tax_expense",
+                {_D: 150.0 * _M},
+                sequence=2,
+                sources={_D: "us-gaap:IncomeTaxExpenseBenefit"},
+            ),
+            _rr(
+                "net_income_continuing",
+                {_D: 600.0 * _M},
+                sequence=3,
+                sources={_D: "us-gaap:ProfitLoss"},
+            ),
         ]
         out, diag = impute(rows, "income_statement", "diversified", {_D}, facts=facts)
         nic = _by_tag(out, "net_income_continuing")
@@ -1014,10 +1449,22 @@ class TestImputeISVerifyFallbacks:
                 sequence=1,
                 # Carries NoncontrollingInterest but NOT EquityMethodInvestments, so
                 # the equity-method pre-pass leaves pretax intact.
-                sources={_D: "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesNoncontrollingInterest"},
+                sources={
+                    _D: "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesNoncontrollingInterest"
+                },
             ),
-            _rr("income_tax_expense", {_D: 150.0 * _M}, sequence=2, sources={_D: "us-gaap:IncomeTaxExpenseBenefit"}),
-            _rr("net_income_continuing", {_D: 600.0 * _M}, sequence=3, sources={_D: "us-gaap:NetIncomeLoss"}),
+            _rr(
+                "income_tax_expense",
+                {_D: 150.0 * _M},
+                sequence=2,
+                sources={_D: "us-gaap:IncomeTaxExpenseBenefit"},
+            ),
+            _rr(
+                "net_income_continuing",
+                {_D: 600.0 * _M},
+                sequence=3,
+                sources={_D: "us-gaap:NetIncomeLoss"},
+            ),
         ]
         out, diag = impute(rows, "income_statement", "diversified", {_D}, facts=facts)
         nic = _by_tag(out, "net_income_continuing")
@@ -1037,9 +1484,26 @@ class TestImputeISVerifyFallbacks:
         facts = {"us-gaap": {"NetIncomeLoss": {"units": {"USD": nil_entries}}}}
         # parent-only Q4 = 600 - (100+150+200) = 150; identity: pretax(250)=150+tax(100).
         rows = [
-            _rr("total_pretax_income", {_D: 250.0 * _M}, sequence=1, sources={_D: "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxes"}),
-            _rr("income_tax_expense", {_D: 100.0 * _M}, sequence=2, sources={_D: "us-gaap:IncomeTaxExpenseBenefit"}),
-            _rr("net_income_continuing", {_D: 999.0 * _M}, sequence=3, sources={_D: "us-gaap:NetIncomeLoss Q4: FY[..] - (..)"}),
+            _rr(
+                "total_pretax_income",
+                {_D: 250.0 * _M},
+                sequence=1,
+                sources={
+                    _D: "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxes"
+                },
+            ),
+            _rr(
+                "income_tax_expense",
+                {_D: 100.0 * _M},
+                sequence=2,
+                sources={_D: "us-gaap:IncomeTaxExpenseBenefit"},
+            ),
+            _rr(
+                "net_income_continuing",
+                {_D: 999.0 * _M},
+                sequence=3,
+                sources={_D: "us-gaap:NetIncomeLoss Q4: FY[..] - (..)"},
+            ),
         ]
         out, diag = impute(rows, "income_statement", "diversified", {_D}, facts=facts)
         nic = _by_tag(out, "net_income_continuing")
@@ -1053,19 +1517,69 @@ class TestImputeISVerifyFallbacks:
         # out-of-window (789), an off-identity but well-formed candidate (filed first ->
         # _try_nci_swap returns False, 825), then a matching candidate that swaps.
         nil_entries = [
-            {"end": "2022-12-31", "start": "2022-01-01", "val": 9.0 * _M, "form": "10-K", "filed": "2023-01-01"},  # wrong end -> 774
-            {"end": _D, "val": 9.0 * _M, "form": "10-K", "filed": "2023-02-01"},  # no start -> 774
-            {"end": _D, "start": "2023-01-01", "val": 9.0 * _M, "form": "8-K", "filed": "2023-03-01"},  # bad form -> 774
-            {"end": _D, "start": "not-a-date", "val": 9.0 * _M, "form": "10-K", "filed": "2023-04-01"},  # malformed -> 781-782
-            {"end": _D, "start": "2023-12-20", "val": 9.0 * _M, "form": "10-K", "filed": "2023-05-01"},  # 11 days -> 789
-            _dur(_D, "2023-01-01", 500.0 * _M, filed="2024-01-15"),  # well-formed, off-identity -> 825 False
-            _dur(_D, "2023-01-01", 550.0 * _M, filed="2024-02-15"),  # matches identity -> swap
+            {
+                "end": "2022-12-31",
+                "start": "2022-01-01",
+                "val": 9.0 * _M,
+                "form": "10-K",
+                "filed": "2023-01-01",
+            },  # wrong end -> 774
+            {
+                "end": _D,
+                "val": 9.0 * _M,
+                "form": "10-K",
+                "filed": "2023-02-01",
+            },  # no start -> 774
+            {
+                "end": _D,
+                "start": "2023-01-01",
+                "val": 9.0 * _M,
+                "form": "8-K",
+                "filed": "2023-03-01",
+            },  # bad form -> 774
+            {
+                "end": _D,
+                "start": "not-a-date",
+                "val": 9.0 * _M,
+                "form": "10-K",
+                "filed": "2023-04-01",
+            },  # malformed -> 781-782
+            {
+                "end": _D,
+                "start": "2023-12-20",
+                "val": 9.0 * _M,
+                "form": "10-K",
+                "filed": "2023-05-01",
+            },  # 11 days -> 789
+            _dur(
+                _D, "2023-01-01", 500.0 * _M, filed="2024-01-15"
+            ),  # well-formed, off-identity -> 825 False
+            _dur(
+                _D, "2023-01-01", 550.0 * _M, filed="2024-02-15"
+            ),  # matches identity -> swap
         ]
         facts = {"us-gaap": {"NetIncomeLoss": {"units": {"USD": nil_entries}}}}
         rows = [
-            _rr("total_pretax_income", {_D: 700.0 * _M}, sequence=1, sources={_D: "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxes"}),
-            _rr("income_tax_expense", {_D: 150.0 * _M}, sequence=2, sources={_D: "us-gaap:IncomeTaxExpenseBenefit"}),
-            _rr("net_income_continuing", {_D: 600.0 * _M}, sequence=3, sources={_D: "us-gaap:ProfitLoss"}),
+            _rr(
+                "total_pretax_income",
+                {_D: 700.0 * _M},
+                sequence=1,
+                sources={
+                    _D: "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxes"
+                },
+            ),
+            _rr(
+                "income_tax_expense",
+                {_D: 150.0 * _M},
+                sequence=2,
+                sources={_D: "us-gaap:IncomeTaxExpenseBenefit"},
+            ),
+            _rr(
+                "net_income_continuing",
+                {_D: 600.0 * _M},
+                sequence=3,
+                sources={_D: "us-gaap:ProfitLoss"},
+            ),
         ]
         out, _ = impute(rows, "income_statement", "diversified", {_D}, facts=facts)
         nic = _by_tag(out, "net_income_continuing")
@@ -1077,21 +1591,70 @@ class TestImputeISVerifyFallbacks:
         # malformed-dated / out-of-window / wrong-form entries (893-894, 917, 924-925,
         # 933) before reconstructing a clean parent-only Q4 that satisfies the identity.
         nil_entries = [
-            {"end": _D, "start": "bad", "val": 600.0 * _M, "form": "10-K", "filed": "2024-01-10"},  # FY malformed -> 893-894
-            _dur(_D, "2023-01-01", 600.0 * _M, filed="2024-02-10"),  # clean FY parent-only
-            {"end": "2023-03-31", "start": "2023-01-01", "val": 100.0 * _M, "form": "8-K", "filed": "2023-04-10"},  # wrong form -> 917
-            {"end": "2023-06-30", "start": "rotten", "val": 150.0 * _M, "form": "10-Q", "filed": "2023-07-10"},  # malformed -> 924-925
-            {"end": "2024-06-30", "start": "2024-04-01", "val": 999.0 * _M, "form": "10-Q", "filed": "2024-07-10"},  # end >= date -> 933
-            _dur("2023-03-31", "2023-01-01", 100.0 * _M, form="10-Q", filed="2023-04-20"),
-            _dur("2023-06-30", "2023-04-01", 150.0 * _M, form="10-Q", filed="2023-07-20"),
-            _dur("2023-09-30", "2023-07-01", 200.0 * _M, form="10-Q", filed="2023-10-20"),
+            {
+                "end": _D,
+                "start": "bad",
+                "val": 600.0 * _M,
+                "form": "10-K",
+                "filed": "2024-01-10",
+            },  # FY malformed -> 893-894
+            _dur(
+                _D, "2023-01-01", 600.0 * _M, filed="2024-02-10"
+            ),  # clean FY parent-only
+            {
+                "end": "2023-03-31",
+                "start": "2023-01-01",
+                "val": 100.0 * _M,
+                "form": "8-K",
+                "filed": "2023-04-10",
+            },  # wrong form -> 917
+            {
+                "end": "2023-06-30",
+                "start": "rotten",
+                "val": 150.0 * _M,
+                "form": "10-Q",
+                "filed": "2023-07-10",
+            },  # malformed -> 924-925
+            {
+                "end": "2024-06-30",
+                "start": "2024-04-01",
+                "val": 999.0 * _M,
+                "form": "10-Q",
+                "filed": "2024-07-10",
+            },  # end >= date -> 933
+            _dur(
+                "2023-03-31", "2023-01-01", 100.0 * _M, form="10-Q", filed="2023-04-20"
+            ),
+            _dur(
+                "2023-06-30", "2023-04-01", 150.0 * _M, form="10-Q", filed="2023-07-20"
+            ),
+            _dur(
+                "2023-09-30", "2023-07-01", 200.0 * _M, form="10-Q", filed="2023-10-20"
+            ),
         ]
         facts = {"us-gaap": {"NetIncomeLoss": {"units": {"USD": nil_entries}}}}
         # parent-only Q4 = 600 - (100+150+200) = 150; identity pretax(250)=150+tax(100).
         rows = [
-            _rr("total_pretax_income", {_D: 250.0 * _M}, sequence=1, sources={_D: "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxes"}),
-            _rr("income_tax_expense", {_D: 100.0 * _M}, sequence=2, sources={_D: "us-gaap:IncomeTaxExpenseBenefit"}),
-            _rr("net_income_continuing", {_D: 999.0 * _M}, sequence=3, sources={_D: "us-gaap:NetIncomeLoss Q4: FY[..] - (..)"}),
+            _rr(
+                "total_pretax_income",
+                {_D: 250.0 * _M},
+                sequence=1,
+                sources={
+                    _D: "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxes"
+                },
+            ),
+            _rr(
+                "income_tax_expense",
+                {_D: 100.0 * _M},
+                sequence=2,
+                sources={_D: "us-gaap:IncomeTaxExpenseBenefit"},
+            ),
+            _rr(
+                "net_income_continuing",
+                {_D: 999.0 * _M},
+                sequence=3,
+                sources={_D: "us-gaap:NetIncomeLoss Q4: FY[..] - (..)"},
+            ),
         ]
         out, _ = impute(rows, "income_statement", "diversified", {_D}, facts=facts)
         nic = _by_tag(out, "net_income_continuing")
@@ -1112,14 +1675,33 @@ class TestImputeISVerifyFallbacks:
         facts = {
             "us-gaap": {
                 # NetIncomeLoss only has quarter entries -> no 300..400 day FY value.
-                "NetIncomeLoss": {"units": {"USD": [_dur(q_ends[0], "2023-01-01", 100.0 * _M)]}},
+                "NetIncomeLoss": {
+                    "units": {"USD": [_dur(q_ends[0], "2023-01-01", 100.0 * _M)]}
+                },
                 "ProfitLoss": {"units": {"USD": pl_entries}},
             }
         }
         rows = [
-            _rr("total_pretax_income", {_D: 250.0 * _M}, sequence=1, sources={_D: "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxes"}),
-            _rr("income_tax_expense", {_D: 100.0 * _M}, sequence=2, sources={_D: "us-gaap:IncomeTaxExpenseBenefit"}),
-            _rr("net_income_continuing", {_D: 999.0 * _M}, sequence=3, sources={_D: "us-gaap:ProfitLoss Q4: FY[..] - (..)"}),
+            _rr(
+                "total_pretax_income",
+                {_D: 250.0 * _M},
+                sequence=1,
+                sources={
+                    _D: "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxes"
+                },
+            ),
+            _rr(
+                "income_tax_expense",
+                {_D: 100.0 * _M},
+                sequence=2,
+                sources={_D: "us-gaap:IncomeTaxExpenseBenefit"},
+            ),
+            _rr(
+                "net_income_continuing",
+                {_D: 999.0 * _M},
+                sequence=3,
+                sources={_D: "us-gaap:ProfitLoss Q4: FY[..] - (..)"},
+            ),
         ]
         out, _ = impute(rows, "income_statement", "diversified", {_D}, facts=facts)
         nic = _by_tag(out, "net_income_continuing")
@@ -1130,10 +1712,26 @@ class TestImputeISVerifyFallbacks:
         # total_assets verifies against a negative total_liabilities_and_equity whose
         # magnitude matches -> L&E is sign-corrected (728-750).
         rows = [
-            _rr("total_assets", {_D: 1000.0 * _M}, period_type="instant", balance="debit", sequence=1, sources={_D: "us-gaap:Assets"}),
-            _rr("total_liabilities_and_equity", {_D: -1000.0 * _M}, period_type="instant", balance="credit", sequence=2, sources={_D: "us-gaap:LiabilitiesAndStockholdersEquity"}),
+            _rr(
+                "total_assets",
+                {_D: 1000.0 * _M},
+                period_type="instant",
+                balance="debit",
+                sequence=1,
+                sources={_D: "us-gaap:Assets"},
+            ),
+            _rr(
+                "total_liabilities_and_equity",
+                {_D: -1000.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=2,
+                sources={_D: "us-gaap:LiabilitiesAndStockholdersEquity"},
+            ),
         ]
-        out, diag = impute(rows, "balance_sheet", "industrial", {_D}, facts={"us-gaap": {}})
+        out, diag = impute(
+            rows, "balance_sheet", "industrial", {_D}, facts={"us-gaap": {}}
+        )
         le = _by_tag(out, "total_liabilities_and_equity")
         assert le.values[_D] == 1000.0 * _M
         assert "sign-corrected" in le.sources[_D]
@@ -1147,14 +1745,53 @@ class TestImputeISVerifyFallbacks:
 
 def _bs_mezz_rows(l_val, enci_val, rnci_val=None):
     rows = [
-        _rr("total_assets", {_D: 1000.0 * _M}, period_type="instant", balance="debit", sequence=1, sources={_D: "us-gaap:Assets"}),
-        _rr("total_liabilities", {_D: l_val}, period_type="instant", balance="credit", sequence=2, sources={_D: "us-gaap:Liabilities"}),
-        _rr("total_liabilities_and_equity", {_D: 1000.0 * _M}, period_type="instant", balance="credit", sequence=3, sources={_D: "us-gaap:LiabilitiesAndStockholdersEquity"}),
-        _rr("total_equity_and_noncontrolling_interests", {_D: enci_val}, period_type="instant", balance="credit", sequence=4, sources={_D: "us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"}),
+        _rr(
+            "total_assets",
+            {_D: 1000.0 * _M},
+            period_type="instant",
+            balance="debit",
+            sequence=1,
+            sources={_D: "us-gaap:Assets"},
+        ),
+        _rr(
+            "total_liabilities",
+            {_D: l_val},
+            period_type="instant",
+            balance="credit",
+            sequence=2,
+            sources={_D: "us-gaap:Liabilities"},
+        ),
+        _rr(
+            "total_liabilities_and_equity",
+            {_D: 1000.0 * _M},
+            period_type="instant",
+            balance="credit",
+            sequence=3,
+            sources={_D: "us-gaap:LiabilitiesAndStockholdersEquity"},
+        ),
+        _rr(
+            "total_equity_and_noncontrolling_interests",
+            {_D: enci_val},
+            period_type="instant",
+            balance="credit",
+            sequence=4,
+            sources={
+                _D: "us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"
+            },
+        ),
     ]
     if rnci_val is not None:
         rows.append(
-            _rr("redeemable_noncontrolling_interest", {_D: rnci_val}, period_type="instant", balance="credit", sequence=5, sources={_D: "us-gaap:RedeemableNoncontrollingInterestEquityCarryingAmount"})
+            _rr(
+                "redeemable_noncontrolling_interest",
+                {_D: rnci_val},
+                period_type="instant",
+                balance="credit",
+                sequence=5,
+                sources={
+                    _D: "us-gaap:RedeemableNoncontrollingInterestEquityCarryingAmount"
+                },
+            )
         )
     return rows
 
@@ -1179,13 +1816,66 @@ class TestImputeBSMezzanineFallbacks:
         # row (50M) makes the earlier equity-reconcile guard fail so it does not pre-
         # empt the mezzanine path, and feeds _rnci_val into the block.
         rows = [
-            _rr("total_assets", {_D: 1000.0 * _M}, period_type="instant", balance="debit", sequence=1, sources={_D: "us-gaap:Assets"}),
-            _rr("total_liabilities", {_D: 600.0 * _M}, period_type="instant", balance="credit", sequence=2, sources={_D: "us-gaap:Liabilities"}),
-            _rr("total_liabilities_and_equity", {_D: 1000.0 * _M}, period_type="instant", balance="credit", sequence=3, sources={_D: "us-gaap:LiabilitiesAndStockholdersEquity"}),
-            _rr("total_equity_and_noncontrolling_interests", {_D: 400.0 * _M}, period_type="instant", balance="credit", sequence=4, sources={_D: "us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"}),
-            _rr("total_equity", {_D: 350.0 * _M}, period_type="instant", balance="credit", sequence=5, sources={_D: "us-gaap:StockholdersEquity"}),
-            _rr("noncontrolling_interests", {_D: 0.0}, period_type="instant", balance="credit", sequence=6, sources={_D: "us-gaap:MinorityInterest"}),
-            _rr("redeemable_noncontrolling_interest", {_D: 50.0 * _M}, period_type="instant", balance="credit", sequence=7, sources={_D: "us-gaap:RedeemableNoncontrollingInterestEquityCarryingAmount"}),
+            _rr(
+                "total_assets",
+                {_D: 1000.0 * _M},
+                period_type="instant",
+                balance="debit",
+                sequence=1,
+                sources={_D: "us-gaap:Assets"},
+            ),
+            _rr(
+                "total_liabilities",
+                {_D: 600.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=2,
+                sources={_D: "us-gaap:Liabilities"},
+            ),
+            _rr(
+                "total_liabilities_and_equity",
+                {_D: 1000.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=3,
+                sources={_D: "us-gaap:LiabilitiesAndStockholdersEquity"},
+            ),
+            _rr(
+                "total_equity_and_noncontrolling_interests",
+                {_D: 400.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=4,
+                sources={
+                    _D: "us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"
+                },
+            ),
+            _rr(
+                "total_equity",
+                {_D: 350.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=5,
+                sources={_D: "us-gaap:StockholdersEquity"},
+            ),
+            _rr(
+                "noncontrolling_interests",
+                {_D: 0.0},
+                period_type="instant",
+                balance="credit",
+                sequence=6,
+                sources={_D: "us-gaap:MinorityInterest"},
+            ),
+            _rr(
+                "redeemable_noncontrolling_interest",
+                {_D: 50.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=7,
+                sources={
+                    _D: "us-gaap:RedeemableNoncontrollingInterestEquityCarryingAmount"
+                },
+            ),
         ]
         facts = {
             "us-gaap": {
@@ -1202,13 +1892,66 @@ class TestImputeBSMezzanineFallbacks:
         # SUM of two carrying-amount facts (30M + 20M) -> the sum fallback resolves it
         # (1540-1547, esp. 1543).
         rows = [
-            _rr("total_assets", {_D: 1000.0 * _M}, period_type="instant", balance="debit", sequence=1, sources={_D: "us-gaap:Assets"}),
-            _rr("total_liabilities", {_D: 600.0 * _M}, period_type="instant", balance="credit", sequence=2, sources={_D: "us-gaap:Liabilities"}),
-            _rr("total_liabilities_and_equity", {_D: 1000.0 * _M}, period_type="instant", balance="credit", sequence=3, sources={_D: "us-gaap:LiabilitiesAndStockholdersEquity"}),
-            _rr("total_equity_and_noncontrolling_interests", {_D: 400.0 * _M}, period_type="instant", balance="credit", sequence=4, sources={_D: "us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"}),
-            _rr("total_equity", {_D: 350.0 * _M}, period_type="instant", balance="credit", sequence=5, sources={_D: "us-gaap:StockholdersEquity"}),
-            _rr("noncontrolling_interests", {_D: 0.0}, period_type="instant", balance="credit", sequence=6, sources={_D: "us-gaap:MinorityInterest"}),
-            _rr("redeemable_noncontrolling_interest", {_D: 50.0 * _M}, period_type="instant", balance="credit", sequence=7, sources={_D: "us-gaap:RedeemableNoncontrollingInterestEquityCarryingAmount"}),
+            _rr(
+                "total_assets",
+                {_D: 1000.0 * _M},
+                period_type="instant",
+                balance="debit",
+                sequence=1,
+                sources={_D: "us-gaap:Assets"},
+            ),
+            _rr(
+                "total_liabilities",
+                {_D: 600.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=2,
+                sources={_D: "us-gaap:Liabilities"},
+            ),
+            _rr(
+                "total_liabilities_and_equity",
+                {_D: 1000.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=3,
+                sources={_D: "us-gaap:LiabilitiesAndStockholdersEquity"},
+            ),
+            _rr(
+                "total_equity_and_noncontrolling_interests",
+                {_D: 400.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=4,
+                sources={
+                    _D: "us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"
+                },
+            ),
+            _rr(
+                "total_equity",
+                {_D: 350.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=5,
+                sources={_D: "us-gaap:StockholdersEquity"},
+            ),
+            _rr(
+                "noncontrolling_interests",
+                {_D: 0.0},
+                period_type="instant",
+                balance="credit",
+                sequence=6,
+                sources={_D: "us-gaap:MinorityInterest"},
+            ),
+            _rr(
+                "redeemable_noncontrolling_interest",
+                {_D: 50.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=7,
+                sources={
+                    _D: "us-gaap:RedeemableNoncontrollingInterestEquityCarryingAmount"
+                },
+            ),
         ]
         facts = {
             "us-gaap": {
@@ -1227,15 +1970,61 @@ class TestImputeBSMezzanineFallbacks:
         # ENCI verify gap equals 2x abs(negative nci) -> the sign-doubling branch
         # verifies (1552-1558).
         rows = [
-            _rr("total_assets", {_D: 1000.0 * _M}, period_type="instant", balance="debit", sequence=1, sources={_D: "us-gaap:Assets"}),
-            _rr("total_liabilities", {_D: 600.0 * _M}, period_type="instant", balance="credit", sequence=2, sources={_D: "us-gaap:Liabilities"}),
-            _rr("total_liabilities_and_equity", {_D: 1000.0 * _M}, period_type="instant", balance="credit", sequence=3, sources={_D: "us-gaap:LiabilitiesAndStockholdersEquity"}),
+            _rr(
+                "total_assets",
+                {_D: 1000.0 * _M},
+                period_type="instant",
+                balance="debit",
+                sequence=1,
+                sources={_D: "us-gaap:Assets"},
+            ),
+            _rr(
+                "total_liabilities",
+                {_D: 600.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=2,
+                sources={_D: "us-gaap:Liabilities"},
+            ),
+            _rr(
+                "total_liabilities_and_equity",
+                {_D: 1000.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=3,
+                sources={_D: "us-gaap:LiabilitiesAndStockholdersEquity"},
+            ),
             # equity=420, nci=-20 -> verify sum = 400; ENCI value = 440 -> diff = 40 = 2*20.
-            _rr("total_equity_and_noncontrolling_interests", {_D: 440.0 * _M}, period_type="instant", balance="credit", sequence=4, sources={_D: "us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"}),
-            _rr("total_equity", {_D: 420.0 * _M}, period_type="instant", balance="credit", sequence=5, sources={_D: "us-gaap:StockholdersEquity"}),
-            _rr("noncontrolling_interests", {_D: -20.0 * _M}, period_type="instant", balance="credit", sequence=6, sources={_D: "us-gaap:MinorityInterest"}),
+            _rr(
+                "total_equity_and_noncontrolling_interests",
+                {_D: 440.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=4,
+                sources={
+                    _D: "us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"
+                },
+            ),
+            _rr(
+                "total_equity",
+                {_D: 420.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=5,
+                sources={_D: "us-gaap:StockholdersEquity"},
+            ),
+            _rr(
+                "noncontrolling_interests",
+                {_D: -20.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=6,
+                sources={_D: "us-gaap:MinorityInterest"},
+            ),
         ]
-        out, diag = impute(rows, "balance_sheet", "industrial", {_D}, facts={"us-gaap": {}})
+        out, diag = impute(
+            rows, "balance_sheet", "industrial", {_D}, facts={"us-gaap": {}}
+        )
         assert all(w.tag != "total_equity_and_noncontrolling_interests" for w in diag)
 
 
@@ -1244,10 +2033,30 @@ class TestImputeOperatingIncomeBridge:
         # gp - opex != opinc (opinc imputed-sourced so pre-correction is skipped); a
         # GainLossOnDispositionOfAssets fact equals the signed gap -> bridged (1560-1612).
         rows = [
-            _rr("total_revenue", {_D: 1000.0 * _M}, sequence=1, sources={_D: "us-gaap:Revenues"}),
-            _rr("total_gross_profit", {_D: 1000.0 * _M}, sequence=2, sources={_D: "us-gaap:GrossProfit"}),
-            _rr("total_operating_expenses", {_D: 300.0 * _M}, sequence=3, sources={_D: "us-gaap:OperatingExpenses"}),
-            _rr("total_operating_income", {_D: 730.0 * _M}, sequence=4, sources={_D: "imputed: revenue - expenses"}),
+            _rr(
+                "total_revenue",
+                {_D: 1000.0 * _M},
+                sequence=1,
+                sources={_D: "us-gaap:Revenues"},
+            ),
+            _rr(
+                "total_gross_profit",
+                {_D: 1000.0 * _M},
+                sequence=2,
+                sources={_D: "us-gaap:GrossProfit"},
+            ),
+            _rr(
+                "total_operating_expenses",
+                {_D: 300.0 * _M},
+                sequence=3,
+                sources={_D: "us-gaap:OperatingExpenses"},
+            ),
+            _rr(
+                "total_operating_income",
+                {_D: 730.0 * _M},
+                sequence=4,
+                sources={_D: "imputed: revenue - expenses"},
+            ),
         ]
         facts = {
             "us-gaap": {
@@ -1264,14 +2073,36 @@ class TestImputeOperatingIncomeBridge:
         # exceeds the scale tolerance (0.1% of 300M = 300k) yet is <= 1M -> the
         # rounding heuristic accepts it (1593-1608).
         rows = [
-            _rr("total_revenue", {_D: 400.0 * _M}, sequence=1, sources={_D: "us-gaap:Revenues"}),
-            _rr("total_gross_profit", {_D: 300.0 * _M}, sequence=2, sources={_D: "us-gaap:GrossProfit"}),
-            _rr("total_operating_expenses", {_D: 100.0 * _M}, sequence=3, sources={_D: "us-gaap:OperatingExpenses"}),
+            _rr(
+                "total_revenue",
+                {_D: 400.0 * _M},
+                sequence=1,
+                sources={_D: "us-gaap:Revenues"},
+            ),
+            _rr(
+                "total_gross_profit",
+                {_D: 300.0 * _M},
+                sequence=2,
+                sources={_D: "us-gaap:GrossProfit"},
+            ),
+            _rr(
+                "total_operating_expenses",
+                {_D: 100.0 * _M},
+                sequence=3,
+                sources={_D: "us-gaap:OperatingExpenses"},
+            ),
             # gp - opex = 200M; opinc 201M -> 1M residual; opinc imputed so the opex
             # pre-correction pass is skipped and the residual survives into verify.
-            _rr("total_operating_income", {_D: 201.0 * _M}, sequence=4, sources={_D: "imputed: revenue - expenses"}),
+            _rr(
+                "total_operating_income",
+                {_D: 201.0 * _M},
+                sequence=4,
+                sources={_D: "imputed: revenue - expenses"},
+            ),
         ]
-        out, diag = impute(rows, "income_statement", "industrial", {_D}, facts={"us-gaap": {}})
+        out, diag = impute(
+            rows, "income_statement", "industrial", {_D}, facts={"us-gaap": {}}
+        )
         assert all(w.tag != "total_operating_income" for w in diag)
 
 
@@ -1283,7 +2114,13 @@ class TestImputeOperatingIncomeBridge:
 def _bs_assets_rows(*, assets_src, tle_src, assets=1000.0, tle=900.0):
     """total_assets vs total_liabilities_and_equity (single-source BS_VERIFY rule)."""
     return [
-        _rr("total_assets", {_D: assets * _M}, balance="debit", sequence=1, sources={_D: assets_src}),
+        _rr(
+            "total_assets",
+            {_D: assets * _M},
+            balance="debit",
+            sequence=1,
+            sources={_D: assets_src},
+        ),
         _rr(
             "total_liabilities_and_equity",
             {_D: tle * _M},
@@ -1305,7 +2142,9 @@ class TestImputeSingleSoftSourceSolve:
             assets=1000.0,
             tle=900.0,
         )
-        out, diag = impute(rows, "balance_sheet", "industrial", {_D}, facts={"us-gaap": {}})
+        out, diag = impute(
+            rows, "balance_sheet", "industrial", {_D}, facts={"us-gaap": {}}
+        )
         tle = _by_tag(out, "total_liabilities_and_equity")
         assert tle.values[_D] == 1000.0 * _M  # solved to match total_assets
         assert "identity-enforced: derived from total_assets" in tle.sources[_D]
@@ -1321,7 +2160,9 @@ class TestImputeSingleSoftSourceSolve:
             assets=950.0,
             tle=1000.0,
         )
-        out, _ = impute(rows, "balance_sheet", "industrial", {_D}, facts={"us-gaap": {}})
+        out, _ = impute(
+            rows, "balance_sheet", "industrial", {_D}, facts={"us-gaap": {}}
+        )
         assets = _by_tag(out, "total_assets")
         assert assets.values[_D] == 1000.0 * _M  # enforced from the hard source
         assert assets.sources[_D].startswith("identity-enforced:")
@@ -1353,7 +2194,9 @@ class TestImputeSingleSoftSourceSolve:
                 sources={_D: "us-gaap:Liabilities"},
             ),
         ]
-        out, _ = impute(rows, "balance_sheet", "industrial", {_D}, facts={"us-gaap": {}})
+        out, _ = impute(
+            rows, "balance_sheet", "industrial", {_D}, facts={"us-gaap": {}}
+        )
         liab = _by_tag(out, "total_liabilities")
         assert liab.values[_D] == 600.0 * _M  # 1000 - 400, enforced
         assert liab.sources[_D].startswith("identity-enforced:")
@@ -1392,13 +2235,30 @@ class TestImputeVintageCorrection:
         assert any(w.tag == "total_assets" and w.date == _D for w in diag)
 
 
-def _ncic_rows(*, nc_src, op_src, inv_src, fin_src, nc=100.0, op=400.0, inv=-200.0, fin=-50.0):
+def _ncic_rows(
+    *, nc_src, op_src, inv_src, fin_src, nc=100.0, op=400.0, inv=-200.0, fin=-50.0
+):
     """net_change_in_cash plus the three activity rows (no FX row)."""
     return [
         _rr("net_change_in_cash", {_D: nc * _M}, sequence=1, sources={_D: nc_src}),
-        _rr("net_cash_from_operating_activities", {_D: op * _M}, sequence=2, sources={_D: op_src}),
-        _rr("net_cash_from_investing_activities", {_D: inv * _M}, sequence=3, sources={_D: inv_src}),
-        _rr("net_cash_from_financing_activities", {_D: fin * _M}, sequence=4, sources={_D: fin_src}),
+        _rr(
+            "net_cash_from_operating_activities",
+            {_D: op * _M},
+            sequence=2,
+            sources={_D: op_src},
+        ),
+        _rr(
+            "net_cash_from_investing_activities",
+            {_D: inv * _M},
+            sequence=3,
+            sources={_D: inv_src},
+        ),
+        _rr(
+            "net_cash_from_financing_activities",
+            {_D: fin * _M},
+            sequence=4,
+            sources={_D: fin_src},
+        ),
     ]
 
 
@@ -1457,7 +2317,9 @@ class TestImputeSingleSoftSourceTwoTermRule:
                 "total_equity_and_noncontrolling_interests",
                 {_D: 400.0 * _M},
                 sequence=2,
-                sources={_D: "us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"},
+                sources={
+                    _D: "us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"
+                },
             ),
             _rr(
                 "total_liabilities",
@@ -1466,7 +2328,9 @@ class TestImputeSingleSoftSourceTwoTermRule:
                 sources={_D: "us-gaap:Liabilities"},
             ),
         ]
-        out, _ = impute(rows, "balance_sheet", "industrial", {_D}, facts={"us-gaap": {}})
+        out, _ = impute(
+            rows, "balance_sheet", "industrial", {_D}, facts={"us-gaap": {}}
+        )
         tle = _by_tag(out, "total_liabilities_and_equity")
         # Solved so that TLE - ENCI == L: TLE = 700 + 400 = 1100.
         assert tle.values[_D] == 1100.0 * _M
@@ -1482,12 +2346,10 @@ class TestImputeSingleSoftSourceTwoTermRule:
 class TestImputeHelpers:
     def test_format_source_signs(self):
         assert (
-            _format_impute_source("imputed", [("a", 1), ("b", -1)])
-            == "imputed: a - b"
+            _format_impute_source("imputed", [("a", 1), ("b", -1)]) == "imputed: a - b"
         )
         assert (
-            _format_impute_source("imputed", [("a", -1), ("b", 1)])
-            == "imputed: -a + b"
+            _format_impute_source("imputed", [("a", -1), ("b", 1)]) == "imputed: -a + b"
         )
 
     def test_run_passes_derives_value(self):
@@ -1498,7 +2360,12 @@ class TestImputeHelpers:
             _rr("total_gross_profit", {}),
         ]
         idx = {r.tag: i for i, r in enumerate(rows)}
-        rules = [("total_gross_profit", [("total_revenue", 1), ("total_cost_of_revenue", -1)])]
+        rules = [
+            (
+                "total_gross_profit",
+                [("total_revenue", 1), ("total_cost_of_revenue", -1)],
+            )
+        ]
         changed = _run_imputation_passes(rows, rules, idx, {d})
         assert changed is True
         assert rows[2].values[d] == 600.0
@@ -1513,9 +2380,25 @@ class TestImputeHelpers:
     def test_hierarchical_rollup_creates_parent(self):
         d = "2023-12-31"
         rows = [
-            _rr("total_assets", {}, period_type="instant", balance="debit", sequence=10),
-            _rr("cash", {d: 100.0 * _M}, parent="total_assets", balance="debit", sequence=1, period_type="instant"),
-            _rr("inventory", {d: 50.0 * _M}, parent="total_assets", balance="debit", sequence=2, period_type="instant"),
+            _rr(
+                "total_assets", {}, period_type="instant", balance="debit", sequence=10
+            ),
+            _rr(
+                "cash",
+                {d: 100.0 * _M},
+                parent="total_assets",
+                balance="debit",
+                sequence=1,
+                period_type="instant",
+            ),
+            _rr(
+                "inventory",
+                {d: 50.0 * _M},
+                parent="total_assets",
+                balance="debit",
+                sequence=2,
+                period_type="instant",
+            ),
         ]
         _apply_hierarchical_articulation(rows, {d})
         parent = _by_tag(rows, "total_assets")
@@ -1525,8 +2408,21 @@ class TestImputeHelpers:
     def test_hierarchical_plug_for_remainder(self):
         d = "2023-12-31"
         rows = [
-            _rr("total_assets", {d: 200.0 * _M}, period_type="instant", balance="debit", sequence=10),
-            _rr("cash", {d: 100.0 * _M}, parent="total_assets", balance="debit", sequence=1, period_type="instant"),
+            _rr(
+                "total_assets",
+                {d: 200.0 * _M},
+                period_type="instant",
+                balance="debit",
+                sequence=10,
+            ),
+            _rr(
+                "cash",
+                {d: 100.0 * _M},
+                parent="total_assets",
+                balance="debit",
+                sequence=1,
+                period_type="instant",
+            ),
         ]
         _apply_hierarchical_articulation(rows, {d})
         plug = _by_tag(rows, "other_assets")
@@ -1572,7 +2468,12 @@ class TestImputeIncomeStatement:
         d = "2023-12-31"
         rows = [
             _rr("total_revenue", {d: 1000.0 * _M}, sequence=1),
-            _rr("total_cost_of_revenue", {d: 100.0 * _M}, sequence=2, sources={d: "us-gaap:CostOfRevenue"}),
+            _rr(
+                "total_cost_of_revenue",
+                {d: 100.0 * _M},
+                sequence=2,
+                sources={d: "us-gaap:CostOfRevenue"},
+            ),
             _rr("total_gross_profit", {}, sequence=3),
             _rr("total_operating_expenses", {d: 200.0 * _M}, sequence=4),
             _rr("total_operating_income", {d: 200.0 * _M}, sequence=5),
@@ -1595,9 +2496,24 @@ class TestImputeIncomeStatement:
         # nic + tax ("scope-aligned") rather than emitting a diagnostic.
         d = "2023-12-31"
         rows = [
-            _rr("total_pretax_income", {d: 900.0 * _M}, sequence=1, sources={d: "us-gaap:IncomeBeforeTax"}),
-            _rr("income_tax_expense", {d: 100.0 * _M}, sequence=2, sources={d: "us-gaap:IncomeTaxExpenseBenefit(ContinuingOperations)"}),
-            _rr("net_income_continuing", {d: 400.0 * _M}, sequence=3, sources={d: "us-gaap:IncomeLossFromContinuingOperations"}),
+            _rr(
+                "total_pretax_income",
+                {d: 900.0 * _M},
+                sequence=1,
+                sources={d: "us-gaap:IncomeBeforeTax"},
+            ),
+            _rr(
+                "income_tax_expense",
+                {d: 100.0 * _M},
+                sequence=2,
+                sources={d: "us-gaap:IncomeTaxExpenseBenefit(ContinuingOperations)"},
+            ),
+            _rr(
+                "net_income_continuing",
+                {d: 400.0 * _M},
+                sequence=3,
+                sources={d: "us-gaap:IncomeLossFromContinuingOperations"},
+            ),
         ]
         out, diag = impute(rows, "income_statement", "financial", {d}, facts={})
         ptx = _by_tag(out, "total_pretax_income")
@@ -1610,8 +2526,22 @@ class TestImputeDiagnostics:
         # Assets != L&E with hard sources and no soft markers -> ValidationWarning.
         d = "2023-12-31"
         rows = [
-            _rr("total_assets", {d: 1000.0 * _M}, period_type="instant", balance="debit", sequence=1, sources={d: "us-gaap:Assets"}),
-            _rr("total_liabilities_and_equity", {d: 900.0 * _M}, period_type="instant", balance="credit", sequence=2, sources={d: "us-gaap:LiabilitiesAndStockholdersEquity"}),
+            _rr(
+                "total_assets",
+                {d: 1000.0 * _M},
+                period_type="instant",
+                balance="debit",
+                sequence=1,
+                sources={d: "us-gaap:Assets"},
+            ),
+            _rr(
+                "total_liabilities_and_equity",
+                {d: 900.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=2,
+                sources={d: "us-gaap:LiabilitiesAndStockholdersEquity"},
+            ),
         ]
         out, diag = impute(rows, "balance_sheet", "industrial", {d}, facts={})
         warning = next((w for w in diag if w.tag == "total_assets"), None)
@@ -1624,9 +2554,27 @@ class TestImputeBalanceSheet:
     def test_noncurrent_assets_imputed(self):
         d = "2023-12-31"
         rows = [
-            _rr("total_assets", {d: 1000.0 * _M}, period_type="instant", balance="debit", sequence=1),
-            _rr("total_current_assets", {d: 400.0 * _M}, period_type="instant", balance="debit", sequence=2),
-            _rr("total_noncurrent_assets", {}, period_type="instant", balance="debit", sequence=3),
+            _rr(
+                "total_assets",
+                {d: 1000.0 * _M},
+                period_type="instant",
+                balance="debit",
+                sequence=1,
+            ),
+            _rr(
+                "total_current_assets",
+                {d: 400.0 * _M},
+                period_type="instant",
+                balance="debit",
+                sequence=2,
+            ),
+            _rr(
+                "total_noncurrent_assets",
+                {},
+                period_type="instant",
+                balance="debit",
+                sequence=3,
+            ),
         ]
         out, _ = impute(rows, "balance_sheet", "industrial", {d}, facts={})
         assert _by_tag(out, "total_noncurrent_assets").values[d] == 600.0 * _M
@@ -1634,12 +2582,48 @@ class TestImputeBalanceSheet:
     def test_equity_reconciliation(self):
         d = "2023-12-31"
         rows = [
-            _rr("total_assets", {d: 1000.0 * _M}, period_type="instant", balance="debit", sequence=1),
-            _rr("total_liabilities", {d: 600.0 * _M}, period_type="instant", balance="credit", sequence=2),
-            _rr("total_liabilities_and_equity", {d: 1000.0 * _M}, period_type="instant", balance="credit", sequence=3),
-            _rr("total_equity_and_noncontrolling_interests", {d: 400.0 * _M}, period_type="instant", balance="credit", sequence=4),
-            _rr("total_equity", {d: 999.0 * _M}, period_type="instant", balance="credit", sequence=5),
-            _rr("noncontrolling_interests", {d: 0.0}, period_type="instant", balance="credit", sequence=6),
+            _rr(
+                "total_assets",
+                {d: 1000.0 * _M},
+                period_type="instant",
+                balance="debit",
+                sequence=1,
+            ),
+            _rr(
+                "total_liabilities",
+                {d: 600.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=2,
+            ),
+            _rr(
+                "total_liabilities_and_equity",
+                {d: 1000.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=3,
+            ),
+            _rr(
+                "total_equity_and_noncontrolling_interests",
+                {d: 400.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=4,
+            ),
+            _rr(
+                "total_equity",
+                {d: 999.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=5,
+            ),
+            _rr(
+                "noncontrolling_interests",
+                {d: 0.0},
+                period_type="instant",
+                balance="credit",
+                sequence=6,
+            ),
         ]
         out, _ = impute(rows, "balance_sheet", "industrial", {d}, facts={})
         eq = _by_tag(out, "total_equity")
@@ -1650,11 +2634,41 @@ class TestImputeBalanceSheet:
         # L&E - L - ENCI leaves a mezzanine remainder imputed into redeemable NCI.
         d = "2023-12-31"
         rows = [
-            _rr("total_assets", {d: 1000.0 * _M}, period_type="instant", balance="debit", sequence=1),
-            _rr("total_liabilities", {d: 600.0 * _M}, period_type="instant", balance="credit", sequence=2),
-            _rr("total_liabilities_and_equity", {d: 1000.0 * _M}, period_type="instant", balance="credit", sequence=3),
-            _rr("total_equity_and_noncontrolling_interests", {d: 350.0 * _M}, period_type="instant", balance="credit", sequence=4),
-            _rr("redeemable_noncontrolling_interest", {}, period_type="instant", balance="credit", sequence=5),
+            _rr(
+                "total_assets",
+                {d: 1000.0 * _M},
+                period_type="instant",
+                balance="debit",
+                sequence=1,
+            ),
+            _rr(
+                "total_liabilities",
+                {d: 600.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=2,
+            ),
+            _rr(
+                "total_liabilities_and_equity",
+                {d: 1000.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=3,
+            ),
+            _rr(
+                "total_equity_and_noncontrolling_interests",
+                {d: 350.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=4,
+            ),
+            _rr(
+                "redeemable_noncontrolling_interest",
+                {},
+                period_type="instant",
+                balance="credit",
+                sequence=5,
+            ),
         ]
         out, _ = impute(rows, "balance_sheet", "industrial", {d}, facts={})
         rnci = _by_tag(out, "redeemable_noncontrolling_interest")
@@ -1667,10 +2681,30 @@ class TestImputeCashFlow:
     def test_net_change_imputed_from_activities(self):
         d = "2023-12-31"
         rows = [
-            _rr("net_cash_from_operating_activities", {d: 500.0 * _M}, balance="debit", sequence=1),
-            _rr("net_cash_from_investing_activities", {d: -200.0 * _M}, balance="debit", sequence=2),
-            _rr("net_cash_from_financing_activities", {d: -150.0 * _M}, balance="debit", sequence=3),
-            _rr("effect_of_exchange_rate_changes", {d: 50.0 * _M}, balance="debit", sequence=4),
+            _rr(
+                "net_cash_from_operating_activities",
+                {d: 500.0 * _M},
+                balance="debit",
+                sequence=1,
+            ),
+            _rr(
+                "net_cash_from_investing_activities",
+                {d: -200.0 * _M},
+                balance="debit",
+                sequence=2,
+            ),
+            _rr(
+                "net_cash_from_financing_activities",
+                {d: -150.0 * _M},
+                balance="debit",
+                sequence=3,
+            ),
+            _rr(
+                "effect_of_exchange_rate_changes",
+                {d: 50.0 * _M},
+                balance="debit",
+                sequence=4,
+            ),
             _rr("net_change_in_cash", {}, balance="debit", sequence=5),
         ]
         out, _ = impute(rows, "cash_flow", "industrial", {d}, facts={})
@@ -1681,9 +2715,24 @@ class TestImputeCashFlow:
     def test_fx_derived_from_identity(self):
         d = "2023-12-31"
         rows = [
-            _rr("net_cash_from_operating_activities", {d: 500.0 * _M}, balance="debit", sequence=1),
-            _rr("net_cash_from_investing_activities", {d: -200.0 * _M}, balance="debit", sequence=2),
-            _rr("net_cash_from_financing_activities", {d: -150.0 * _M}, balance="debit", sequence=3),
+            _rr(
+                "net_cash_from_operating_activities",
+                {d: 500.0 * _M},
+                balance="debit",
+                sequence=1,
+            ),
+            _rr(
+                "net_cash_from_investing_activities",
+                {d: -200.0 * _M},
+                balance="debit",
+                sequence=2,
+            ),
+            _rr(
+                "net_cash_from_financing_activities",
+                {d: -150.0 * _M},
+                balance="debit",
+                sequence=3,
+            ),
             _rr("effect_of_exchange_rate_changes", {}, balance="debit", sequence=4),
             _rr("net_change_in_cash", {d: 160.0 * _M}, balance="debit", sequence=5),
         ]
@@ -1784,7 +2833,10 @@ class TestImputeCashFlowFallbacks:
             "us-gaap": {
                 "Cash": {
                     "units": {
-                        "USD": [_inst(_D, 1400.0 * _M), _inst("2023-03-31", 1000.0 * _M)]
+                        "USD": [
+                            _inst(_D, 1400.0 * _M),
+                            _inst("2023-03-31", 1000.0 * _M),
+                        ]
                     }
                 }
             }
@@ -1839,7 +2891,9 @@ class TestImputeIncomeStatementFallbacks:
                 sources={_D: "us-gaap:IncomeLossFromContinuingOperations"},
             ),
         ]
-        out, _ = impute(rows, "income_statement", "diversified", {_D}, facts={"us-gaap": {}})
+        out, _ = impute(
+            rows, "income_statement", "diversified", {_D}, facts={"us-gaap": {}}
+        )
         ptx = _by_tag(out, "total_pretax_income")
         assert ptx.values[_D] == 751.0 * _M  # 700 + 51
         assert "corrected" in ptx.sources[_D]
@@ -1859,7 +2913,9 @@ class TestImputeIncomeStatementFallbacks:
                 "total_pretax_income",
                 {_D: 700.0 * _M},
                 sequence=1,
-                sources={_D: "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxes"},
+                sources={
+                    _D: "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxes"
+                },
             ),
             _rr(
                 "income_tax_expense",
@@ -1885,10 +2941,30 @@ class TestImputeIncomeStatementFallbacks:
         # opinc is imputed-sourced so the opex pre-correction pass is skipped and
         # the residual survives into the verify-loop operating-income bridge.
         rows = [
-            _rr("total_revenue", {_D: 1000.0 * _M}, sequence=1, sources={_D: "us-gaap:Revenues"}),
-            _rr("total_gross_profit", {_D: 1000.0 * _M}, sequence=2, sources={_D: "us-gaap:GrossProfit"}),
-            _rr("total_operating_expenses", {_D: 300.0 * _M}, sequence=3, sources={_D: "us-gaap:OperatingExpenses"}),
-            _rr("total_operating_income", {_D: 730.0 * _M}, sequence=4, sources={_D: "imputed: revenue - expenses"}),
+            _rr(
+                "total_revenue",
+                {_D: 1000.0 * _M},
+                sequence=1,
+                sources={_D: "us-gaap:Revenues"},
+            ),
+            _rr(
+                "total_gross_profit",
+                {_D: 1000.0 * _M},
+                sequence=2,
+                sources={_D: "us-gaap:GrossProfit"},
+            ),
+            _rr(
+                "total_operating_expenses",
+                {_D: 300.0 * _M},
+                sequence=3,
+                sources={_D: "us-gaap:OperatingExpenses"},
+            ),
+            _rr(
+                "total_operating_income",
+                {_D: 730.0 * _M},
+                sequence=4,
+                sources={_D: "imputed: revenue - expenses"},
+            ),
         ]
         facts = {
             "us-gaap": {
@@ -1905,34 +2981,82 @@ class TestImputeBalanceSheetFallbacks:
     def test_liabilities_mezzanine_remainder_verified(self):
         # L&E - L - ENCI leaves a positive mezzanine remainder -> verified, no warning.
         rows = [
-            _rr("total_assets", {_D: 1000.0 * _M}, period_type="instant", balance="debit", sequence=1, sources={_D: "us-gaap:Assets"}),
-            _rr("total_liabilities", {_D: 600.0 * _M}, period_type="instant", balance="credit", sequence=2, sources={_D: "us-gaap:Liabilities"}),
-            _rr("total_liabilities_and_equity", {_D: 1000.0 * _M}, period_type="instant", balance="credit", sequence=3, sources={_D: "us-gaap:LiabilitiesAndStockholdersEquity"}),
+            _rr(
+                "total_assets",
+                {_D: 1000.0 * _M},
+                period_type="instant",
+                balance="debit",
+                sequence=1,
+                sources={_D: "us-gaap:Assets"},
+            ),
+            _rr(
+                "total_liabilities",
+                {_D: 600.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=2,
+                sources={_D: "us-gaap:Liabilities"},
+            ),
+            _rr(
+                "total_liabilities_and_equity",
+                {_D: 1000.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=3,
+                sources={_D: "us-gaap:LiabilitiesAndStockholdersEquity"},
+            ),
             _rr(
                 "total_equity_and_noncontrolling_interests",
                 {_D: 350.0 * _M},
                 period_type="instant",
                 balance="credit",
                 sequence=4,
-                sources={_D: "us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"},
+                sources={
+                    _D: "us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"
+                },
             ),
         ]
-        out, diag = impute(rows, "balance_sheet", "industrial", {_D}, facts={"us-gaap": {}})
+        out, diag = impute(
+            rows, "balance_sheet", "industrial", {_D}, facts={"us-gaap": {}}
+        )
         assert all(w.tag != "total_liabilities" for w in diag)
 
     def test_equity_mezzanine_resolved_from_temporary_equity_fact(self):
         # total_equity verify gap matches a TemporaryEquityCarryingAmount fact.
         rows = [
-            _rr("total_assets", {_D: 1000.0 * _M}, period_type="instant", balance="debit", sequence=1, sources={_D: "us-gaap:Assets"}),
-            _rr("total_liabilities", {_D: 600.0 * _M}, period_type="instant", balance="credit", sequence=2, sources={_D: "us-gaap:Liabilities"}),
-            _rr("total_liabilities_and_equity", {_D: 1000.0 * _M}, period_type="instant", balance="credit", sequence=3, sources={_D: "us-gaap:LiabilitiesAndStockholdersEquity"}),
+            _rr(
+                "total_assets",
+                {_D: 1000.0 * _M},
+                period_type="instant",
+                balance="debit",
+                sequence=1,
+                sources={_D: "us-gaap:Assets"},
+            ),
+            _rr(
+                "total_liabilities",
+                {_D: 600.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=2,
+                sources={_D: "us-gaap:Liabilities"},
+            ),
+            _rr(
+                "total_liabilities_and_equity",
+                {_D: 1000.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=3,
+                sources={_D: "us-gaap:LiabilitiesAndStockholdersEquity"},
+            ),
             _rr(
                 "total_equity_and_noncontrolling_interests",
                 {_D: 400.0 * _M},
                 period_type="instant",
                 balance="credit",
                 sequence=4,
-                sources={_D: "us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"},
+                sources={
+                    _D: "us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"
+                },
             ),
             _rr(
                 "total_equity",
@@ -1942,7 +3066,14 @@ class TestImputeBalanceSheetFallbacks:
                 sequence=5,
                 sources={_D: "us-gaap:StockholdersEquity"},
             ),
-            _rr("noncontrolling_interests", {_D: 50.0 * _M}, period_type="instant", balance="credit", sequence=6, sources={_D: "us-gaap:MinorityInterest"}),
+            _rr(
+                "noncontrolling_interests",
+                {_D: 50.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=6,
+                sources={_D: "us-gaap:MinorityInterest"},
+            ),
         ]
         facts = {
             "us-gaap": {
@@ -1960,16 +3091,39 @@ class TestImputeBalanceSheetFallbacks:
         # L&E - L - ENCI is negative-but-material and an imputed redeemable-NCI
         # row exists -> it is re-imputed to the computed remainder.
         rows = [
-            _rr("total_assets", {_D: 1000.0 * _M}, period_type="instant", balance="debit", sequence=1, sources={_D: "us-gaap:Assets"}),
-            _rr("total_liabilities", {_D: 700.0 * _M}, period_type="instant", balance="credit", sequence=2, sources={_D: "us-gaap:Liabilities"}),
-            _rr("total_liabilities_and_equity", {_D: 1000.0 * _M}, period_type="instant", balance="credit", sequence=3, sources={_D: "us-gaap:LiabilitiesAndStockholdersEquity"}),
+            _rr(
+                "total_assets",
+                {_D: 1000.0 * _M},
+                period_type="instant",
+                balance="debit",
+                sequence=1,
+                sources={_D: "us-gaap:Assets"},
+            ),
+            _rr(
+                "total_liabilities",
+                {_D: 700.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=2,
+                sources={_D: "us-gaap:Liabilities"},
+            ),
+            _rr(
+                "total_liabilities_and_equity",
+                {_D: 1000.0 * _M},
+                period_type="instant",
+                balance="credit",
+                sequence=3,
+                sources={_D: "us-gaap:LiabilitiesAndStockholdersEquity"},
+            ),
             _rr(
                 "total_equity_and_noncontrolling_interests",
                 {_D: 320.0 * _M},
                 period_type="instant",
                 balance="credit",
                 sequence=4,
-                sources={_D: "us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"},
+                sources={
+                    _D: "us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"
+                },
             ),
             _rr(
                 "redeemable_noncontrolling_interest",
@@ -1977,10 +3131,14 @@ class TestImputeBalanceSheetFallbacks:
                 period_type="instant",
                 balance="credit",
                 sequence=5,
-                sources={_D: "us-gaap:RedeemableNoncontrollingInterestEquityCarryingAmount (imputed)"},
+                sources={
+                    _D: "us-gaap:RedeemableNoncontrollingInterestEquityCarryingAmount (imputed)"
+                },
             ),
         ]
-        out, diag = impute(rows, "balance_sheet", "industrial", {_D}, facts={"us-gaap": {}})
+        out, diag = impute(
+            rows, "balance_sheet", "industrial", {_D}, facts={"us-gaap": {}}
+        )
         rnci = _by_tag(out, "redeemable_noncontrolling_interest")
         # remainder = 1000 - 700 - 320 = -20M; row gets re-imputed to it.
         assert rnci.values[_D] == -20.0 * _M

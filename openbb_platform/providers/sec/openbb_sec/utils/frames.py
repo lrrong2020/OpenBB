@@ -1,6 +1,5 @@
 """SEC Frames Utilities."""
 
-
 import asyncio
 from datetime import datetime
 from warnings import warn

@@ -68,7 +68,6 @@ def _run_imputation_passes(
             target_row = rows[target_i]
 
             for date in filing_dates:
-
                 if target_row.values.get(date) is not None:
                     continue
 
@@ -360,7 +359,7 @@ def impute(
                 if fy_val != 0 and q4_val * fy_val < 0:
                     continue
                 q_srcs = [parent_row.sources.get(d, "") for d in q_dates]
-                q_labels = "+".join(f"Q{i+1}[{s}]" for i, s in enumerate(q_srcs))
+                q_labels = "+".join(f"Q{i + 1}[{s}]" for i, s in enumerate(q_srcs))
                 parent_row.values[fy_end] = q4_val
                 parent_row.sources[fy_end] = f"Q4: FY[{fy_src}] \u2212 ({q_labels})"
                 missing_children = []
@@ -376,7 +375,7 @@ def impute(
                     mc = missing_children[0]
                     mc_sign = 1.0 if mc.factor == "+" else -1.0
                     mc.values[fy_end] = (q4_val - sibling_sum) * mc_sign
-                    mc.sources[fy_end] = f"Q4-derived: {parent_tag}" f" \u2212 siblings"
+                    mc.sources[fy_end] = f"Q4-derived: {parent_tag} \u2212 siblings"
         tag_idx = {r.tag: i for i, r in enumerate(rows)}
 
     _run_imputation_passes(rows, rules, tag_idx, filing_dates)
@@ -561,7 +560,9 @@ def impute(
                 if abs(enci_v - ep_v - nci_v) <= _tolerance(enci_v, ep_v, nci_v):  # ty: ignore[unsupported-operator]
                     continue
 
-                if abs(l_v + enci_v + rnci_v - le_v) > _tolerance(le_v, l_v, enci_v, rnci_v):  # ty: ignore[unsupported-operator]
+                if abs(l_v + enci_v + rnci_v - le_v) > _tolerance(  # ty: ignore[unsupported-operator]
+                    le_v, l_v, enci_v, rnci_v
+                ):
                     continue
 
                 rows[ep_i].values[date] = enci_v - nci_v  # ty: ignore[invalid-argument-type, unsupported-operator]
@@ -805,13 +806,17 @@ def impute(
                         _tax_idx = tag_idx.get("income_tax_expense")
                         _ptx_idx = tag_idx.get("total_pretax_income")
 
-                        if _tax_idx is None or _ptx_idx is None:  # pragma: no cover - income_tax_expense and total_pretax_income are present in every income-statement schema, and this swap is income-statement only
+                        if (
+                            _tax_idx is None or _ptx_idx is None
+                        ):  # pragma: no cover - income_tax_expense and total_pretax_income are present in every income-statement schema, and this swap is income-statement only
                             return False
 
                         _tv = rows[_tax_idx].values.get(_date)
                         _pv = rows[_ptx_idx].values.get(_date)
 
-                        if _tv is None or _pv is None:  # pragma: no cover - defensive; the swap is only attempted once tax and pretax values are present for the date
+                        if (
+                            _tv is None or _pv is None
+                        ):  # pragma: no cover - defensive; the swap is only attempted once tax and pretax values are present for the date
                             return False
 
                         if abs(_pv - alt_val - _tv) <= _tolerance(_pv, alt_val, _tv):
@@ -1613,8 +1618,7 @@ def impute(
             target_src = target_row.sources.get(date, "")
             _formula = _format_impute_source("", sources).lstrip(": ")
             _ambiguous_cf = (
-                target_tag == "net_change_in_cash"
-                and nc_includes_fx is None  # noqa: F821
+                target_tag == "net_change_in_cash" and nc_includes_fx is None  # noqa: F821
             )
             _skip_enforce = _ambiguous_cf or _cf_scope_mismatch
 
@@ -1685,12 +1689,12 @@ def impute(
                     if _cf_scope_mismatch:
                         target_row.values[date] = val
                         target_row.sources[date] = (
-                            f"scope-aligned: {_formula}" f" [solving {target_tag}]"
+                            f"scope-aligned: {_formula} [solving {target_tag}]"
                         )
                     else:
                         target_row.values[date] = val
                         target_row.sources[date] = (
-                            f"identity-enforced: {_formula}" f" [solving {target_tag}]"
+                            f"identity-enforced: {_formula} [solving {target_tag}]"
                         )
                     verified_pairs.add((target_tag, date))
                     continue
@@ -1707,7 +1711,9 @@ def impute(
                 _existing = pending_diagnostics.get((target_tag, date))
                 if _existing is not None:
                     if diff < abs(_existing.actual - _existing.expected):
-                        pending_diagnostics[(target_tag, date)] = _new_warning  # pragma: no cover - diagnostic refinement; needs the same target+date to resolve ambiguously twice with a strictly smaller discrepancy on the later pass
+                        pending_diagnostics[(target_tag, date)] = (
+                            _new_warning  # pragma: no cover - diagnostic refinement; needs the same target+date to resolve ambiguously twice with a strictly smaller discrepancy on the later pass
+                        )
                 else:
                     pending_diagnostics[(target_tag, date)] = _new_warning
                 continue
@@ -1780,7 +1786,7 @@ def impute(
             if _ti is not None:
                 rows[_ti].values[_date] = warning.expected
                 rows[_ti].sources[_date] = (
-                    f"identity-enforced: {warning.formula}" f" [solving {_tag}]"
+                    f"identity-enforced: {warning.formula} [solving {_tag}]"
                 )
                 verified_pairs.add(key)
 

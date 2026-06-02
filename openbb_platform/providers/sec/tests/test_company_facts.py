@@ -561,11 +561,12 @@ class TestBLKZeroDiagnostics:
     """All accounting identities must hold — zero violations."""
 
     def test_no_identity_violations(self, blk_annual):
-        assert (
-            len(blk_annual.diagnostics) == 0
-        ), f"Expected 0 diagnostics, got {len(blk_annual.diagnostics)}: " + "; ".join(
-            f"{d.tag}@{d.date}: expected={d.expected}, actual={d.actual}"
-            for d in blk_annual.diagnostics
+        assert len(blk_annual.diagnostics) == 0, (
+            f"Expected 0 diagnostics, got {len(blk_annual.diagnostics)}: "
+            + "; ".join(
+                f"{d.tag}@{d.date}: expected={d.expected}, actual={d.actual}"
+                for d in blk_annual.diagnostics
+            )
         )
 
 
@@ -2758,9 +2759,7 @@ def test_get_standardized_financials_int_cik(blk_facts):
         return blk_facts
 
     with patch("openbb_sec.utils.cache.cached_request", _fake_request):
-        res = asyncio.run(
-            cf.get_standardized_financials(cik=2012383, period="annual")
-        )
+        res = asyncio.run(cf.get_standardized_financials(cik=2012383, period="annual"))
     assert len(calls) == 1
     assert "CIK0002012383.json" in calls[0]
     assert res.entity_name == "BlackRock, Inc."
@@ -2776,8 +2775,9 @@ def test_get_standardized_financials_symbol_maps_to_cik(blk_facts):
     async def _fake_request(url, **kwargs):
         return blk_facts
 
-    with patch("openbb_sec.utils.helpers.symbol_map", _fake_symbol_map), patch(
-        "openbb_sec.utils.cache.cached_request", _fake_request
+    with (
+        patch("openbb_sec.utils.helpers.symbol_map", _fake_symbol_map),
+        patch("openbb_sec.utils.cache.cached_request", _fake_request),
     ):
         res = asyncio.run(
             cf.get_standardized_financials(symbol="BLKX", period="annual")
@@ -2833,8 +2833,6 @@ def test_get_standardized_financials_multi_cik_merge(blk_facts):
 
     # BLK is in MULTI_CIK_TICKERS with two CIKs.
     with patch("openbb_sec.utils.cache.cached_request", _fake_request):
-        res = asyncio.run(
-            cf.get_standardized_financials(symbol="BLK", period="annual")
-        )
+        res = asyncio.run(cf.get_standardized_financials(symbol="BLK", period="annual"))
     assert len(calls) == 2  # one request per CIK
     assert res.entity_name == "BlackRock, Inc."

@@ -251,7 +251,10 @@ def test_cached_text_empty_not_stored(temp_cache, monkeypatch):
     """Empty bodies are returned but not cached."""
     _patch_make(monkeypatch, _FakeResponse(text=""), [])
     assert temp_cache.cached_text("http://x") == ""
-    assert temp_cache._cache_get(temp_cache._make_key("http://x", suffix=" ::text")) is None
+    assert (
+        temp_cache._cache_get(temp_cache._make_key("http://x", suffix=" ::text"))
+        is None
+    )
 
 
 def test_cached_bytes_miss_then_hit(temp_cache, monkeypatch):

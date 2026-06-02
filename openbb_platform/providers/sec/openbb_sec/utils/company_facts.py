@@ -1,6 +1,5 @@
 """Company Facts — Standardized Financial Statements from SEC XBRL Data."""
 
-
 from __future__ import annotations
 
 from collections import defaultdict

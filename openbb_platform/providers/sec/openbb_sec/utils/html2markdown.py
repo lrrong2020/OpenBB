@@ -522,7 +522,9 @@ def _merge_continuation_tables(soup):
         last_ref = table
         while j < len(tables):
             next_table = tables[j]
-            if next_table in tables_to_remove:  # pragma: no cover - unreachable: tables_to_remove only holds continuations of an earlier base; those form a contiguous run, so any forward table j>i already removed would force i into the same run and disqualify i as a base (verified by a 6-table chain trace)
+            if (
+                next_table in tables_to_remove
+            ):  # pragma: no cover - unreachable: tables_to_remove only holds continuations of an earlier base; those form a contiguous run, so any forward table j>i already removed would force i into the same run and disqualify i as a base (verified by a 6-table chain trace)
                 j += 1
                 continue
             # Check if next_table immediately follows (no significant content between)
@@ -2955,7 +2957,10 @@ def extract_periods_from_rows(
                              it's definitely a data row, not a header row
         """
         if not rows_with_cs:
-            return None, 0  # pragma: no cover - unreachable: caller returns ([], 0) at the empty-rows guard before this nested fn is invoked, so rows_with_cs is always non-empty here
+            return (
+                None,
+                0,
+            )  # pragma: no cover - unreachable: caller returns ([], 0) at the empty-rows guard before this nested fn is invoked, so rows_with_cs is always non-empty here
 
         # Helper to check if text looks like a header (not data, not a year)
         def is_header_text(t):
@@ -3030,7 +3035,9 @@ def extract_periods_from_rows(
                         return True
                     if re.match(r"^Prime-\d$", t):  # Prime-1
                         return True
-                    if re.match(r"^[A-Z]\d$", t):  # F1  # pragma: no cover - unreachable: every [A-Z]\d string (e.g. "F1") also matches the broader ^[A-Z][a-z]{0,2}[0-9]$ check above, which returns first
+                    if re.match(
+                        r"^[A-Z]\d$", t
+                    ):  # F1  # pragma: no cover - unreachable: every [A-Z]\d string (e.g. "F1") also matches the broader ^[A-Z][a-z]{0,2}[0-9]$ check above, which returns first
                         return True
                     # Common outlook/status values
                     if t.lower() in (
@@ -3170,7 +3177,10 @@ def extract_periods_from_rows(
                 row_cell_start_maps.append(start_map)
 
         if not row_cell_start_maps:
-            return None, 0  # pragma: no cover - unreachable: every header row with a non-empty cell yields a start_map entry, so this list is always populated when we reach here
+            return (
+                None,
+                0,
+            )  # pragma: no cover - unreachable: every header row with a non-empty cell yields a start_map entry, so this list is always populated when we reach here
 
         # Leaf column positions = the UNION of all cell starting positions across
         # every header row.  Using the union (rather than just the row with the
@@ -3208,7 +3218,10 @@ def extract_periods_from_rows(
                 merged_headers.append(" ".join(parts))
 
         if not merged_headers:
-            return None, 0  # pragma: no cover - unreachable: leaf_positions is non-empty here, and each leaf position contributes a (possibly empty-string) merged header, so this list is always populated
+            return (
+                None,
+                0,
+            )  # pragma: no cover - unreachable: leaf_positions is non-empty here, and each leaf position contributes a (possibly empty-string) merged header, so this list is always populated
 
         # If position 0 is not a leaf column it is the empty label column.
         is_label_col = 0 not in leaf_positions
@@ -4294,7 +4307,9 @@ def convert_table(table, base_url: str = "") -> str:
         max_cols = max(len(row) for row in data)
         for row in data:
             while len(row) < max_cols:
-                row.append("")  # pragma: no cover - unreachable: data was rectangularized by the earlier column-count normalization pass (and merge_split_cells preserves width via placeholders), so every row already has max_cols entries here
+                row.append(
+                    ""
+                )  # pragma: no cover - unreachable: data was rectangularized by the earlier column-count normalization pass (and merge_split_cells preserves width via placeholders), so every row already has max_cols entries here
 
     # Remove columns that are completely empty
 
@@ -4407,7 +4422,9 @@ def convert_table(table, base_url: str = "") -> str:
                 lines = []
                 for i, row in enumerate(data):
                     while len(row) < max_cols:
-                        row.append("")  # pragma: no cover - unreachable: process_equity_statement_table returns rows of uniform width (header is [""]+final_headers, each data row is [label]+values, both length 1+num_value_cols), so every row already has max_cols entries
+                        row.append(
+                            ""
+                        )  # pragma: no cover - unreachable: process_equity_statement_table returns rows of uniform width (header is [""]+final_headers, each data row is [label]+values, both length 1+num_value_cols), so every row already has max_cols entries
                     clean_row = []
                     for cell in row:
                         clean_cell = re.sub(r"[\r\n]+", " ", cell)
@@ -4748,7 +4765,9 @@ def convert_table(table, base_url: str = "") -> str:
                     continue
 
                 # Pad on the right to match the expected column count rather than collapsing.
-                if len(layer) <= num_periods + 1:  # pragma: no cover - unreachable: every header-layer producer (build_column_headers_from_colspan, detect_and_merge_multiindex_headers, extract_periods_from_rows) emits layers of length num_periods+1, so line 4748's equal-length branch always continues before this pad/collapse fallback is reached
+                if (
+                    len(layer) <= num_periods + 1
+                ):  # pragma: no cover - unreachable: every header-layer producer (build_column_headers_from_colspan, detect_and_merge_multiindex_headers, extract_periods_from_rows) emits layers of length num_periods+1, so line 4748's equal-length branch always continues before this pad/collapse fallback is reached
                     padded = layer[:] + [""] * (num_periods + 1 - len(layer))
                     new_data.append(padded[: num_periods + 1])
                     continue
@@ -4759,7 +4778,9 @@ def convert_table(table, base_url: str = "") -> str:
                 # becomes ['', '2025', '2024', '2023']
                 collapsed = []  # pragma: no cover - unreachable: dead collapse fallback (see line 4753 - layers are always length num_periods+1)
                 prev_text = None  # pragma: no cover - unreachable: dead collapse fallback (see line 4753)
-                for idx, text in enumerate(layer):  # pragma: no cover - unreachable: dead collapse fallback (see line 4753)
+                for idx, text in enumerate(
+                    layer
+                ):  # pragma: no cover - unreachable: dead collapse fallback (see line 4753)
                     t = text.strip()
 
                     if idx == 0:
@@ -4776,9 +4797,13 @@ def convert_table(table, base_url: str = "") -> str:
                         prev_text = None  # Reset on empty
 
                 # Ensure it has the right number of columns
-                while len(collapsed) < num_periods + 1:  # pragma: no cover - unreachable: dead collapse fallback (see line 4753)
+                while (
+                    len(collapsed) < num_periods + 1
+                ):  # pragma: no cover - unreachable: dead collapse fallback (see line 4753)
                     collapsed.append("")
-                new_data.append(collapsed[: num_periods + 1])  # pragma: no cover - unreachable: dead collapse fallback (see line 4753)
+                new_data.append(
+                    collapsed[: num_periods + 1]
+                )  # pragma: no cover - unreachable: dead collapse fallback (see line 4753)
 
         # Process data rows - use header_row_count to skip header rows
         # Use a two-pass approach: first extract values into *groups*
@@ -4871,9 +4896,9 @@ def convert_table(table, base_url: str = "") -> str:
                                 # belongs to the preceding numeric value
                                 # in the same header range — merge rather
                                 # than creating a spurious extra column.
-                                value_groups[hi][
-                                    -1
-                                ] = f"{value_groups[hi][-1]} {cell_clean}"
+                                value_groups[hi][-1] = (
+                                    f"{value_groups[hi][-1]} {cell_clean}"
+                                )
                             elif not label_parts:
                                 # Non-numeric before any data = part of label
                                 label_parts.append(cell_clean)
@@ -4913,7 +4938,9 @@ def convert_table(table, base_url: str = "") -> str:
                 flat_values.extend(g)
 
             while len(flat_values) < _actual_periods:
-                flat_values.append("")  # pragma: no cover - unreachable: flat_values extends num_periods groups each padded to _max_group_sizes[hi]; the sizes sum to exactly _actual_periods, so len(flat_values) == _actual_periods already
+                flat_values.append(
+                    ""
+                )  # pragma: no cover - unreachable: flat_values extends num_periods groups each padded to _max_group_sizes[hi]; the sizes sum to exactly _actual_periods, so len(flat_values) == _actual_periods already
 
             new_data.append([label or ""] + flat_values)
 
@@ -4928,7 +4955,9 @@ def convert_table(table, base_url: str = "") -> str:
                     for _ in range(_max_group_sizes[hi] - 1):
                         expanded.append("")
                 while len(expanded) < _actual_periods + 1:
-                    expanded.append("")  # pragma: no cover - unreachable: expanded is [label] plus num_periods groups each padded to _max_group_sizes[hi] (summing to _actual_periods), so its length is always _actual_periods+1
+                    expanded.append(
+                        ""
+                    )  # pragma: no cover - unreachable: expanded is [label] plus num_periods groups each padded to _max_group_sizes[hi] (summing to _actual_periods), so its length is always _actual_periods+1
                 new_data[li] = expanded
             num_periods = _actual_periods
 
@@ -4964,12 +4993,20 @@ def convert_table(table, base_url: str = "") -> str:
                     # from 1..num_periods (which would mean no change needed)
                     _expected = list(range(1, num_periods + 1))
                     if _dollar_cols != _expected:
-                        _max_dc = max(len(r) for r in data)  # pragma: no cover - unreachable: when realign runs, position-aware extraction has already placed each period's $ at its sequential column (1..num_periods), so _dollar_cols == _expected always holds at line 4968
-                        _new_hdr = [""] * _max_dc  # pragma: no cover - unreachable: dead realign body (see line 4968)
-                        for _pi, _pos in enumerate(_dollar_cols):  # pragma: no cover - unreachable: dead realign body (see line 4968)
+                        _max_dc = max(
+                            len(r) for r in data
+                        )  # pragma: no cover - unreachable: when realign runs, position-aware extraction has already placed each period's $ at its sequential column (1..num_periods), so _dollar_cols == _expected always holds at line 4968
+                        _new_hdr = (
+                            [""] * _max_dc
+                        )  # pragma: no cover - unreachable: dead realign body (see line 4968)
+                        for _pi, _pos in enumerate(
+                            _dollar_cols
+                        ):  # pragma: no cover - unreachable: dead realign body (see line 4968)
                             if _pos < _max_dc:
                                 _new_hdr[_pos] = _period_names[_pi]
-                        data[0] = _new_hdr  # pragma: no cover - unreachable: dead realign body (see line 4968)
+                        data[0] = (
+                            _new_hdr  # pragma: no cover - unreachable: dead realign body (see line 4968)
+                        )
 
     elif has_mixed_headers and header_layers:
         # Mixed-header table (has non-year columns like "Useful Lives")
@@ -5002,7 +5039,9 @@ def convert_table(table, base_url: str = "") -> str:
 
             if not actual_header_rows:
                 # Fallback: use the last header row
-                actual_header_rows = [header_part[-1]]  # pragma: no cover - unreachable: this branch needs has_mixed_headers True, which requires a single-layer header with >=2 comparable columns, i.e. a header row with >=2 non-empty cells - but such a row is appended to actual_header_rows above, so actual_header_rows is never empty here
+                actual_header_rows = [
+                    header_part[-1]
+                ]  # pragma: no cover - unreachable: this branch needs has_mixed_headers True, which requires a single-layer header with >=2 comparable columns, i.e. a header row with >=2 non-empty cells - but such a row is appended to actual_header_rows above, so actual_header_rows is never empty here
 
             combined = actual_header_rows + data_rows_only
             combined = remove_empty_columns(combined)
@@ -5031,7 +5070,9 @@ def convert_table(table, base_url: str = "") -> str:
 
     for i, row in enumerate(data):
         while len(row) < max_cols:
-            row.append("")  # pragma: no cover - unreachable: new_data rows are [label]+flat_values of uniform length and remove_empty_columns/collapse_repeated_headers preserve rectangularity, so every row already has max_cols entries here
+            row.append(
+                ""
+            )  # pragma: no cover - unreachable: new_data rows are [label]+flat_values of uniform length and remove_empty_columns/collapse_repeated_headers preserve rectangularity, so every row already has max_cols entries here
         # Ensure no cell contains newlines
         clean_row = []
 
@@ -5657,9 +5698,9 @@ def _reflow_absolute_layout(html_content: str) -> str | None:
         # multi-fragment line.  Split the ALL-CAPS bold prefix into
         # its own line so the single-bold H2 check can fire for each.
         _ALL_CAPS_RE = re.compile(r"^[A-Z][A-Z &,\-/\u2019\u00a0']+$")
-        split_lines: list[tuple[float, float, list[tuple[float, str, bool, float]]]] = (
-            []
-        )
+        split_lines: list[
+            tuple[float, float, list[tuple[float, str, bool, float]]]
+        ] = []
         for line_top, line_left, line_frags in lines:
             if len(line_frags) <= 1:
                 split_lines.append((line_top, line_left, line_frags))
@@ -5972,7 +6013,9 @@ def _reflow_absolute_layout(html_content: str) -> str | None:
                         else:
                             segments.append((zt, t_html))
                     else:
-                        segments.append((zt, t_html))  # pragma: no cover - unreachable: truthy t_html always contains <table>
+                        segments.append(
+                            (zt, t_html)
+                        )  # pragma: no cover - unreachable: truthy t_html always contains <table>
 
         # Body text → paragraphs / headings
         if body_frags:
@@ -6678,7 +6721,9 @@ def html_to_markdown(
     def _merge_bold(m):
         a, b = m.group(1), m.group(2)
         if "<img " in a or "<img " in b:
-            return m.group(0)  # pragma: no cover - unreachable: literal "<img " only appears newline-isolated (standalone img -> \n\n<img/>\n\n; inline img -> ![]() markdown; multi-div cell -> \n-joined), never inside a **...** span adjacent to another, so the guard never fires
+            return m.group(
+                0
+            )  # pragma: no cover - unreachable: literal "<img " only appears newline-isolated (standalone img -> \n\n<img/>\n\n; inline img -> ![]() markdown; multi-div cell -> \n-joined), never inside a **...** span adjacent to another, so the guard never fires
         return f"**{a} {b}**"
 
     markdown = re.sub(r"\*\*([^*]+)\*\*[ ]+\*\*([^*]+)\*\*", _merge_bold, markdown)
@@ -7645,7 +7690,9 @@ def _convert_layout_table(table_elem, base_url: str = "") -> str | None:
                 ):
                     has_bold = True
                 # Check for bullets
-                if extract_bullet_items(cell):  # pragma: no cover - unreachable: this is_header_row helper is only called from the PATTERN 3 branch, which is reached only when extract_bullet_items already returned empty for these same cells, so the guard is always false here
+                if extract_bullet_items(
+                    cell
+                ):  # pragma: no cover - unreachable: this is_header_row helper is only called from the PATTERN 3 branch, which is reached only when extract_bullet_items already returned empty for these same cells, so the guard is always false here
                     has_bullets = True
 
         # It's a header row if it has bold text, no bullets, and reasonable length
@@ -7745,11 +7792,11 @@ def _convert_layout_table(table_elem, base_url: str = "") -> str | None:
         for section in bio_sections:
             if section["name"]:
                 result_parts.append(f"\n**{section['name']}**\n")
-            for item in section.get("metadata", []):
+            for item in section.get("metadata", []):  # ty: ignore[not-iterable]
                 result_parts.append(f"- {item}")
             if section["metadata"]:
                 result_parts.append("")  # Blank line after metadata
-            for para in section.get("paragraphs", []):
+            for para in section.get("paragraphs", []):  # ty: ignore[not-iterable]
                 result_parts.append(para)
                 result_parts.append("")  # Blank line after each paragraph
         if result_parts:

@@ -170,7 +170,9 @@ def test_convert_image_with_style_size_uses_html():
         '<img src="c.png" alt="check" style="width:0.09in;height:0.08in"/>', "img"
     )
     out = h2m._convert_image_to_html(img)
-    assert out.startswith("<img src=") and "width:0.09in" in out and "height:0.08in" in out
+    assert (
+        out.startswith("<img src=") and "width:0.09in" in out and "height:0.08in" in out
+    )
 
 
 def test_convert_image_resolves_relative_url():
@@ -204,9 +206,7 @@ def test_count_data_columns_none():
 
 
 def test_expanded_col_count_with_colspan():
-    t = _table(
-        '<table><tr><td colspan="2">A</td><td>B</td></tr></table>'
-    )
+    t = _table('<table><tr><td colspan="2">A</td><td>B</td></tr></table>')
     assert h2m._expanded_col_count(t) == 3
 
 
@@ -291,7 +291,9 @@ def test_is_header_element_single_caps_word():
 
 
 def test_is_header_element_plain_text_false():
-    assert h2m.is_header_element(_tag("<b>some lowercase phrase here</b>", "b")) is False
+    assert (
+        h2m.is_header_element(_tag("<b>some lowercase phrase here</b>", "b")) is False
+    )
 
 
 def test_get_header_level_part():
@@ -557,7 +559,9 @@ def test_get_text_content_preserves_space_separator():
 
 def test_get_text_content_links_preserved():
     tag = _tag('<p>See <a href="x.htm">here</a></p>', "p")
-    out = h2m.get_text_content(tag, preserve_links_in_text=True, base_url="https://x.com/")
+    out = h2m.get_text_content(
+        tag, preserve_links_in_text=True, base_url="https://x.com/"
+    )
     assert "[here](https://x.com/x.htm)" in out
 
 
@@ -612,16 +616,12 @@ def test_classify_table_footnote():
 
 
 def test_classify_table_header():
-    t = _table(
-        '<table><tr><td id="toc1"><b>Section Title</b></td></tr></table>'
-    )
+    t = _table('<table><tr><td id="toc1"><b>Section Title</b></td></tr></table>')
     assert h2m._classify_table(t) == "HEADER"
 
 
 def test_classify_table_data_default():
-    t = _table(
-        "<table><tr><td>Revenue</td><td>$100</td><td>$200</td></tr></table>"
-    )
+    t = _table("<table><tr><td>Revenue</td><td>$100</td><td>$200</td></tr></table>")
     assert h2m._classify_table(t) == "DATA"
 
 
@@ -710,8 +710,7 @@ def test_extract_cell_text_word_rejoin():
 
 def test_extract_cell_text_preserve_line_breaks():
     cell = _tag(
-        "<td><div>Item A here</div><div>Item B here</div>"
-        "<div>Item C here</div></td>",
+        "<td><div>Item A here</div><div>Item B here</div><div>Item C here</div></td>",
         "td",
     )
     out = h2m._extract_cell_text(cell, preserve_line_breaks=True)
@@ -782,9 +781,7 @@ def test_html_to_markdown_headers():
 
 
 def test_html_to_markdown_lists():
-    out = h2m.html_to_markdown(
-        "<ul><li>First</li><li>Second</li></ul>"
-    )
+    out = h2m.html_to_markdown("<ul><li>First</li><li>Second</li></ul>")
     assert "First" in out and "Second" in out
 
 
@@ -960,9 +957,7 @@ def test_split_composite_table_splits_on_table_headers():
 
 
 def test_make_sub_table_copies_rows():
-    src = _table(
-        '<table class="x"><tr><td>a</td></tr><tr><td>b</td></tr></table>'
-    )
+    src = _table('<table class="x"><tr><td>a</td></tr><tr><td>b</td></tr></table>')
     rows = src.find_all("tr")
     new_t = h2m._make_sub_table(rows[:1], src)
     assert new_t.name == "table"
@@ -1123,7 +1118,9 @@ def _build_abs_layout(page_num=1, idx_start=1):
     """Construct a single-page absolute-positioned filing (>= 30 abs divs)."""
     parts = [f'<div id="Page{page_num}">']
     idx = idx_start
-    parts.append(_abs_frag(idx, 50, 20, "CONSOLIDATED RESULTS OF OPERATIONS", fs=14, bold=True))
+    parts.append(
+        _abs_frag(idx, 50, 20, "CONSOLIDATED RESULTS OF OPERATIONS", fs=14, bold=True)
+    )
     idx += 1
     for k in range(10):
         parts.append(
@@ -1524,7 +1521,9 @@ def test_html_to_markdown_styled_inline_div_bold():
 
 
 def test_html_to_markdown_section_header_div():
-    out = h2m.html_to_markdown('<div style="font-size:16pt">Results of Operations</div>')
+    out = h2m.html_to_markdown(
+        '<div style="font-size:16pt">Results of Operations</div>'
+    )
     assert "Results of Operations" in out
 
 
@@ -1545,10 +1544,7 @@ def test_html_to_markdown_underline_passthrough():
 
 
 def test_html_to_markdown_table_of_contents_navigation_skipped():
-    html = (
-        '<div><a href="#x">Table of Contents</a></div>'
-        "<p>Real content here.</p>"
-    )
+    html = '<div><a href="#x">Table of Contents</a></div><p>Real content here.</p>'
     out = h2m.html_to_markdown(html)
     assert "Real content here." in out
 
@@ -1646,7 +1642,7 @@ def test_convert_layout_table_bio_with_same_row_metadata():
     html = (
         "<table>"
         "<tr><td><b>JANE DOE</b></td></tr>"
-        '<tr><td><div>Age 60</div><div>Director since 2015</div></td>'
+        "<tr><td><div>Age 60</div><div>Director since 2015</div></td>"
         f'<td rowspan="2"><div>{bio}</div></td></tr>'
         "</table>"
     )
@@ -2494,7 +2490,7 @@ def test_chart_legend_too_much_text_rejected():
     # A legend-shaped table whose total text exceeds 500 chars is rejected as
     # too verbose to be a real chart legend (line 3770).
     rows = "".join(
-        f"<tr>{_swatch('#%06x' % (0x0099d9 + i))}"
+        f"<tr>{_swatch('#%06x' % (0x0099D9 + i))}"
         f"<td>Category label number {i} with several extra words here</td></tr>"
         for i in range(10)
     )
@@ -2519,9 +2515,7 @@ def test_chart_legend_insufficient_pairs_rejected():
 # _split_composite_table: split one <table> holding multiple "TABLE X" blocks
 # ===========================================================================
 
-_LONG_BODY = (
-    "This is a long body text paragraph that exceeds sixty characters for sure"
-)
+_LONG_BODY = "This is a long body text paragraph that exceeds sixty characters for sure"
 
 
 def test_split_composite_with_preamble_and_body():
@@ -2656,7 +2650,14 @@ def test_bch_month_super_header_single_row_positions():
     # Month labels present in only one of two header rows force the per-row
     # position bookkeeping for unmatched columns (lines 2135-2139).
     rows = [
-        [("", 1), ("January 26", 1), ("January 28", 1), ("%", 1), ("AOnly", 1), ("", 1)],
+        [
+            ("", 1),
+            ("January 26", 1),
+            ("January 28", 1),
+            ("%", 1),
+            ("AOnly", 1),
+            ("", 1),
+        ],
         [("", 1), ("2025", 1), ("2024", 1), ("Change", 1), ("", 1), ("BOnly", 1)],
         [("Rev", 1), ("1", 1), ("2", 1), ("3", 1), ("4", 1), ("5", 1)],
     ]
@@ -2681,7 +2682,14 @@ def test_bch_wide_allcaps_categories_many_narrow_columns():
     # Two wide ALL-CAPS category rows over many narrow data columns drive the
     # category fan-out path (line 2272).
     rows = [
-        [("", 3), ("WIDEONE", 3), ("WIDETWO", 3), ("WIDETHREE", 3), ("WIDEFOUR", 3), ("WIDEFIVE", 3)],
+        [
+            ("", 3),
+            ("WIDEONE", 3),
+            ("WIDETWO", 3),
+            ("WIDETHREE", 3),
+            ("WIDEFOUR", 3),
+            ("WIDEFIVE", 3),
+        ],
         [("", 3), ("NARROW", 3), ("OTHER", 3), ("LAST", 3)],
         [("Rev", 1)] + [("1", 1)] * 17,
     ]
@@ -2734,7 +2742,15 @@ def test_bch_nested_super_headers_equipment_good_bad():
     rows = [
         [("", 1), ("EQUIPMENT", 4), ("note", 2)],
         [("", 1), ("GOOD", 2), ("bad", 2), ("", 1), ("", 1)],
-        [("", 1), ("2025", 1), ("2024", 1), ("2023", 1), ("2022", 1), ("x", 1), ("y", 1)],
+        [
+            ("", 1),
+            ("2025", 1),
+            ("2024", 1),
+            ("2023", 1),
+            ("2022", 1),
+            ("x", 1),
+            ("y", 1),
+        ],
         [("Rev", 1), ("1", 1), ("2", 1), ("3", 1), ("4", 1), ("5", 1), ("6", 1)],
     ]
     layers, count = _bch(rows)
@@ -3036,11 +3052,16 @@ def test_periods_year_loop_skips_long_paren_and_full_date():
     # The year scanner skips an over-50-char cell (3501), a "(YYYY)" effective
     # date (3504) and a full "Month D, YYYY" date (3521); nothing usable -> empty.
     out = _periods(
-        [[
-            ("This is a long descriptive column header exceeding fifty characters total", 1),
-            ("(2020)", 1),
-            ("April 7, 2025", 1),
-        ]]
+        [
+            [
+                (
+                    "This is a long descriptive column header exceeding fifty characters total",
+                    1,
+                ),
+                ("(2020)", 1),
+                ("April 7, 2025", 1),
+            ]
+        ]
     )
     assert out == ([], 0)
 
@@ -3519,8 +3540,13 @@ def test_periods_vertical_section_label_before_any_header_continues():
     # A section-label row encountered before any header row is collected uses
     # the "continue" branch (not the break) so scanning proceeds.
     out = _periods(
-        _twin([["Assets:", "", ""], ["Income", "Expense", "Net"],
-               ["2010", "2011", "2012"]])
+        _twin(
+            [
+                ["Assets:", "", ""],
+                ["Income", "Expense", "Net"],
+                ["2010", "2011", "2012"],
+            ]
+        )
     )
     assert out == ([["Income 2010", "Expense 2011", "Net 2012"]], 3)
 
@@ -3528,8 +3554,9 @@ def test_periods_vertical_section_label_before_any_header_continues():
 def test_periods_vertical_merged_financial_terms_without_years():
     # Vertical merge yields multi-word headers containing financial terms but
     # no years/periods, so the financial-terms acceptance branch returns them.
-    out = _periods(_twin([["Income Tax", "Total Expense"],
-                          ["Provision Amount", "Net Balance"]]))
+    out = _periods(
+        _twin([["Income Tax", "Total Expense"], ["Provision Amount", "Net Balance"]])
+    )
     assert out == (
         [["Income Tax Provision Amount", "Total Expense Net Balance"]],
         2,
@@ -3617,8 +3644,7 @@ def test_classify_table_single_cell_font_weight_bold_is_header():
     # A single-cell row whose only emphasis is a font-weight:bold style (no
     # <b>/<strong>) is still classified as a HEADER.
     table = _table(
-        '<table><tr><td><span style="font-weight:bold">Header</span>'
-        "</td></tr></table>"
+        '<table><tr><td><span style="font-weight:bold">Header</span></td></tr></table>'
     )
     assert h2m._classify_table(table) == "HEADER"
 
@@ -3626,9 +3652,7 @@ def test_classify_table_single_cell_font_weight_bold_is_header():
 def test_extract_bullet_list_bold_only_item():
     # A bullet row whose content cell is only bold text (no trailing
     # description) yields a bare bold bullet.
-    table = _table(
-        "<table><tr><td>•</td><td><b>Just Bold</b></td></tr></table>"
-    )
+    table = _table("<table><tr><td>•</td><td><b>Just Bold</b></td></tr></table>")
     assert h2m._extract_bullet_list(table) == "**Just Bold**"
 
 
@@ -3659,9 +3683,7 @@ def test_convert_table_cell_id_emits_anchor():
             ]
         )
     )
-    assert out == (
-        '| <a id="c1"></a>Lbl | 100 | 90 |\n|---|---|---|\n| Rev | 1 | 2 |'
-    )
+    assert out == ('| <a id="c1"></a>Lbl | 100 | 90 |\n|---|---|---|\n| Rev | 1 | 2 |')
 
 
 def test_convert_table_trailing_rowspan_fills_blanks():
@@ -3725,17 +3747,13 @@ def test_convert_table_sup_footnote_merges_to_label():
 
 def test_convert_table_page_footer_digit_first_skipped():
     # A 2-cell row of "<page number> | Form 10-K" is a page footer -> dropped.
-    out = h2m.convert_table(
-        _build_table([[_cell("42"), _cell("Form 10-K")]])
-    )
+    out = h2m.convert_table(_build_table([[_cell("42"), _cell("Form 10-K")]]))
     assert out == ""
 
 
 def test_convert_table_page_footer_digit_second_skipped():
     # Same page-footer skip when the digit is the second cell.
-    out = h2m.convert_table(
-        _build_table([[_cell("Form 10-K"), _cell("42")]])
-    )
+    out = h2m.convert_table(_build_table([[_cell("Form 10-K"), _cell("42")]]))
     assert out == ""
 
 
@@ -3778,9 +3796,7 @@ def test_convert_table_footnote_marker_rows():
             ]
         )
     )
-    assert out == (
-        "(1) First footnote text here\n\n(2) Second footnote text here"
-    )
+    assert out == ("(1) First footnote text here\n\n(2) Second footnote text here")
 
 
 def test_convert_table_uppercase_toc_anchor_section_header():
@@ -3841,7 +3857,11 @@ def test_convert_table_non_financial_header_rows_kept():
     out = h2m.convert_table(
         _build_table(
             [
-                [_cell("Item", th=True), _cell("Desc", th=True), _cell("Notes", th=True)],
+                [
+                    _cell("Item", th=True),
+                    _cell("Desc", th=True),
+                    _cell("Notes", th=True),
+                ],
                 [_cell("A"), _cell("desc"), _cell("note")],
                 [_cell("B"), _cell("desc2"), _cell("note2")],
             ]
@@ -3867,9 +3887,7 @@ def test_convert_table_all_superscript_rows_yield_empty():
     # Rows whose only content is a <sup> footnote marker produce no data cells,
     # so the table collapses to an empty string.
     out = h2m.convert_table(
-        _build_table(
-            [[_cell("<sup>1</sup>")], [_cell("<sup>2</sup>")]]
-        )
+        _build_table([[_cell("<sup>1</sup>")], [_cell("<sup>2</sup>")]])
     )
     assert out == ""
 
@@ -3923,7 +3941,13 @@ def test_html_to_markdown_subcolumn_bps_unit_merge():
             _build_table(
                 [
                     [_cell("Item"), _cell("2025", cs=2), _cell("2024", cs=2)],
-                    [_cell("Margin"), _cell("50"), _cell("bps"), _cell("45"), _cell("bps")],
+                    [
+                        _cell("Margin"),
+                        _cell("50"),
+                        _cell("bps"),
+                        _cell("45"),
+                        _cell("bps"),
+                    ],
                 ]
             )
         )
@@ -3983,7 +4007,13 @@ def test_html_to_markdown_subcolumn_second_value_non_numeric():
         _table_html(
             [
                 [_cell("Item"), _cell("2025", cs=2), _cell("2024", cs=2)],
-                [_cell("Revenue"), _cell("100"), _cell("up"), _cell("90"), _cell("down")],
+                [
+                    _cell("Revenue"),
+                    _cell("100"),
+                    _cell("up"),
+                    _cell("90"),
+                    _cell("down"),
+                ],
             ]
         )
     )
@@ -4004,9 +4034,7 @@ def test_html_to_markdown_subcolumn_empty_label_uses_first_value():
             ]
         )
     )
-    assert out == (
-        "| | 2025 | 2024 | |\n|---|---|---|---|\n| up | 100 | 90 | down |"
-    )
+    assert out == ("| | 2025 | 2024 | |\n|---|---|---|---|\n| up | 100 | 90 | down |")
 
 
 def test_html_to_markdown_two_layer_year_subheader():
@@ -4132,8 +4160,7 @@ def test_html_to_markdown_uneven_colspan_header_expansion():
         )
     )
     assert out == (
-        "| | 2025 | | | 2024 |\n|---|---|---|---|---|\n"
-        "| Revenue | 100 | 50 | 25 | 90 |"
+        "| | 2025 | | | 2024 |\n|---|---|---|---|---|\n| Revenue | 100 | 50 | 25 | 90 |"
     )
 
 
@@ -4264,17 +4291,23 @@ def _abs_layout_html():
     f += [af(555, 48, "the company provides services across regions", bold=True)]
     # table zone 1: bold cells + currency merges + column clustering + superscript
     f += [hrule(600), hrule(640)]
-    f += [af(610, 48, "Revenue"), af(610, 200, "$", bold=True),
-          af(610, 240, "1,000", bold=True), af(610, 360, "900")]
+    f += [
+        af(610, 48, "Revenue"),
+        af(610, 200, "$", bold=True),
+        af(610, 240, "1,000", bold=True),
+        af(610, 360, "900"),
+    ]
     f += [af(622, 48, "Costs"), af(622, 200, "$"), af(622, 360, "500")]
     f += [af(628, 48, "Net"), af(628, 52, "Worth"), af(628, 240, "7")]
     f += [af(634, 240, "9", fs=5)]
     # body after table (crosses-zone group split)
     f += [af(700, 48, "Body text that appears after the table zone here.")]
     # chart with title
-    f += [af(760, 250, "Market Share Chart", bold=True, fs=11),
-          af(780, 250, "(figures in percentages of total here)", fs=8),
-          af(800, 260, "25", fs=6)]
+    f += [
+        af(760, 250, "Market Share Chart", bold=True, fs=11),
+        af(780, 250, "(figures in percentages of total here)", fs=8),
+        af(800, 260, "25", fs=6),
+    ]
     # footnotes + page-footer skip
     f += [af(965, 48, "Footnote text rendered at the page bottom here.")]
     f += [af(975, 48, "Page 5 of 20", fs=8)]
@@ -4289,8 +4322,14 @@ def _abs_layout_html():
     f += [hrule(100), hrule(170)]
     f += [af(108, 48, "TABLE 1"), af(108, 240, "Header")]
     f += [af(120, 48, "RowA"), af(120, 240, "10")]
-    f += [af(132, 48, "This is a rather long body-text paragraph sentence "
-                      "inside the first sub table here.")]
+    f += [
+        af(
+            132,
+            48,
+            "This is a rather long body-text paragraph sentence "
+            "inside the first sub table here.",
+        )
+    ]
     f += [af(144, 48, "TABLE 2"), af(144, 240, "Header")]
     f += [af(156, 48, "RowB"), af(156, 240, "20")]
     # Page 3: dedup-bold + chart-no-title + edge zones (>300px apart)
@@ -4298,8 +4337,10 @@ def _abs_layout_html():
     f += [hrule(100), hrule(140)]
     f += [af(110, 48, "Total"), af(110, 240, "100")]
     f += [af(125, 48, "Total", bold=True), af(125, 240, "100", bold=True)]
-    f += [af(300, 250, "(only a description here, no title at all)", fs=8),
-          af(320, 260, "50", fs=6)]
+    f += [
+        af(300, 250, "(only a description here, no title at all)", fs=8),
+        af(320, 260, "50", fs=6),
+    ]
     f += [hrule(500), hrule(530)]
     f += [af(510, 48, "3", fs=5), af(515, 240, "4", fs=5)]
     f += [hrule(900), hrule(930)]
@@ -4393,8 +4434,7 @@ def test_process_element_heading_table_of_contents_suppressed():
 def test_process_element_image_without_src_emits_nothing():
     # An <img> that yields no usable markup returns "" (no image emitted).
     out = h2m.html_to_markdown(
-        "<p>A paragraph of body text content here.</p>"
-        '<img alt="no source attribute">'
+        '<p>A paragraph of body text content here.</p><img alt="no source attribute">'
     )
     assert "![" not in out
     assert "A paragraph of body text content here." in out
@@ -4568,8 +4608,7 @@ def test_convert_table_layout_fallback_bullet_divs():
         )
     )
     assert out == (
-        "- Item A here\n- Item B here\n- Item C here\n\n"
-        "- Item D\n- Item E\n- Item F\n"
+        "- Item A here\n- Item B here\n- Item C here\n\n- Item D\n- Item E\n- Item F\n"
     )
 
 

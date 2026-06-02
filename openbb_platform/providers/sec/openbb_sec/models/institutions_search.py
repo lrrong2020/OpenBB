@@ -1,6 +1,5 @@
 """SEC Institutions Search Model."""
 
-
 from typing import Any
 
 from openbb_core.provider.abstract.data import Data

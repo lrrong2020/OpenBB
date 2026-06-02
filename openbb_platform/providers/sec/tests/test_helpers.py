@@ -167,8 +167,9 @@ def test_symbol_map_fund_fallback():
     async def _mf(use_cache=True):
         return _mf_frame()
 
-    with patch.object(helpers, "get_all_companies", _companies), patch.object(
-        helpers, "get_mf_and_etf_map", _mf
+    with (
+        patch.object(helpers, "get_all_companies", _companies),
+        patch.object(helpers, "get_mf_and_etf_map", _mf),
     ):
         cik = asyncio.run(helpers.symbol_map("VFINX"))
     assert cik == "0000036405"
@@ -183,8 +184,9 @@ def test_symbol_map_not_found_returns_empty():
     async def _mf(use_cache=True):
         return _mf_frame()
 
-    with patch.object(helpers, "get_all_companies", _companies), patch.object(
-        helpers, "get_mf_and_etf_map", _mf
+    with (
+        patch.object(helpers, "get_all_companies", _companies),
+        patch.object(helpers, "get_mf_and_etf_map", _mf),
     ):
         assert asyncio.run(helpers.symbol_map("NOPE")) == ""
 
@@ -269,8 +271,9 @@ def test_download_zip_file_zip_branch_and_settlement():
             raise ValueError("forced fallback")
         return real_read_csv(*args, **kwargs)
 
-    with patch.object(helpers, "cached_request", _fake), patch(
-        "pandas.read_csv", _read_csv
+    with (
+        patch.object(helpers, "cached_request", _fake),
+        patch("pandas.read_csv", _read_csv),
     ):
         out = asyncio.run(helpers.download_zip_file("http://x/ftd.zip", symbol="AAPL"))
 
@@ -331,8 +334,9 @@ def test_get_nport_candidates_empty_frame_falls_back_to_symbol_map():
     async def _symbol_map(symbol, use_cache=True):
         return ""
 
-    with patch.object(helpers, "get_series_id", _series), patch.object(
-        helpers, "symbol_map", _symbol_map
+    with (
+        patch.object(helpers, "get_series_id", _series),
+        patch.object(helpers, "symbol_map", _symbol_map),
     ):
         with pytest.raises(OpenBBError, match="Fund not found"):
             asyncio.run(helpers.get_nport_candidates("BADFUND"))
@@ -347,8 +351,9 @@ def test_get_nport_candidates_empty_series_raises():
     async def _symbol_map(symbol, use_cache=True):
         return ""
 
-    with patch.object(helpers, "get_series_id", _series), patch.object(
-        helpers, "symbol_map", _symbol_map
+    with (
+        patch.object(helpers, "get_series_id", _series),
+        patch.object(helpers, "symbol_map", _symbol_map),
     ):
         with pytest.raises(OpenBBError, match="Fund not found"):
             asyncio.run(helpers.get_nport_candidates("BADFUND"))

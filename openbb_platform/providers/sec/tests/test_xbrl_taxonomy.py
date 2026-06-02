@@ -282,17 +282,17 @@ class TestTaxonomyRegistry:
         """Non-STATIC taxonomies must have {year} in their base_url_template."""
         for key, config in TAXONOMIES.items():
             if config.style != TaxonomyStyle.STATIC:
-                assert (
-                    "{year}" in config.base_url_template
-                ), f"{key} missing {{year}} placeholder"
+                assert "{year}" in config.base_url_template, (
+                    f"{key} missing {{year}} placeholder"
+                )
 
     def test_static_taxonomy_has_no_year_placeholder(self):
         """STATIC taxonomies should NOT have {year} in their base_url_template."""
         for key, config in TAXONOMIES.items():
             if config.style == TaxonomyStyle.STATIC:
-                assert (
-                    "{year}" not in config.base_url_template
-                ), f"Static taxonomy {key} should not have {{year}}"
+                assert "{year}" not in config.base_url_template, (
+                    f"Static taxonomy {key} should not have {{year}}"
+                )
 
 
 class TestXBRLNode:
@@ -943,9 +943,9 @@ class TestInstanceParsing:
         total_tags = len(facts)
         has_label = sum(1 for tag_facts in facts.values() if tag_facts[0].get("label"))
         coverage = has_label / total_tags * 100
-        assert (
-            coverage >= 95
-        ), f"Label coverage only {coverage:.1f}% ({has_label}/{total_tags})"
+        assert coverage >= 95, (
+            f"Label coverage only {coverage:.1f}% ({has_label}/{total_tags})"
+        )
 
     def test_instance_presentation_metadata(self, apple_10k_parsed):
         """Facts should have presentation metadata (table, parent, order)."""
@@ -1080,9 +1080,9 @@ class TestUSGaapLabelsParsing:
         )
 
         has_both = [eid for eid in mgr.parser.labels if eid in mgr.parser.documentation]
-        assert (
-            len(has_both) > 100
-        ), f"Only {len(has_both)} elements have both label + documentation"
+        assert len(has_both) > 100, (
+            f"Only {len(has_both)} elements have both label + documentation"
+        )
 
     def test_parse_presentation_balance_sheet(
         self, us_gaap_lab_bytes, us_gaap_pres_bytes
@@ -1160,7 +1160,7 @@ class TestHMRCDPLTaxonomy:
 
         label_url = base_url + config.label_file_pattern.format(year=2021)
         assert label_url == (
-            "https://www.hmrc.gov.uk/schemas/ct/dpl/2021-01-01/" "dpl-2021-label.xml"
+            "https://www.hmrc.gov.uk/schemas/ct/dpl/2021-01-01/dpl-2021-label.xml"
         )
 
         pres_url = base_url + config.presentation_file_template.format(year=2021)
@@ -1189,9 +1189,9 @@ class TestHMRCDPLNetwork:
         dpl_labels = {
             k: v for k, v in mgr.parser.labels.items() if k.startswith("dpl_")
         }
-        assert (
-            len(dpl_labels) >= 170
-        ), f"Expected >=170 DPL labels, got {len(dpl_labels)}"
+        assert len(dpl_labels) >= 170, (
+            f"Expected >=170 DPL labels, got {len(dpl_labels)}"
+        )
         assert "dpl_AdministrativeExpenses" in mgr.parser.labels
         assert (
             mgr.parser.labels["dpl_AdministrativeExpenses"] == "Administrative expenses"
@@ -1205,9 +1205,9 @@ class TestHMRCDPLNetwork:
             for k, v in mgr.parser.element_properties.items()
             if k.startswith("dpl_")
         }
-        assert (
-            len(dpl_props) >= 170
-        ), f"Expected >=170 DPL properties, got {len(dpl_props)}"
+        assert len(dpl_props) >= 170, (
+            f"Expected >=170 DPL properties, got {len(dpl_props)}"
+        )
         assert "dpl_AdministrativeExpenses" in mgr.parser.element_properties
         props = mgr.parser.element_properties["dpl_AdministrativeExpenses"]
         assert props.get("period_type") == "duration"
@@ -1237,9 +1237,9 @@ class TestHMRCDPLNetwork:
         labeled_core = [
             f for f in core_items if f.get("label") and f["label"] != f["name"]
         ]
-        assert (
-            len(labeled_core) > 0
-        ), "FRC core labels not loaded — all core_* elements still show element_id as label"
+        assert len(labeled_core) > 0, (
+            "FRC core labels not loaded — all core_* elements still show element_id as label"
+        )
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -1254,7 +1254,7 @@ class TestIfrsDateDiscovery:
         """A discovered date for a new year is merged with the fallback."""
         xml = (
             "<root>"
-            '<Loc>https://xbrl.ifrs.org/taxonomy/2099-02-02/full_ifrs/x.xsd</Loc>'
+            "<Loc>https://xbrl.ifrs.org/taxonomy/2099-02-02/full_ifrs/x.xsd</Loc>"
             "</root>"
         )
         with patch(f"{CACHE_MOD}.cached_text", return_value=xml) as mock:
@@ -1492,9 +1492,9 @@ class TestGetComponentsForYear:
 
     def test_external_non_ifrs_returns_standard(self):
         client = FASBClient()
-        assert client.get_components_for_year(
-            2021, xth.TAXONOMIES["hmrc-dpl"]
-        ) == ["standard"]
+        assert client.get_components_for_year(2021, xth.TAXONOMIES["hmrc-dpl"]) == [
+            "standard"
+        ]
 
     def test_fasb_standard_extracts_components(self):
         client = FASBClient()
@@ -2162,10 +2162,10 @@ _COMPANY_SCHEMA = (
     '<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"'
     ' xmlns:link="http://www.xbrl.org/2003/linkbase"'
     ' xmlns:xlink="http://www.w3.org/1999/xlink">'
-    '<xsd:annotation><xsd:appinfo>'
+    "<xsd:annotation><xsd:appinfo>"
     '<link:linkbaseRef xlink:role="http://www.xbrl.org/2003/role/labelLinkbaseRef"'
     ' xlink:href="aapl-20240928_lab.xml"/>'
-    '<link:linkbaseRef'
+    "<link:linkbaseRef"
     ' xlink:role="http://www.xbrl.org/2003/role/presentationLinkbaseRef"'
     ' xlink:href="aapl-20240928_pre.xml"/>'
     '<link:linkbaseRef xlink:href=""/>'  # no href -> skipped
@@ -2300,8 +2300,9 @@ class TestParseFilingLabels:
                 return real(content)
             return None
 
-        with patch(f"{CACHE_MOD}.cached_bytes", return_value=b"<x/>"), patch.object(
-            parser, "_get_xml_root", side_effect=get_root
+        with (
+            patch(f"{CACHE_MOD}.cached_bytes", return_value=b"<x/>"),
+            patch.object(parser, "_get_xml_root", side_effect=get_root),
         ):
             _, _, facts = parser.parse_instance(_b(_INSTANCE), base_url=_BASE)
         # No labels resolved -> fact label falls back to the tag name.
@@ -2313,7 +2314,7 @@ class TestParseFilingLabels:
             '<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"'
             ' xmlns:link="http://www.xbrl.org/2003/linkbase"'
             ' xmlns:xlink="http://www.w3.org/1999/xlink">'
-            '<link:linkbaseRef'
+            "<link:linkbaseRef"
             ' xlink:role="labelLinkbaseRef"'
             ' xlink:href="https://abs.example/lab_lab.xml"/>'
             "</xsd:schema>"
@@ -2413,11 +2414,14 @@ class TestEnsureElementProperties:
         assert manager.parser.element_properties == {}
 
     def test_fasb_resolves_and_caches(self, manager: XBRLManager):
-        with patch.object(
-            manager.client, "find_file", return_value="https://x/us-gaap-2024.xsd"
-        ), patch.object(
-            manager.client, "fetch_file", return_value=BytesIO(_PROPS_XSD)
-        ) as fetch:
+        with (
+            patch.object(
+                manager.client, "find_file", return_value="https://x/us-gaap-2024.xsd"
+            ),
+            patch.object(
+                manager.client, "fetch_file", return_value=BytesIO(_PROPS_XSD)
+            ) as fetch,
+        ):
             manager._ensure_element_properties("us-gaap", 2024)
             # cached: a second call does nothing
             manager._ensure_element_properties("us-gaap", 2024)
@@ -2426,9 +2430,14 @@ class TestEnsureElementProperties:
         fetch.assert_called_once()
 
     def test_sec_embedded_tries_multiple_fragments(self, manager: XBRLManager):
-        with patch.object(
-            manager.client, "find_file", return_value="https://x/dei-2024.xsd"
-        ), patch.object(manager.client, "fetch_file", return_value=BytesIO(_PROPS_XSD)):
+        with (
+            patch.object(
+                manager.client, "find_file", return_value="https://x/dei-2024.xsd"
+            ),
+            patch.object(
+                manager.client, "fetch_file", return_value=BytesIO(_PROPS_XSD)
+            ),
+        ):
             manager._ensure_element_properties("dei", 2024)
         assert "ex_Foo" in manager.parser.element_properties
 
@@ -2456,9 +2465,10 @@ class TestEnsureElementProperties:
         assert fetch.called
 
     def test_fetch_error_continues(self, manager: XBRLManager):
-        with patch.object(
-            manager.client, "find_file", return_value="https://x/y.xsd"
-        ), patch.object(manager.client, "fetch_file", side_effect=OSError("boom")):
+        with (
+            patch.object(manager.client, "find_file", return_value="https://x/y.xsd"),
+            patch.object(manager.client, "fetch_file", side_effect=OSError("boom")),
+        ):
             manager._ensure_element_properties("us-gaap", 2024)
         # nothing loaded, not marked cached
         assert ("us-gaap", 2024) not in manager._properties_loaded_for
@@ -2480,19 +2490,25 @@ class TestGetRolesForTaxonomy:
         assert manager._get_roles_for_taxonomy("nope", 2024) == []
 
     def test_fasb_returns_roles(self, manager: XBRLManager):
-        with patch.object(
-            manager.client, "find_file", return_value="https://x/us-gaap-roles.xsd"
-        ), patch.object(
-            manager.client, "fetch_file", return_value=BytesIO(self._ROLE_XSD)
+        with (
+            patch.object(
+                manager.client, "find_file", return_value="https://x/us-gaap-roles.xsd"
+            ),
+            patch.object(
+                manager.client, "fetch_file", return_value=BytesIO(self._ROLE_XSD)
+            ),
         ):
             roles = manager._get_roles_for_taxonomy("us-gaap", 2024)
         assert roles and roles[0]["name"] == "r-soi"
 
     def test_sec_embedded_returns_roles(self, manager: XBRLManager):
-        with patch.object(
-            manager.client, "find_file", return_value="https://x/dei-2024.xsd"
-        ), patch.object(
-            manager.client, "fetch_file", return_value=BytesIO(self._ROLE_XSD)
+        with (
+            patch.object(
+                manager.client, "find_file", return_value="https://x/dei-2024.xsd"
+            ),
+            patch.object(
+                manager.client, "fetch_file", return_value=BytesIO(self._ROLE_XSD)
+            ),
         ):
             roles = manager._get_roles_for_taxonomy("dei", 2024)
         assert roles[0]["short_name"] == "Income"
@@ -2510,15 +2526,19 @@ class TestGetRolesForTaxonomy:
 
     def test_no_roles_returns_empty(self, manager: XBRLManager):
         empty = b'<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"/>'
-        with patch.object(
-            manager.client, "find_file", return_value="https://x/dei-2024.xsd"
-        ), patch.object(manager.client, "fetch_file", return_value=BytesIO(empty)):
+        with (
+            patch.object(
+                manager.client, "find_file", return_value="https://x/dei-2024.xsd"
+            ),
+            patch.object(manager.client, "fetch_file", return_value=BytesIO(empty)),
+        ):
             assert manager._get_roles_for_taxonomy("dei", 2024) == []
 
     def test_fetch_error_continues(self, manager: XBRLManager):
-        with patch.object(
-            manager.client, "find_file", return_value="https://x/y.xsd"
-        ), patch.object(manager.client, "fetch_file", side_effect=OSError("x")):
+        with (
+            patch.object(manager.client, "find_file", return_value="https://x/y.xsd"),
+            patch.object(manager.client, "fetch_file", side_effect=OSError("x")),
+        ):
             assert manager._get_roles_for_taxonomy("us-gaap", 2024) == []
 
 
@@ -2541,9 +2561,12 @@ class TestGetComponentsMetadata:
                 "group": "statement",
             }
         ]
-        with patch.object(
-            manager, "list_available_components", return_value=["soi", "mystery"]
-        ), patch.object(manager, "_get_roles_for_taxonomy", return_value=roles):
+        with (
+            patch.object(
+                manager, "list_available_components", return_value=["soi", "mystery"]
+            ),
+            patch.object(manager, "_get_roles_for_taxonomy", return_value=roles),
+        ):
             out = manager.get_components_metadata("us-gaap", 2024)
         by_name = {o["name"]: o for o in out}
         assert by_name["soi"]["label"] == "Income Statement"
@@ -2561,9 +2584,12 @@ class TestGetComponentsMetadata:
                 "group": "disclosure",
             }
         ]
-        with patch.object(
-            manager, "list_available_components", return_value=["basi-com"]
-        ), patch.object(manager, "_get_roles_for_taxonomy", return_value=roles):
+        with (
+            patch.object(
+                manager, "list_available_components", return_value=["basi-com"]
+            ),
+            patch.object(manager, "_get_roles_for_taxonomy", return_value=roles),
+        ):
             out = manager.get_components_metadata("us-gaap", 2011)
         assert out[0]["label"] == "Commitments (Basic)"
 
@@ -2577,10 +2603,9 @@ class TestGetComponentsMetadata:
             b"<link:definition>210000 - Statement - Financial Position</link:definition>"
             b"</link:roleType></xsd:appinfo></xsd:annotation></xsd:schema>"
         )
-        with patch.object(
-            manager, "list_available_components", return_value=["ias_1"]
-        ), patch.object(
-            manager.client, "fetch_file", return_value=BytesIO(role_xsd)
+        with (
+            patch.object(manager, "list_available_components", return_value=["ias_1"]),
+            patch.object(manager.client, "fetch_file", return_value=BytesIO(role_xsd)),
         ):
             out = manager.get_components_metadata("ifrs", 2024)
         assert out[0]["name"] == "ias_1"
@@ -2602,12 +2627,15 @@ class TestGetComponentsMetadata:
     def test_ifrs_category_notes(self, manager: XBRLManager):
         """A role definition containing 'Notes' -> category 'notes' (line 2620-2621)."""
         xth._ifrs_version_dates_cache = dict(xth._IFRS_VERSION_DATES_FALLBACK)
-        with patch.object(
-            manager, "list_available_components", return_value=["ias_1"]
-        ), patch.object(
-            manager.client,
-            "fetch_file",
-            return_value=self._ifrs_role_xsd("800000 - Notes - Accounting policies"),
+        with (
+            patch.object(manager, "list_available_components", return_value=["ias_1"]),
+            patch.object(
+                manager.client,
+                "fetch_file",
+                return_value=self._ifrs_role_xsd(
+                    "800000 - Notes - Accounting policies"
+                ),
+            ),
         ):
             out = manager.get_components_metadata("ifrs", 2024)
         assert out[0]["category"] == "notes"
@@ -2615,21 +2643,23 @@ class TestGetComponentsMetadata:
     def test_ifrs_category_disclosure_default(self, manager: XBRLManager):
         """Neither 'Statement' nor 'Notes' -> default 'disclosure' (line 2622-2623)."""
         xth._ifrs_version_dates_cache = dict(xth._IFRS_VERSION_DATES_FALLBACK)
-        with patch.object(
-            manager, "list_available_components", return_value=["ias_1"]
-        ), patch.object(
-            manager.client,
-            "fetch_file",
-            return_value=self._ifrs_role_xsd("851100 - Disclosure - Cash flows"),
+        with (
+            patch.object(manager, "list_available_components", return_value=["ias_1"]),
+            patch.object(
+                manager.client,
+                "fetch_file",
+                return_value=self._ifrs_role_xsd("851100 - Disclosure - Cash flows"),
+            ),
         ):
             out = manager.get_components_metadata("ifrs", 2024)
         assert out[0]["category"] == "disclosure"
 
     def test_ifrs_role_fetch_error_uses_known_name(self, manager: XBRLManager):
         xth._ifrs_version_dates_cache = dict(xth._IFRS_VERSION_DATES_FALLBACK)
-        with patch.object(
-            manager, "list_available_components", return_value=["ias_1"]
-        ), patch.object(manager.client, "fetch_file", side_effect=OSError("x")):
+        with (
+            patch.object(manager, "list_available_components", return_value=["ias_1"]),
+            patch.object(manager.client, "fetch_file", side_effect=OSError("x")),
+        ):
             out = manager.get_components_metadata("ifrs", 2024)
         # falls back to IFRS_STANDARD_NAMES label
         assert out[0]["label"] == xth.IFRS_STANDARD_NAMES["ias_1"]
@@ -2645,18 +2675,17 @@ class TestGetComponentsMetadata:
             }
         ]
         comp_xsd = (
-            b'<schema><link:presentationLink'
+            b"<schema><link:presentationLink"
             b' xmlns:link="http://www.xbrl.org/2003/linkbase"'
             b' role="http://xbrl.sec.gov/rr/role/RiskReturn"/></schema>'
         )
-        with patch.object(
-            manager, "list_available_components", return_value=["rr"]
-        ), patch.object(
-            manager, "_get_roles_for_taxonomy", return_value=roles
-        ), patch.object(
-            manager.client, "find_file", return_value="https://x/oef-rr-2024.xsd"
-        ), patch.object(
-            manager.client, "fetch_file", return_value=BytesIO(comp_xsd)
+        with (
+            patch.object(manager, "list_available_components", return_value=["rr"]),
+            patch.object(manager, "_get_roles_for_taxonomy", return_value=roles),
+            patch.object(
+                manager.client, "find_file", return_value="https://x/oef-rr-2024.xsd"
+            ),
+            patch.object(manager.client, "fetch_file", return_value=BytesIO(comp_xsd)),
         ):
             out = manager.get_components_metadata("oef", 2024)
         assert out[0]["label"] == "Risk/Return"
@@ -2674,7 +2703,7 @@ class TestGetComponentsMetadata:
             }
         ]
         comp_xsd = (
-            b'<schema><link:presentationLink'
+            b"<schema><link:presentationLink"
             b' xmlns:link="http://www.xbrl.org/2003/linkbase"'
             b' role="http://xbrl.sec.gov/rr/role/RiskReturn"/></schema>'
         )
@@ -2686,13 +2715,12 @@ class TestGetComponentsMetadata:
                 return "https://x/some-rr-file-2024.xsd"
             return None
 
-        with patch.object(
-            manager, "list_available_components", return_value=["rr"]
-        ), patch.object(
-            manager, "_get_roles_for_taxonomy", return_value=roles
-        ), patch.object(
-            manager.client, "find_file", side_effect=find
-        ), patch.object(manager.client, "fetch_file", return_value=BytesIO(comp_xsd)):
+        with (
+            patch.object(manager, "list_available_components", return_value=["rr"]),
+            patch.object(manager, "_get_roles_for_taxonomy", return_value=roles),
+            patch.object(manager.client, "find_file", side_effect=find),
+            patch.object(manager.client, "fetch_file", return_value=BytesIO(comp_xsd)),
+        ):
             out = manager.get_components_metadata("oef", 2024)
         assert out[0]["label"] == "Risk/Return"
 
@@ -2707,34 +2735,35 @@ class TestGetComponentsMetadata:
                 "document_number": "100",
             }
         ]
-        with patch.object(
-            manager, "list_available_components", return_value=["rr"]
-        ), patch.object(
-            manager, "_get_roles_for_taxonomy", return_value=roles
-        ), patch.object(
-            manager.client, "find_file", return_value="https://x/oef-rr-2024.xsd"
-        ), patch.object(manager.client, "fetch_file", side_effect=OSError("down")):
+        with (
+            patch.object(manager, "list_available_components", return_value=["rr"]),
+            patch.object(manager, "_get_roles_for_taxonomy", return_value=roles),
+            patch.object(
+                manager.client, "find_file", return_value="https://x/oef-rr-2024.xsd"
+            ),
+            patch.object(manager.client, "fetch_file", side_effect=OSError("down")),
+        ):
             out = manager.get_components_metadata("oef", 2024)
         # No roles matched (fetch failed) -> falls back to SEC_COMPONENT_NAMES.
         assert out[0]["label"] == xth.SEC_COMPONENT_NAMES["oef"]["rr"]["label"]
 
     def test_sec_multicomponent_known_names_fallback(self, manager: XBRLManager):
         """No roles matched -> use SEC_COMPONENT_NAMES."""
-        with patch.object(
-            manager, "list_available_components", return_value=["rr"]
-        ), patch.object(
-            manager, "_get_roles_for_taxonomy", return_value=[]
-        ), patch.object(manager.client, "find_file", return_value=None):
+        with (
+            patch.object(manager, "list_available_components", return_value=["rr"]),
+            patch.object(manager, "_get_roles_for_taxonomy", return_value=[]),
+            patch.object(manager.client, "find_file", return_value=None),
+        ):
             out = manager.get_components_metadata("oef", 2024)
         assert out[0]["label"] == xth.SEC_COMPONENT_NAMES["oef"]["rr"]["label"]
 
     def test_sec_multicomponent_unknown_fallback(self, manager: XBRLManager):
         """No roles, no known name -> uppercase the component."""
-        with patch.object(
-            manager, "list_available_components", return_value=["zzz"]
-        ), patch.object(
-            manager, "_get_roles_for_taxonomy", return_value=[]
-        ), patch.object(manager.client, "find_file", return_value=None):
+        with (
+            patch.object(manager, "list_available_components", return_value=["zzz"]),
+            patch.object(manager, "_get_roles_for_taxonomy", return_value=[]),
+            patch.object(manager.client, "find_file", return_value=None),
+        ):
             out = manager.get_components_metadata("cef", 2024)
         assert out[0]["label"] == "ZZZ"
         assert out[0]["description"] is None
@@ -2765,9 +2794,7 @@ class TestEnsureLabels:
 
     def test_ifrs_loads_labels(self, manager: XBRLManager):
         xth._ifrs_version_dates_cache = dict(xth._IFRS_VERSION_DATES_FALLBACK)
-        with patch.object(
-            manager.client, "fetch_file", return_value=BytesIO(_LAB_XML)
-        ):
+        with patch.object(manager.client, "fetch_file", return_value=BytesIO(_LAB_XML)):
             manager._ensure_labels("ifrs", 2024)
         assert manager.parser.labels.get("ex_Item") == "Item Label"
         assert ("ifrs", 2024) in manager._labels_loaded_for
@@ -2779,9 +2806,7 @@ class TestEnsureLabels:
         assert manager.parser.labels == {}
 
     def test_hmrc_loads_labels(self, manager: XBRLManager):
-        with patch.object(
-            manager.client, "fetch_file", return_value=BytesIO(_LAB_XML)
-        ):
+        with patch.object(manager.client, "fetch_file", return_value=BytesIO(_LAB_XML)):
             manager._ensure_labels("hmrc-dpl", 2021)
         assert manager.parser.labels.get("ex_Item") == "Item Label"
         assert ("hmrc-dpl", 2021) in manager._labels_loaded_for
@@ -2802,17 +2827,18 @@ class TestEnsureLabels:
         assert manager.parser.labels.get("ex_Item") == "Item Label"
 
     def test_static_loads_labels(self, manager: XBRLManager):
-        with patch.object(
-            manager.client, "fetch_file", return_value=BytesIO(_LAB_XML)
-        ):
+        with patch.object(manager.client, "fetch_file", return_value=BytesIO(_LAB_XML)):
             manager._ensure_labels("rocr", 2015)
         assert manager.parser.labels.get("ex_Item") == "Item Label"
 
     def test_fasb_loads_label_and_doc(self, manager: XBRLManager):
-        with patch.object(
-            manager.client, "find_file", return_value="https://x/us-gaap-lab-2024.xml"
-        ), patch.object(
-            manager.client, "fetch_file", return_value=BytesIO(_LAB_XML)
+        with (
+            patch.object(
+                manager.client,
+                "find_file",
+                return_value="https://x/us-gaap-lab-2024.xml",
+            ),
+            patch.object(manager.client, "fetch_file", return_value=BytesIO(_LAB_XML)),
         ):
             manager._ensure_labels("us-gaap", 2024)
         assert manager.parser.labels.get("ex_Item") == "Item Label"
@@ -2841,15 +2867,19 @@ class TestEnsureLabels:
                 return BytesIO(ref_xsd)
             return BytesIO(_LAB_XML)
 
-        with patch.object(
-            manager.client, "find_file", return_value="https://x/ecd-2024.xsd"
-        ), patch.object(manager.client, "fetch_file", side_effect=fetch):
+        with (
+            patch.object(
+                manager.client, "find_file", return_value="https://x/ecd-2024.xsd"
+            ),
+            patch.object(manager.client, "fetch_file", side_effect=fetch),
+        ):
             manager._ensure_labels("ecd", 2024)
         # reference fallback produced documentation
         assert any(k == "ecd_X" for k in manager.parser.documentation)
 
     def test_sec_label_fetch_error_continues(self, manager: XBRLManager):
         """A found SEC label URL whose fetch fails is skipped (line 2899-2900)."""
+
         # find_file returns a label URL for the first lookup, None thereafter
         # (so the reference fallback does nothing); fetch always raises.
         def find(url, *frags):
@@ -2857,8 +2887,9 @@ class TestEnsureLabels:
                 return "https://x/ecd-lab-2024.xml"
             return None
 
-        with patch.object(manager.client, "find_file", side_effect=find), patch.object(
-            manager.client, "fetch_file", side_effect=OSError("down")
+        with (
+            patch.object(manager.client, "find_file", side_effect=find),
+            patch.object(manager.client, "fetch_file", side_effect=OSError("down")),
         ):
             manager._ensure_labels("ecd", 2024)
         # Nothing loaded -> not marked as loaded.
@@ -2885,8 +2916,9 @@ class TestEnsureLabels:
         def fetch(url):
             return BytesIO(doc_xml) if "doc" in url else BytesIO(_LAB_XML)
 
-        with patch.object(manager.client, "find_file", side_effect=find), patch.object(
-            manager.client, "fetch_file", side_effect=fetch
+        with (
+            patch.object(manager.client, "find_file", side_effect=find),
+            patch.object(manager.client, "fetch_file", side_effect=fetch),
         ):
             manager._ensure_labels("us-gaap", 2024)
         assert manager.parser.documentation.get("ex_Item") == "A definition."
@@ -2898,6 +2930,7 @@ class TestEnsureLabels:
         Exercises the broader ``find_file`` (line 2951) and the swallowed fetch
         error (line 2958-2959).
         """
+
         # Label lookups all miss (no labels loaded); the reference fallback's
         # first two finds miss, only the broader 3-fragment search resolves a
         # URL, whose fetch then raises.
@@ -2906,8 +2939,9 @@ class TestEnsureLabels:
                 return "https://x/ecd-ref-2024.xsd"
             return None
 
-        with patch.object(manager.client, "find_file", side_effect=find), patch.object(
-            manager.client, "fetch_file", side_effect=OSError("ref down")
+        with (
+            patch.object(manager.client, "find_file", side_effect=find),
+            patch.object(manager.client, "fetch_file", side_effect=OSError("ref down")),
         ):
             manager._ensure_labels("ecd", 2024)
         assert ("ecd", 2024) not in manager._labels_loaded_for
@@ -2940,9 +2974,14 @@ class TestParseEntireFile:
             assert manager._parse_entire_file("cyd", 2024, xth.TAXONOMIES["cyd"]) == []
 
     def test_fetch_error_returns_empty(self, manager: XBRLManager):
-        with patch.object(
-            manager.client, "find_file", return_value="https://x/cyd-entire-2024.xsd"
-        ), patch.object(manager.client, "fetch_file", side_effect=OSError("x")):
+        with (
+            patch.object(
+                manager.client,
+                "find_file",
+                return_value="https://x/cyd-entire-2024.xsd",
+            ),
+            patch.object(manager.client, "fetch_file", side_effect=OSError("x")),
+        ):
             assert manager._parse_entire_file("cyd", 2024, xth.TAXONOMIES["cyd"]) == []
 
     def test_direct_embed(self, manager: XBRLManager):
@@ -2957,9 +2996,14 @@ class TestParseEntireFile:
             "</link:presentationLink>"
             "</link:linkbase></xsd:appinfo></xsd:annotation></xsd:schema>"
         ).encode()
-        with patch.object(
-            manager.client, "find_file", return_value="https://x/cyd-entire-2024.xsd"
-        ), patch.object(manager.client, "fetch_file", return_value=BytesIO(embedded)):
+        with (
+            patch.object(
+                manager.client,
+                "find_file",
+                return_value="https://x/cyd-entire-2024.xsd",
+            ),
+            patch.object(manager.client, "fetch_file", return_value=BytesIO(embedded)),
+        ):
             nodes = manager._parse_entire_file("cyd", 2024, xth.TAXONOMIES["cyd"])
         assert nodes and nodes[0].element_id == "ex_P"
 
@@ -2988,9 +3032,14 @@ class TestParseEntireFile:
                 return BytesIO(sub)
             return BytesIO(wrapper)
 
-        with patch.object(
-            manager.client, "find_file", return_value="https://x/ecd-entire-2024.xsd"
-        ), patch.object(manager.client, "fetch_file", side_effect=fetch):
+        with (
+            patch.object(
+                manager.client,
+                "find_file",
+                return_value="https://x/ecd-entire-2024.xsd",
+            ),
+            patch.object(manager.client, "fetch_file", side_effect=fetch),
+        ):
             nodes = manager._parse_entire_file("ecd", 2024, xth.TAXONOMIES["ecd"])
         ids = {n.element_id for n in nodes}
         assert "ex_Root" in ids
@@ -3008,9 +3057,14 @@ class TestParseEntireFile:
                 raise OSError("sub down")
             return BytesIO(wrapper)
 
-        with patch.object(
-            manager.client, "find_file", return_value="https://x/ecd-entire-2024.xsd"
-        ), patch.object(manager.client, "fetch_file", side_effect=fetch):
+        with (
+            patch.object(
+                manager.client,
+                "find_file",
+                return_value="https://x/ecd-entire-2024.xsd",
+            ),
+            patch.object(manager.client, "fetch_file", side_effect=fetch),
+        ):
             nodes = manager._parse_entire_file("ecd", 2024, xth.TAXONOMIES["ecd"])
         assert nodes == []
 
@@ -3139,16 +3193,20 @@ _GS_SCHEMA = (
 
 def _node(element_id: str) -> XBRLNode:
     """Build a minimal XBRLNode (all required positional fields supplied)."""
-    return XBRLNode(element_id=element_id, label=element_id, order=1.0, level=0, parent_id=None)
+    return XBRLNode(
+        element_id=element_id, label=element_id, order=1.0, level=0, parent_id=None
+    )
 
 
 @pytest.fixture
 def _stub_label_loading():
     """Neutralise the label/property side-loading so only get_structure's own
     fetch/parse branches are exercised (those make their own network calls)."""
-    with patch.object(XBRLManager, "_ensure_labels", return_value=None), patch.object(
-        XBRLManager, "_ensure_element_properties", return_value=None
-    ), patch.object(XBRLManager, "_load_frc_core_labels", return_value=None):
+    with (
+        patch.object(XBRLManager, "_ensure_labels", return_value=None),
+        patch.object(XBRLManager, "_ensure_element_properties", return_value=None),
+        patch.object(XBRLManager, "_load_frc_core_labels", return_value=None),
+    ):
         yield
 
 
@@ -3202,10 +3260,13 @@ class TestGetStructure:
         self, manager: XBRLManager, _stub_label_loading
     ):
         # First find_file call resolves; fetch returns a presentation linkbase.
-        with patch.object(
-            manager.client, "find_file", return_value="https://x/us-gaap-stm-soi-pre-2024.xml"
-        ) as mock_find, patch.object(
-            manager.client, "fetch_file", return_value=_b(_GS_PRE)
+        with (
+            patch.object(
+                manager.client,
+                "find_file",
+                return_value="https://x/us-gaap-stm-soi-pre-2024.xml",
+            ) as mock_find,
+            patch.object(manager.client, "fetch_file", return_value=_b(_GS_PRE)),
         ):
             nodes = manager.get_structure("us-gaap", 2024, "soi")
         assert nodes and nodes[0].element_id == "ex_Root"
@@ -3215,8 +3276,9 @@ class TestGetStructure:
     def test_fasb_standard_no_file_raises(
         self, manager: XBRLManager, _stub_label_loading
     ):
-        with patch.object(manager.client, "find_file", return_value=None), patch.object(
-            manager.client, "list_files", return_value=[]
+        with (
+            patch.object(manager.client, "find_file", return_value=None),
+            patch.object(manager.client, "list_files", return_value=[]),
         ):
             with pytest.raises(OpenBBError, match="No presentation file found"):
                 manager.get_structure("us-gaap", 2024, "soi")
@@ -3238,20 +3300,27 @@ class TestGetStructure:
         self, manager: XBRLManager, _stub_label_loading
     ):
         # _parse_entire_file raises -> swallowed -> find main schema, flat extract.
-        with patch.object(
-            manager, "_parse_entire_file", side_effect=RuntimeError("boom")
-        ), patch.object(
-            manager.client, "find_file", return_value="https://x/dei-2024.xsd"
-        ), patch.object(manager.client, "fetch_file", return_value=_b(_GS_SCHEMA)):
+        with (
+            patch.object(
+                manager, "_parse_entire_file", side_effect=RuntimeError("boom")
+            ),
+            patch.object(
+                manager.client, "find_file", return_value="https://x/dei-2024.xsd"
+            ),
+            patch.object(manager.client, "fetch_file", return_value=_b(_GS_SCHEMA)),
+        ):
             nodes = manager.get_structure("dei", 2024, "standard")
         assert nodes and nodes[0].element_id == "ex_Flat"
 
     def test_sec_standard_no_schema_found_raises(
         self, manager: XBRLManager, _stub_label_loading
     ):
-        with patch.object(
-            manager, "_parse_entire_file", side_effect=RuntimeError("boom")
-        ), patch.object(manager.client, "find_file", return_value=None):
+        with (
+            patch.object(
+                manager, "_parse_entire_file", side_effect=RuntimeError("boom")
+            ),
+            patch.object(manager.client, "find_file", return_value=None),
+        ):
             with pytest.raises(OpenBBError, match="No schema file found"):
                 manager.get_structure("dei", 2024, "standard")
 
@@ -3259,9 +3328,14 @@ class TestGetStructure:
         self, manager: XBRLManager, _stub_label_loading
     ):
         # Non-"standard" SEC component -> generic else branch.
-        with patch.object(
-            manager.client, "find_file", return_value="https://x/cef-shareholder-2024.xsd"
-        ), patch.object(manager.client, "fetch_file", return_value=_b(_GS_PRE)):
+        with (
+            patch.object(
+                manager.client,
+                "find_file",
+                return_value="https://x/cef-shareholder-2024.xsd",
+            ),
+            patch.object(manager.client, "fetch_file", return_value=_b(_GS_PRE)),
+        ):
             nodes = manager.get_structure("cef", 2024, "shareholder")
         assert nodes and nodes[0].element_id == "ex_Root"
 
@@ -3277,9 +3351,14 @@ class TestGetStructure:
     ):
         # Presentation parse yields nothing AND the resolved URL ends in .xsd:
         # re-parse the same content as flat schema elements.
-        with patch.object(
-            manager.client, "find_file", return_value="https://x/cef-shareholder-2024.xsd"
-        ), patch.object(manager.client, "fetch_file", return_value=_b(_GS_SCHEMA)):
+        with (
+            patch.object(
+                manager.client,
+                "find_file",
+                return_value="https://x/cef-shareholder-2024.xsd",
+            ),
+            patch.object(manager.client, "fetch_file", return_value=_b(_GS_SCHEMA)),
+        ):
             nodes = manager.get_structure("cef", 2024, "shareholder")
         assert nodes and nodes[0].element_id == "ex_Flat"
 
@@ -3300,8 +3379,9 @@ class TestGetStructure:
         def fetch(url):
             return _b(_GS_SCHEMA) if url.endswith(".xsd") else _b(empty_pre)
 
-        with patch.object(manager.client, "find_file", side_effect=find), patch.object(
-            manager.client, "fetch_file", side_effect=fetch
+        with (
+            patch.object(manager.client, "find_file", side_effect=find),
+            patch.object(manager.client, "fetch_file", side_effect=fetch),
         ):
             nodes = manager.get_structure("cef", 2024, "shareholder")
         assert nodes and nodes[0].element_id == "ex_Flat"
@@ -3330,20 +3410,28 @@ class TestGetStructure:
                 return child_nodes
             return orig(self_, tax, yr, comp)
 
-        with patch.object(manager.client, "find_file", side_effect=find), patch.object(
-            manager.client, "fetch_file", return_value=_b(empty_pre)
-        ), patch.object(
-            manager, "list_available_components", return_value=["wrap", "wrap-foo"]
-        ), patch.object(XBRLManager, "get_structure", recurse):
+        with (
+            patch.object(manager.client, "find_file", side_effect=find),
+            patch.object(manager.client, "fetch_file", return_value=_b(empty_pre)),
+            patch.object(
+                manager, "list_available_components", return_value=["wrap", "wrap-foo"]
+            ),
+            patch.object(XBRLManager, "get_structure", recurse),
+        ):
             nodes = manager.get_structure("cef", 2024, "wrap")
         assert child_nodes[0] in nodes
 
     def test_fetch_error_wrapped_as_openbberror(
         self, manager: XBRLManager, _stub_label_loading
     ):
-        with patch.object(
-            manager.client, "find_file", return_value="https://x/cef-shareholder-2024.xsd"
-        ), patch.object(manager.client, "fetch_file", side_effect=OSError("net down")):
+        with (
+            patch.object(
+                manager.client,
+                "find_file",
+                return_value="https://x/cef-shareholder-2024.xsd",
+            ),
+            patch.object(manager.client, "fetch_file", side_effect=OSError("net down")),
+        ):
             with pytest.raises(OpenBBError, match="Failed to get structure"):
                 manager.get_structure("cef", 2024, "shareholder")
 
@@ -3407,23 +3495,17 @@ class TestResolverWellKnownPatterns:
 
     def test_us_gaap_pattern(self):
         assert (
-            XBRLParser._resolve_ns_prefix(
-                "http://fasb.org/us-gaap/2024", {}
-            )
+            XBRLParser._resolve_ns_prefix("http://fasb.org/us-gaap/2024", {})
             == "us-gaap"
         )
 
     def test_dei_pattern(self):
         assert (
-            XBRLParser._resolve_ns_prefix("http://xbrl.sec.gov/dei/2024", {})
-            == "dei"
+            XBRLParser._resolve_ns_prefix("http://xbrl.sec.gov/dei/2024", {}) == "dei"
         )
 
     def test_srt_pattern(self):
-        assert (
-            XBRLParser._resolve_ns_prefix("http://fasb.org/srt/2024", {})
-            == "srt"
-        )
+        assert XBRLParser._resolve_ns_prefix("http://fasb.org/srt/2024", {}) == "srt"
 
 
 class TestResolveMeasureStandard:

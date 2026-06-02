@@ -1,6 +1,5 @@
 """SEC Cash Flow Statement Growth Model."""
 
-
 from math import isnan
 from typing import Any, Literal
 from warnings import warn

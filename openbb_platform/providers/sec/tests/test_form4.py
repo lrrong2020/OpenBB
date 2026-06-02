@@ -322,9 +322,11 @@ def test_download_data_with_cache_roundtrip():
 
     urls = ["http://sec.gov/a.xml", "http://sec.gov/b.xml"]
 
-    with patch.object(cache_mod, "aget_cached", _aget), patch.object(
-        cache_mod, "aset_cached", _aset
-    ), patch.object(form4, "get_form_4_data", _fake_get_data):
+    with (
+        patch.object(cache_mod, "aget_cached", _aget),
+        patch.object(cache_mod, "aset_cached", _aset),
+        patch.object(form4, "get_form_4_data", _fake_get_data),
+    ):
         first = asyncio.run(form4.download_data(urls, use_cache=True))
         # Both filings now cached under their 'form4 <url>' keys.
         assert store["form4 http://sec.gov/a.xml"]
@@ -379,10 +381,11 @@ def test_download_data_cache_mass_warning():
     # 40 URLs -> estimate 40/7*1.8 > 10s -> long-download notice branch.
     urls = [f"http://sec.gov/{i}.xml" for i in range(40)]
 
-    with patch.object(cache_mod, "aget_cached", _aget), patch.object(
-        cache_mod, "aset_cached", _aset
-    ), patch.object(form4, "get_form_4_data", _fake_get_data), patch(
-        "asyncio.sleep", _no_sleep
+    with (
+        patch.object(cache_mod, "aget_cached", _aget),
+        patch.object(cache_mod, "aset_cached", _aset),
+        patch.object(form4, "get_form_4_data", _fake_get_data),
+        patch("asyncio.sleep", _no_sleep),
     ):
         out = asyncio.run(form4.download_data(urls, use_cache=True))
 
@@ -396,9 +399,7 @@ def test_get_form_4_data_traffic_limit():
     async def _fake_request(url, **kwargs):
         return b"You have hit the SEC Traffic Limit page."
 
-    with patch(
-        "openbb_core.provider.utils.helpers.amake_request", _fake_request
-    ):
+    with patch("openbb_core.provider.utils.helpers.amake_request", _fake_request):
         with pytest.raises(OpenBBError, match="traffic limit"):
             asyncio.run(form4.get_form_4_data("http://sec.gov/f.xml"))
 
@@ -410,9 +411,7 @@ def test_get_form_4_data_parse_error_warns():
         # Not valid XML once cleaned -> xmltodict.parse raises -> warn + {}.
         return b"<<<not xml>>>"
 
-    with patch(
-        "openbb_core.provider.utils.helpers.amake_request", _fake_request
-    ):
+    with patch("openbb_core.provider.utils.helpers.amake_request", _fake_request):
         with pytest.warns(Warning):
             out = asyncio.run(form4.get_form_4_data("http://sec.gov/bad.xml"))
     assert out == {}
@@ -430,9 +429,7 @@ def test_get_form_4_data_ok():
     async def _fake_request(url, **kwargs):
         return xml
 
-    with patch(
-        "openbb_core.provider.utils.helpers.amake_request", _fake_request
-    ):
+    with patch("openbb_core.provider.utils.helpers.amake_request", _fake_request):
         out = asyncio.run(form4.get_form_4_data("http://sec.gov/ok.xml"))
     assert out["documentType"] == "4"
     assert out["issuer"]["issuerName"] == "ACME"
@@ -484,8 +481,9 @@ def test_get_form_4_no_data_raises():
     async def _download(urls, use_cache):
         return []
 
-    with patch.object(form4, "get_form_4_urls", _urls), patch.object(
-        form4, "download_data", _download
+    with (
+        patch.object(form4, "get_form_4_urls", _urls),
+        patch.object(form4, "download_data", _download),
     ):
         with pytest.raises(OpenBBError, match="No Form 4 data"):
             asyncio.run(form4.get_form_4("ACME"))
@@ -502,8 +500,9 @@ def test_get_form_4_limit_applied():
         seen["urls"] = list(urls)
         return [{"filing_date": "2023-01-01", "owner_name": "X"}]
 
-    with patch.object(form4, "get_form_4_urls", _urls), patch.object(
-        form4, "download_data", _download
+    with (
+        patch.object(form4, "get_form_4_urls", _urls),
+        patch.object(form4, "download_data", _download),
     ):
         out = asyncio.run(form4.get_form_4("ACME", limit=2))
     assert seen["urls"] == ["u1", "u2"]

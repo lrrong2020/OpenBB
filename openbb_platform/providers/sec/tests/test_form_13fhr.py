@@ -28,10 +28,10 @@ def test_form_13fhr_aextract_date_branch():
         return [{"period_ending": "2023-03-31", "weight": 0.5}]
 
     query = SecForm13FHRQueryParams(symbol="0001067983", date=date(2023, 2, 15))
-    with patch(
-        "openbb_sec.utils.parse_13f.get_13f_candidates", _candidates
-    ), patch("openbb_sec.utils.parse_13f.parse_13f_hr", _parse), patch(
-        "openbb_sec.utils.parse_13f.date_to_quarter_end", lambda d: "2023-03-31"
+    with (
+        patch("openbb_sec.utils.parse_13f.get_13f_candidates", _candidates),
+        patch("openbb_sec.utils.parse_13f.parse_13f_hr", _parse),
+        patch("openbb_sec.utils.parse_13f.date_to_quarter_end", lambda d: "2023-03-31"),
     ):
         result = asyncio.run(SecForm13FHRFetcher.aextract_data(query, None))
     assert result == [{"period_ending": "2023-03-31", "weight": 0.5}]
@@ -50,9 +50,10 @@ def test_form_13fhr_aextract_empty_data_error():
         return []
 
     query = SecForm13FHRQueryParams(symbol="BRK-A", limit=1)
-    with patch(
-        "openbb_sec.utils.parse_13f.get_13f_candidates", _candidates
-    ), patch("openbb_sec.utils.parse_13f.parse_13f_hr", _parse):
+    with (
+        patch("openbb_sec.utils.parse_13f.get_13f_candidates", _candidates),
+        patch("openbb_sec.utils.parse_13f.parse_13f_hr", _parse),
+    ):
         with pytest.raises(EmptyDataError) as exc:
             asyncio.run(SecForm13FHRFetcher.aextract_data(query, None))
     assert "No data was returned" in str(exc.value)

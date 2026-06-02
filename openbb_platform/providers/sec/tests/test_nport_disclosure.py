@@ -108,9 +108,7 @@ class TestNportExtract:
             "openbb_sec.utils.helpers.get_nport_candidates",
             _async_return(_nport_candidates()),
         )
-        monkeypatch.setattr(
-            "openbb_sec.utils.cache.cached_request", fake_cached
-        )
+        monkeypatch.setattr("openbb_sec.utils.cache.cached_request", fake_cached)
         from openbb_sec.models.nport_disclosure import (
             SecNportDisclosureQueryParams,
         )
@@ -137,12 +135,8 @@ class TestNportExtract:
         async def no_sleep(*args, **kwargs):
             return None
 
-        monkeypatch.setattr(
-            "openbb_sec.utils.helpers.get_nport_candidates", flaky
-        )
-        monkeypatch.setattr(
-            "openbb_sec.utils.cache.cached_request", fake_cached
-        )
+        monkeypatch.setattr("openbb_sec.utils.helpers.get_nport_candidates", flaky)
+        monkeypatch.setattr("openbb_sec.utils.cache.cached_request", fake_cached)
         monkeypatch.setattr("asyncio.sleep", no_sleep)
         from openbb_sec.models.nport_disclosure import (
             SecNportDisclosureQueryParams,
@@ -192,9 +186,7 @@ class TestNportExtract:
             "openbb_sec.utils.helpers.get_nport_candidates",
             _async_return(_nport_candidates()),
         )
-        monkeypatch.setattr(
-            "openbb_sec.utils.cache.cached_request", fake_cached
-        )
+        monkeypatch.setattr("openbb_sec.utils.cache.cached_request", fake_cached)
         from openbb_sec.models.nport_disclosure import (
             SecNportDisclosureQueryParams,
         )
@@ -312,9 +304,7 @@ class TestNportHoldings:
                         "counterpartyName": "CP1",
                         "counterpartyLei": "LEI1",
                     },
-                    "descRefInstrmnt": {
-                        "otherRefInst": {"issueTitle": "UnderTitle"}
-                    },
+                    "descRefInstrmnt": {"otherRefInst": {"issueTitle": "UnderTitle"}},
                     "putOrCall": "Call",
                     "writtenOrPur": "Pur",
                     "expDt": "2025-12-31",
@@ -326,9 +316,7 @@ class TestNportHoldings:
                 }
             },
         }
-        d = _transform_nport(_wrap_nport([opt])).result[0].model_dump(
-            exclude_none=True
-        )
+        d = _transform_nport(_wrap_nport([opt])).result[0].model_dump(exclude_none=True)
         assert d["derivative_category"] == "OPT"
         assert d["counterparty"] == "CP1"
         assert d["lei"] == "LEI1"
@@ -370,9 +358,7 @@ class TestNportHoldings:
                 }
             },
         }
-        d = _transform_nport(_wrap_nport([fut])).result[0].model_dump(
-            exclude_none=True
-        )
+        d = _transform_nport(_wrap_nport([fut])).result[0].model_dump(exclude_none=True)
         assert d["derivative_category"] == "FUT"
         assert d["counterparty"] == "CP2"
         assert d["underlying_name"] == "SPX"
@@ -403,9 +389,7 @@ class TestNportHoldings:
                 }
             },
         }
-        d = _transform_nport(_wrap_nport([fwd])).result[0].model_dump(
-            exclude_none=True
-        )
+        d = _transform_nport(_wrap_nport([fwd])).result[0].model_dump(exclude_none=True)
         assert d["derivative_category"] == "FWD"
         assert d["counterparty"] == "CP3"
         assert d["currency_sold"] == "USD"
@@ -473,8 +457,10 @@ class TestNportHoldings:
                 }
             },
         }
-        d = _transform_nport(_wrap_nport([swap])).result[0].model_dump(
-            exclude_none=True
+        d = (
+            _transform_nport(_wrap_nport([swap]))
+            .result[0]
+            .model_dump(exclude_none=True)
         )
         assert d["derivative_category"] == "SWP"
         assert d["counterparty"] == "CP4"
@@ -509,9 +495,7 @@ class TestNportHoldings:
                         "counterpartyName": "CP5",
                         "counterpartyLei": "LEI5",
                     },
-                    "descRefInstrmnt": {
-                        "otherRefInst": {"issueTitle": "SwapUnder"}
-                    },
+                    "descRefInstrmnt": {"otherRefInst": {"issueTitle": "SwapUnder"}},
                     "terminationDt": "2027-06-30",
                     "upfrontPmnt": "10",
                     "pmntCurCd": "USD",
@@ -523,8 +507,10 @@ class TestNportHoldings:
                 }
             },
         }
-        d = _transform_nport(_wrap_nport([swap])).result[0].model_dump(
-            exclude_none=True
+        d = (
+            _transform_nport(_wrap_nport([swap]))
+            .result[0]
+            .model_dump(exclude_none=True)
         )
         assert d["derivative_category"] == "SWP"
         assert d["underlying_name"] == "SwapUnder"
@@ -542,9 +528,7 @@ class TestNportHoldings:
                 "optionSwaptionWarrantDeriv": {
                     "@derivCat": "OPT",
                     "counterparties": {"counterpartyName": "CP6"},
-                    "descRefInstrmnt": {
-                        "otherRefInst": {"issueTitle": "UT"}
-                    },
+                    "descRefInstrmnt": {"otherRefInst": {"issueTitle": "UT"}},
                     "putOrCall": "Put",
                     "writtenOrPur": "Written",
                     "expDt": "2025-12-31",
@@ -556,9 +540,7 @@ class TestNportHoldings:
                 }
             },
         }
-        d = _transform_nport(_wrap_nport([opt])).result[0].model_dump(
-            exclude_none=True
-        )
+        d = _transform_nport(_wrap_nport([opt])).result[0].model_dump(exclude_none=True)
         # delta is retained as-is (not the "XXXX" sentinel that gets skipped).
         assert d["delta"] == "0.5"
 
@@ -588,8 +570,10 @@ class TestNportHoldings:
                 },
             },
         }
-        d = _transform_nport(_wrap_nport([repo])).result[0].model_dump(
-            exclude_none=True
+        d = (
+            _transform_nport(_wrap_nport([repo]))
+            .result[0]
+            .model_dump(exclude_none=True)
         )
         assert d["repo_type"] == "Repo"
         assert d["is_cleared"] == "Y"
@@ -677,9 +661,7 @@ class TestNportMetadata:
             "realized": 10.0,
             "unrealized": 20.0,
         }
-        assert meta["borrowers"] == [
-            {"name": "B1", "lei": "BLEI", "value": 999.0}
-        ]
+        assert meta["borrowers"] == [{"name": "B1", "lei": "BLEI", "value": 999.0}]
 
     def test_metadata_extraction_error_warns(self):
         # fundInfo present but missing returnInfo -> the metadata block raises

@@ -18,8 +18,6 @@ def headers():
     return {"Authorization": f"Basic {base64_bytes.decode('ascii')}"}
 
 
-
-
 @pytest.mark.parametrize(
     "params",
     [

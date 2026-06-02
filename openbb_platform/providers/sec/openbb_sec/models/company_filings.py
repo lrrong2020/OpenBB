@@ -1,6 +1,5 @@
 """SEC Company Filings Model."""
 
-
 from datetime import (
     date as dateType,
     datetime,
@@ -219,7 +218,9 @@ class SecCompanyFilingsFetcher(
 
         # This seems to work for the data structure.
         filings = (
-            DataFrame.from_records(data["filings"].get("recent")) if "filings" in data else DataFrame()
+            DataFrame.from_records(data["filings"].get("recent"))
+            if "filings" in data
+            else DataFrame()
         )
         results = filings.to_dict("records")
 
@@ -229,9 +230,12 @@ class SecCompanyFilingsFetcher(
             or query.form_type is not None
             or query.limit == 0
         ):
-
             urls: list = []
-            new_urls = DataFrame(data["filings"].get("files")) if "filings" in data else DataFrame()
+            new_urls = (
+                DataFrame(data["filings"].get("files"))
+                if "filings" in data
+                else DataFrame()
+            )
             for i in new_urls.index:
                 new_cik: str = data["filings"]["files"][i]["name"]
                 new_url: str = "https://data.sec.gov/submissions/" + new_cik

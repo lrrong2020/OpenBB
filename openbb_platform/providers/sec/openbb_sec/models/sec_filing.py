@@ -1,6 +1,5 @@
 """SEC Filing Model."""
 
-
 from datetime import date as dateType
 from typing import Any, cast
 
@@ -212,7 +211,9 @@ class SecBaseFiling(Data):
         """Central Index Key."""
         return self._cik
 
-    @computed_field(title="Trading Symbols", description="Trading symbols, if available.")
+    @computed_field(
+        title="Trading Symbols", description="Trading symbols, if available."
+    )
     @property
     def trading_symbols(self) -> list | None:
         """Trading symbols, if available."""
@@ -262,13 +263,17 @@ class SecBaseFiling(Data):
         """Document type."""
         return self._document_type
 
-    @computed_field(title="Has Cover Page", description="True if the filing has a cover page.")
+    @computed_field(
+        title="Has Cover Page", description="True if the filing has a cover page."
+    )
     @property
     def has_cover_page(self) -> bool:
         """True if the filing has a cover page."""
         return bool(self._cover_page_url)
 
-    @computed_field(title="Cover Page", description="Cover page information, if available.")
+    @computed_field(
+        title="Cover Page", description="Cover page information, if available."
+    )
     @property
     def cover_page(self) -> dict | None:
         """Cover page information, if available."""
@@ -283,7 +288,9 @@ class SecBaseFiling(Data):
         """Document description, if available."""
         return self._description
 
-    @computed_field(title="Document URLs", description="List of files associated with the filing.")
+    @computed_field(
+        title="Document URLs", description="List of files associated with the filing."
+    )
     @property
     def document_urls(self) -> list | None:
         """List of document URLs."""
@@ -409,8 +416,12 @@ class SecBaseFiling(Data):
                 """Convert the document section to a dictionary."""
                 doc_dict: dict = {}
                 doc_dict["type"] = re.search(r"<TYPE>(.*?)\n", doc).group(1).strip()  # ty: ignore[unresolved-attribute]
-                doc_dict["sequence"] = re.search(r"<SEQUENCE>(.*?)\n", doc).group(1).strip()  # ty: ignore[unresolved-attribute]
-                doc_dict["filename"] = re.search(r"<FILENAME>(.*?)\n", doc).group(1).strip()  # ty: ignore[unresolved-attribute]
+                doc_dict["sequence"] = (
+                    re.search(r"<SEQUENCE>(.*?)\n", doc).group(1).strip()  # ty: ignore[unresolved-attribute]
+                )
+                doc_dict["filename"] = (
+                    re.search(r"<FILENAME>(.*?)\n", doc).group(1).strip()  # ty: ignore[unresolved-attribute]
+                )
                 description_match = re.search(r"<DESCRIPTION>(.*?)\n", doc)
 
                 if description_match:

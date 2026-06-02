@@ -38,9 +38,7 @@ def test_get_13f_candidates_no_filings():
             return []
 
     # The fetcher is imported inside the function from its defining module.
-    with patch(
-        "openbb_sec.models.company_filings.SecCompanyFilingsFetcher", _Fetcher
-    ):
+    with patch("openbb_sec.models.company_filings.SecCompanyFilingsFetcher", _Fetcher):
         with pytest.raises(OpenBBError, match="No 13F-HR filings"):
             asyncio.run(parse_13f.get_13f_candidates(cik="1067983"))
 
@@ -54,9 +52,7 @@ def test_get_13f_candidates_no_filings_symbol_branch():
             assert "cik" not in params
             return []
 
-    with patch(
-        "openbb_sec.models.company_filings.SecCompanyFilingsFetcher", _Fetcher
-    ):
+    with patch("openbb_sec.models.company_filings.SecCompanyFilingsFetcher", _Fetcher):
         with pytest.raises(OpenBBError, match="No 13F-HR filings found for AAPL"):
             asyncio.run(parse_13f.get_13f_candidates(symbol="AAPL"))
 
@@ -253,7 +249,9 @@ def test_parse_13f_hr_empty_info_table_raises():
 <headerData><filerInfo><periodOfReport>03-31-2023</periodOfReport></filerInfo></headerData>
 <informationTable><infoTable></infoTable></informationTable>
 </edgarSubmission>"""
-    with pytest.raises(OpenBBError, match="Failed to parse the 13F-HR information table"):
+    with pytest.raises(
+        OpenBBError, match="Failed to parse the 13F-HR information table"
+    ):
         asyncio.run(parse_13f.parse_13f_hr(xml))
 
 

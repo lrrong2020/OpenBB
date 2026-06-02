@@ -1,6 +1,5 @@
 """SEC CIK Mapping Model."""
 
-
 from typing import Any
 
 from openbb_core.app.model.abstract.error import OpenBBError

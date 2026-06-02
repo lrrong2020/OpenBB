@@ -684,9 +684,7 @@ def _discover_ifrs_dates() -> dict[int, str]:
         )
         # Extract all IFRS date strings from href URLs
         # e.g. https://xbrl.ifrs.org/taxonomy/2025-03-27/...
-        dates = set(
-            re.findall(r"xbrl\.ifrs\.org/taxonomy/(\d{4}-\d{2}-\d{2})/", text)
-        )
+        dates = set(re.findall(r"xbrl\.ifrs\.org/taxonomy/(\d{4}-\d{2}-\d{2})/", text))
         for d in dates:
             year = int(d[:4])
             discovered[year] = d
@@ -832,8 +830,7 @@ SEC_COMPONENT_NAMES: dict[str, dict[str, dict[str, str | None]]] = {
         "uit": {
             "label": "Unit Investment Trust Disclosures",
             "description": (
-                "Inline XBRL disclosures for unit investment trusts "
-                "(Forms S-6, N-CEN)."
+                "Inline XBRL disclosures for unit investment trusts (Forms S-6, N-CEN)."
             ),
             "category": "disclosure",
         },
@@ -1206,7 +1203,9 @@ class XBRLParser:
 
         return parse(file_content).getroot()
 
-    def parse_schema(self, file_content: BytesIO) -> tuple[
+    def parse_schema(
+        self, file_content: BytesIO
+    ) -> tuple[
         dict[str, dict[str, Any]],
         list[dict[str, Any]],
         Any | None,
@@ -1986,7 +1985,9 @@ class XBRLParser:
 
         return units
 
-    def _parse_filing_labels(self, root: Element, base_url: str) -> tuple[
+    def _parse_filing_labels(
+        self, root: Element, base_url: str
+    ) -> tuple[
         dict[str, dict[str, str]],
         dict[str, list[dict[str, Any]]],
     ]:

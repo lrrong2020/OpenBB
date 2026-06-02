@@ -139,9 +139,7 @@ class TestCompanyFilingsTransformData:
         assert row.report_type == "10-K"
         # URLs assembled from accession number + primary document
         assert row.report_url.endswith("/000032019324000081/aapl.htm")
-        assert row.complete_submission_url.endswith(
-            "/0000320193-24-000081.txt"
-        )
+        assert row.complete_submission_url.endswith("/0000320193-24-000081.txt")
         assert row.filing_detail_url.endswith("-index.htm")
 
     def test_empty_data_raises(self):
@@ -192,9 +190,7 @@ class TestCompanyFilingsExtract:
 
     def test_symbol_without_cik_raises(self, monkeypatch):
         q = SecCompanyFilingsQueryParams(symbol="ZZZZ", cik=None, use_cache=False)
-        monkeypatch.setattr(
-            "openbb_sec.utils.helpers.symbol_map", _async_return("")
-        )
+        monkeypatch.setattr("openbb_sec.utils.helpers.symbol_map", _async_return(""))
         with pytest.raises(OpenBBError, match="CIK not found for symbol"):
             _run(SecCompanyFilingsFetcher.aextract_data(q, None))
 

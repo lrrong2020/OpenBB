@@ -142,8 +142,7 @@ def test_transform_data_empty_after_strip_raises():
     # Distinct trailing words keep the converter from de-duplicating the
     # repeated header lines; all of them are removed by the running-header sub.
     body = "".join(
-        f"<p>{hdr} {w}</p>"
-        for w in ("Alpha", "Bravo", "Charlie", "Delta", "Echo")
+        f"<p>{hdr} {w}</p>" for w in ("Alpha", "Bravo", "Charlie", "Delta", "Echo")
     )
     data = _data(f"<html><body>{body}</body></html>")
     with pytest.raises(EmptyDataError) as exc:
@@ -596,9 +595,7 @@ def test_aextract_calendar_year_selects_annual():
     p1, p2 = _patches(fetch, cached)
     with p1, p2:
         res = asyncio.run(
-            F.aextract_data(
-                Q(symbol="AAPL", calendar_year=2023, use_cache=False), None
-            )
+            F.aextract_data(Q(symbol="AAPL", calendar_year=2023, use_cache=False), None)
         )
     assert res["url"].endswith("10k_2023.htm")
     assert res["calendar_year"] == 2023
@@ -1553,9 +1550,7 @@ def test_aextract_calendar_year_matches_non_annual_filing():
     p1, p2 = _patches(fetch, cached)
     with p1, p2:
         res = asyncio.run(
-            F.aextract_data(
-                Q(symbol="AAPL", calendar_year=2021, use_cache=False), None
-            )
+            F.aextract_data(Q(symbol="AAPL", calendar_year=2021, use_cache=False), None)
         )
     assert res["url"].endswith("10q.htm")
 

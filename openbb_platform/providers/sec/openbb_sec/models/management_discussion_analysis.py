@@ -155,8 +155,7 @@ class SecManagementDiscussionAnalysisFetcher(
         calendar_period: Any = None
 
         _is_foreign_issuer = any(
-            f.report_type in ("40-F", "20-F", "40-F/A", "20-F/A")
-            for f in filings
+            f.report_type in ("40-F", "20-F", "40-F/A", "20-F/A") for f in filings
         )
 
         if query.calendar_year is None and query.calendar_period is None:

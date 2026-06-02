@@ -1,6 +1,5 @@
 """Company type detection, filing-date resolution, and fiscal metadata."""
 
-
 from __future__ import annotations
 
 from collections import Counter
@@ -384,7 +383,6 @@ def detect_reporting_currency(facts: dict[str, Any]) -> str:
     for ns_facts in facts.values():
         for tag_data in ns_facts.values():
             for unit_key in tag_data.get("units", {}):
-
                 if unit_key in skip or "/" in unit_key:
                     continue
 

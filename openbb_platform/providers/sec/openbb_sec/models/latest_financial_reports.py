@@ -1,6 +1,5 @@
 """RSS Latest Financials Model."""
 
-
 from datetime import date as dateType
 from typing import Any, cast
 
