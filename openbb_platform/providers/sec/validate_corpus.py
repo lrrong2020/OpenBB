@@ -23,6 +23,7 @@ import sys
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
+from typing import Any
 
 import requests
 
@@ -1104,7 +1105,7 @@ def validate_one(cik: str, name: str, facts_json: dict) -> dict:
 
     Returns a dict summarizing the results.
     """
-    result = {
+    result: dict[str, Any] = {
         "cik": cik,
         "name": name,
         "entity_name": facts_json.get("entityName", ""),

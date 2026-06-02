@@ -283,7 +283,7 @@ class SecNportDisclosureFetcher(
             ).date()
             # Gets the URL for the nearest date to the requested date.
             __dates = Series(to_datetime(dates))
-            __date = to_datetime(date)
+            __date = to_datetime(str(date))
             __nearest = DataFrame(__dates - __date)
             __nearest_date = abs(__nearest[0].astype("int64")).idxmin()
             new_date = __dates[__nearest_date].strftime("%Y-%m-%d")

@@ -264,7 +264,7 @@ class SecCompanyFilingsFetcher(
     ) -> list[SecCompanyFilingsData]:
         """Transform the data."""
         from numpy import nan
-        from pandas import NA, DataFrame, to_datetime
+        from pandas import NA, DataFrame, Index, to_datetime
 
         if not data:
             raise EmptyDataError(
@@ -286,7 +286,7 @@ class SecCompanyFilingsFetcher(
             "isXBRL",
             "size",
         ]
-        filings = DataFrame(data, columns=cols).astype(str)
+        filings = DataFrame(data, columns=Index(cols)).astype(str)
         filings["reportDate"] = to_datetime(filings["reportDate"]).dt.date
         filings["filingDate"] = to_datetime(filings["filingDate"]).dt.date
         filings = filings.sort_values(by=["filingDate", "reportDate"], ascending=False)
