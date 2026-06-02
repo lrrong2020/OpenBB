@@ -1,6 +1,5 @@
 """SEC Definitions and Models."""
 
-# pylint: disable=too-many-lines
 
 from typing import Literal
 
@@ -1056,7 +1055,7 @@ SHARES_FACTS = [
     "PreferredStockSharesOutstanding",
 ]
 
-FACT_CHOICES = Literal[  # pylint: disable=C0103
+FACT_CHOICES = Literal[
     "AccountsPayableCurrent",
     "AccountsReceivableNet",
     "AccountsReceivableNetCurrent",
@@ -1339,7 +1338,7 @@ FACT_CHOICES = Literal[  # pylint: disable=C0103
     "WeightedAverageNumberDilutedSharesOutstandingAdjustment",
 ]
 
-FISCAL_PERIODS = Literal["fy", "q1", "q2", "q3", "q4"]  # pylint: disable=C0103
+FISCAL_PERIODS = Literal["fy", "q1", "q2", "q3", "q4"]
 
 FISCAL_PERIODS_DICT = {
     "fy": None,

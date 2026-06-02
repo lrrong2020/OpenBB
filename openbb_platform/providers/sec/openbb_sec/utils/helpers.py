@@ -1,14 +1,15 @@
 """SEC Helpers module."""
 
-# pylint: disable =unused-argument
 
-from aiohttp_client_cache import SQLiteBackend
-from aiohttp_client_cache.session import CachedSession
 from openbb_core.app.model.abstract.error import OpenBBError
-from openbb_core.app.utils import get_user_cache_directory
-from openbb_core.provider.utils.helpers import amake_request, make_request
-from openbb_sec.utils.definitions import HEADERS, SEC_HEADERS
+from openbb_core.provider.utils.helpers import amake_request
 from pandas import DataFrame
+
+from openbb_sec.utils.cache import cached_request, cached_text
+from openbb_sec.utils.definitions import HEADERS, SEC_HEADERS
+
+# Cached reference datasets refresh every two days.
+_REFERENCE_EXPIRE = 3600 * 24 * 2
 
 
 async def sec_callback(response, session):
@@ -35,19 +36,9 @@ async def get_all_companies(use_cache: bool = True) -> DataFrame:
     >>> tickers = get_all_companies()
     """
     url = "https://www.sec.gov/files/company_tickers.json"
-    response: dict | list[dict] = {}
-    if use_cache is True:
-        cache_dir = f"{get_user_cache_directory()}/http/sec_companies"
-        async with CachedSession(
-            cache=SQLiteBackend(cache_dir, expire_after=3600 * 24 * 2)
-        ) as session:
-            try:
-                await session.delete_expired_responses()
-                response = await amake_request(url, headers=SEC_HEADERS, session=session)  # type: ignore
-            finally:
-                await session.close()
-    else:
-        response = await amake_request(url, headers=SEC_HEADERS)  # type: ignore
+    response = await cached_request(
+        url, headers=SEC_HEADERS, use_cache=use_cache, expire=_REFERENCE_EXPIRE
+    )
 
     if not response or not isinstance(response, dict):
         raise OpenBBError(
@@ -72,21 +63,15 @@ async def get_all_ciks(use_cache: bool = True) -> DataFrame:
         """Response callback for CIK lookup data."""
         return await response.text(encoding="latin-1")
 
-    response: dict | list[dict] | str = {}
-    if use_cache is True:
-        cache_dir = f"{get_user_cache_directory()}/http/sec_ciks"
-        async with CachedSession(
-            cache=SQLiteBackend(cache_dir, expire_after=3600 * 24 * 2)
-        ) as session:
-            try:
-                await session.delete_expired_responses()
-                response = await amake_request(url, headers=SEC_HEADERS, session=session, response_callback=callback)  # type: ignore
-            finally:
-                await session.close()
-    else:
-        response = await amake_request(url, headers=SEC_HEADERS, response_callback=callback)  # type: ignore
+    response = await cached_request(
+        url,
+        headers=SEC_HEADERS,
+        response_callback=callback,
+        use_cache=use_cache,
+        expire=_REFERENCE_EXPIRE,
+    )
     data = response
-    lines = data.split("\n")  # type: ignore
+    lines = data.split("\n")
     data_list = []
     delimiter = ":"
     for line in lines:
@@ -106,21 +91,15 @@ async def get_mf_and_etf_map(use_cache: bool = True) -> DataFrame:
     symbols = DataFrame()
 
     url = "https://www.sec.gov/files/company_tickers_mf.json"
-    response: dict | list[dict] = {}
-    if use_cache is True:
-        cache_dir = f"{get_user_cache_directory()}/http/sec_mf_etf_map"
-        async with CachedSession(
-            cache=SQLiteBackend(cache_dir, expire_after=3600 * 24 * 2)
-        ) as session:
-            try:
-                await session.delete_expired_responses()
-                response = await amake_request(url, headers=SEC_HEADERS, session=session, response_callback=sec_callback)  # type: ignore
-            finally:
-                await session.close()
-    else:
-        response = await amake_request(url, headers=SEC_HEADERS, response_callback=sec_callback)  # type: ignore
+    response = await cached_request(
+        url,
+        headers=SEC_HEADERS,
+        response_callback=sec_callback,
+        use_cache=use_cache,
+        expire=_REFERENCE_EXPIRE,
+    )
 
-    symbols = DataFrame(data=response["data"], columns=response["fields"])  # type: ignore
+    symbols = DataFrame(data=response["data"], columns=response["fields"])
 
     return symbols.astype(str)
 
@@ -144,7 +123,7 @@ async def symbol_map(symbol: str, use_cache: bool = True) -> str:
     cik = symbols[symbols["symbol"] == symbol]["cik"].iloc[0]
     cik_: str = ""
     temp = 10 - len(cik)
-    for i in range(temp):  # pylint: disable=W0612
+    for i in range(temp):
         cik_ = cik_ + "0"
 
     return str(cik_ + cik)
@@ -177,7 +156,6 @@ async def cik_map(cik: str | int, use_cache: bool = True) -> str:
 
 def get_schema_filelist(query: str = "", url: str = "", use_cache: bool = True) -> list:
     """Get a list of schema files from the SEC website."""
-    # pylint: disable=import-outside-toplevel
     from io import StringIO  # noqa
     from pandas import read_html
 
@@ -185,8 +163,7 @@ def get_schema_filelist(query: str = "", url: str = "", use_cache: bool = True) 
     url = url if url else f"https://xbrl.fasb.org/us-gaap/{query}"
     _url = url
     _url = url + "/" if query else _url
-    response = make_request(_url)
-    content = response.text
+    content = cached_text(_url, use_cache=use_cache, raise_for_status=False)
     data = read_html(StringIO(content))[0]["Name"].dropna()
     if len(data) > 0:
         data.iloc[0] = url if not query else url + "/"
@@ -199,7 +176,6 @@ async def download_zip_file(
     url, symbol: str | None = None, use_cache: bool = True
 ) -> list[dict]:
     """Download a list of files from URLs."""
-    # pylint: disable=import-outside-toplevel
     from io import BytesIO
     from zipfile import ZipFile
 
@@ -211,22 +187,15 @@ async def download_zip_file(
         """Response callback for ZIP file downloads."""
         return await response.read()
 
-    response: dict | list[dict] = {}
-    if use_cache is True:
-        cache_dir = f"{get_user_cache_directory()}/http/sec_ftd"
-        async with CachedSession(cache=SQLiteBackend(cache_dir)) as session:
-            try:
-                response = await amake_request(url, session=session, headers=HEADERS, response_callback=callback)  # type: ignore
-            finally:
-                await session.close()
-    else:
-        response = await amake_request(url, headers=HEADERS, response_callback=callback)  # type: ignore
+    response = await cached_request(
+        url, headers=HEADERS, response_callback=callback, use_cache=use_cache
+    )
 
     try:
-        data = read_csv(BytesIO(response), compression="zip", sep="|")  # type: ignore
+        data = read_csv(BytesIO(response), compression="zip", sep="|")
         results = data.iloc[:-2]
     except ValueError:
-        zip_file = ZipFile(BytesIO(response))  # type: ignore
+        zip_file = ZipFile(BytesIO(response))
         file_list = [d.filename for d in zip_file.infolist()]
         for item in file_list:
             with zip_file.open(item) as _item:
@@ -264,7 +233,7 @@ async def download_zip_file(
 
 async def get_ftd_urls() -> dict:
     """Get Fails-to-Deliver Data URLs."""
-    from pandas import Series  # pylint: disable=import-outside-toplevel
+    from pandas import Series
 
     results = {}
     position = None
@@ -272,7 +241,7 @@ async def get_ftd_urls() -> dict:
     value = "Fails-to-Deliver Data"
 
     r = await amake_request("https://www.sec.gov/data.json", headers=SEC_HEADERS)
-    data = r.get("dataset", {})  # type: ignore
+    data = r.get("dataset", {})  # ty: ignore[unresolved-attribute]
 
     for index, d in enumerate(data):
         if key in d and d[key] == value:
@@ -325,32 +294,21 @@ async def get_nport_candidates(symbol: str, use_cache: bool = True) -> list[dict
     """Get a list of all NPORT-P filings for a given fund's symbol."""
     results = []
     _series_id = await get_series_id(symbol, use_cache=use_cache)
-    try:
-        series_id = (
-            await symbol_map(symbol, use_cache)
-            if _series_id is None or len(_series_id) == 0
-            else _series_id["seriesId"].iloc[0]
-        )
-    except IndexError as e:
-        raise OpenBBError("Fund not found for, the symbol: " + symbol) from e
+    series_id = (
+        await symbol_map(symbol, use_cache)
+        if _series_id is None or len(_series_id) == 0
+        else _series_id["seriesId"].iloc[0]
+    )
     if series_id == "" or series_id is None:
         raise OpenBBError("Fund not found for, the symbol: " + symbol)
 
     url = f"https://efts.sec.gov/LATEST/search-index?q={series_id}&dateRange=all&forms=NPORT-P"
-    response: dict | list[dict] = {}
-    if use_cache is True:
-        cache_dir = f"{get_user_cache_directory()}/http/sec_etf"
-        async with CachedSession(cache=SQLiteBackend(cache_dir)) as session:
-            try:
-                await session.delete_expired_responses()
-                response = await amake_request(url, session=session, headers=HEADERS, response_callback=sec_callback)  # type: ignore
-            finally:
-                await session.close()
-    else:
-        response = await amake_request(url, response_callback=sec_callback)  # type: ignore
+    response = await cached_request(
+        url, headers=HEADERS, response_callback=sec_callback, use_cache=use_cache
+    )
 
-    if "hits" in response and len(response["hits"].get("hits")) > 0:  # type: ignore
-        hits = response["hits"]["hits"]  # type: ignore
+    if "hits" in response and len(response["hits"].get("hits")) > 0:
+        hits = response["hits"]["hits"]
         results = [
             {
                 "name": d["_source"]["display_names"][0],

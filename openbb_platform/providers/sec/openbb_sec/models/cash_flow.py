@@ -1,6 +1,5 @@
 """SEC Cash Flow Statement Model."""
 
-# pylint: disable=unused-argument
 
 from math import isnan
 from typing import Any, Literal
@@ -423,7 +422,6 @@ class SecCashFlowStatementFetcher(
         **kwargs: Any,
     ) -> dict:
         """Return the raw data from the SEC endpoint."""
-        # pylint: disable=import-outside-toplevel
         from openbb_sec.utils.company_facts import (
             get_standardized_financials,
         )
@@ -447,7 +445,6 @@ class SecCashFlowStatementFetcher(
         **kwargs: Any,
     ) -> AnnotatedResult[list[SecCashFlowStatementData]]:
         """Transform the data and validate the model."""
-        # pylint: disable=import-outside-toplevel
         from openbb_sec.utils.company_facts import (
             StandardizedStatements,
             normalize_period_fields,

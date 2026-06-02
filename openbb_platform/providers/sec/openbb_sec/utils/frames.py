@@ -1,17 +1,15 @@
 """SEC Frames Utilities."""
 
-# pylint: disable=line-too-long
 
 import asyncio
 from datetime import datetime
 from warnings import warn
 
-from aiohttp_client_cache import SQLiteBackend
-from aiohttp_client_cache.session import CachedSession
 from openbb_core.app.model.abstract.error import OpenBBError
-from openbb_core.app.utils import get_user_cache_directory
 from openbb_core.provider.utils.errors import EmptyDataError
-from openbb_core.provider.utils.helpers import amake_request
+from pandas import DataFrame
+
+from openbb_sec.utils.cache import cached_request
 from openbb_sec.utils.definitions import (
     FISCAL_PERIODS,
     FISCAL_PERIODS_DICT,
@@ -21,31 +19,21 @@ from openbb_sec.utils.definitions import (
     USD_PER_SHARE_FACTS,
 )
 from openbb_sec.utils.helpers import get_all_companies, symbol_map
-from pandas import DataFrame
 
 
 async def fetch_data(url, use_cache, persist) -> dict | list[dict]:
-    """Fetch the data from the constructed URL."""
-    response: dict | list[dict] = {}
-    if use_cache is True:
-        cache_dir = f"{get_user_cache_directory()}/http/sec_frames"
-        async with CachedSession(
-            cache=(
-                SQLiteBackend(cache_dir, expire_after=3600 * 24)
-                if persist is False
-                else SQLiteBackend(cache_dir)
-            )
-        ) as session:
-            try:
-                response = await amake_request(url, headers=HEADERS, session=session)  # type: ignore
-            finally:
-                await session.close()
-    else:
-        response = await amake_request(url, headers=HEADERS)  # type: ignore
-    return response
+    """Fetch the data from the constructed URL.
+
+    Frames for the current year (``persist`` is True) are cached until evicted;
+    historical frames refresh daily.
+    """
+    expire = None if persist else 3600 * 24
+    return await cached_request(
+        url, headers=HEADERS, use_cache=use_cache, expire=expire
+    )
 
 
-async def get_frame(  # pylint: disable=R0912,R0913,R0914,R0915,R0917
+async def get_frame(
     fact: str = "Revenues",
     year: int | None = None,
     fiscal_period: FISCAL_PERIODS | None = None,
@@ -105,7 +93,6 @@ async def get_frame(  # pylint: disable=R0912,R0913,R0914,R0915,R0917
         Nested dictionary with keys, "metadata" and "data".
         The "metadata" key contains information about the frame.
     """
-    # pylint: disable=import-outside-toplevel
     from numpy import nan
 
     current_date = datetime.now().date()
@@ -137,7 +124,7 @@ async def get_frame(  # pylint: disable=R0912,R0913,R0914,R0915,R0917
     response: dict | list[dict] = {}
     try:
         response = await fetch_data(url, use_cache, persist)
-    except Exception as e:  # pylint: disable=W0718
+    except Exception as e:
         message = (
             "No frame was found with the combination of parameters supplied."
             + " Try adjusting the period."
@@ -162,15 +149,15 @@ async def get_frame(  # pylint: disable=R0912,R0913,R0914,R0915,R0917
         else:
             raise OpenBBError(message) from e
 
-    data = sorted(response.get("data", {}), key=lambda x: x["val"], reverse=True)  # type: ignore
+    data = sorted(response.get("data", {}), key=lambda x: x["val"], reverse=True)  # ty: ignore[unresolved-attribute]
     metadata = {
-        "frame": response.get("ccp", ""),  # type: ignore
-        "tag": response.get("tag", ""),  # type: ignore
-        "label": response.get("label", ""),  # type: ignore
-        "description": response.get("description", ""),  # type: ignore
-        "taxonomy": response.get("taxonomy", ""),  # type: ignore
-        "unit": response.get("uom", ""),  # type: ignore
-        "count": response.get("pts", ""),  # type: ignore
+        "frame": response.get("ccp", ""),  # ty: ignore[unresolved-attribute]
+        "tag": response.get("tag", ""),  # ty: ignore[unresolved-attribute]
+        "label": response.get("label", ""),  # ty: ignore[unresolved-attribute]
+        "description": response.get("description", ""),  # ty: ignore[unresolved-attribute]
+        "taxonomy": response.get("taxonomy", ""),  # ty: ignore[unresolved-attribute]
+        "unit": response.get("uom", ""),  # ty: ignore[unresolved-attribute]
+        "count": response.get("pts", ""),  # ty: ignore[unresolved-attribute]
     }
     df = DataFrame(data)
     companies = await get_all_companies(use_cache=use_cache)
@@ -238,18 +225,18 @@ async def get_concept(
             response: dict | list[dict] = {}
             try:
                 response = await fetch_data(url, use_cache, False)
-            except Exception as _:  # pylint: disable=W0718
+            except Exception as _:
                 warn(message)
                 messages.append(message)
             if response:
-                units = response.get("units", {})  # type: ignore
+                units = response.get("units", {})  # ty: ignore[unresolved-attribute]
                 metadata[ticker] = {
-                    "cik": response.get("cik", ""),  # type: ignore
-                    "taxonomy": response.get("taxonomy", ""),  # type: ignore
-                    "tag": response.get("tag", ""),  # type: ignore
-                    "label": response.get("label", ""),  # type: ignore
-                    "description": response.get("description", ""),  # type: ignore
-                    "name": response.get("entityName", ""),  # type: ignore
+                    "cik": response.get("cik", ""),  # ty: ignore[unresolved-attribute]
+                    "taxonomy": response.get("taxonomy", ""),  # ty: ignore[unresolved-attribute]
+                    "tag": response.get("tag", ""),  # ty: ignore[unresolved-attribute]
+                    "label": response.get("label", ""),  # ty: ignore[unresolved-attribute]
+                    "description": response.get("description", ""),  # ty: ignore[unresolved-attribute]
+                    "name": response.get("entityName", ""),  # ty: ignore[unresolved-attribute]
                     "units": (
                         list(units) if units and len(units) > 1 else list(units)[0]
                     ),

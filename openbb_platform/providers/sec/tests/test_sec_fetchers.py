@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 import pytest
 from openbb_core.app.service.user_service import UserService
+
 from openbb_sec.models.balance_sheet import SecBalanceSheetFetcher
 from openbb_sec.models.balance_sheet_growth import SecBalanceSheetGrowthFetcher
 from openbb_sec.models.cash_flow import SecCashFlowStatementFetcher
@@ -34,7 +35,7 @@ from openbb_sec.models.sic_search import SecSicSearchFetcher
 from openbb_sec.models.symbol_map import SecSymbolMapFetcher
 from openbb_sec.utils.company_facts import resolve_company_facts
 
-test_credentials = UserService().default_user_settings.credentials.dict()
+test_credentials = UserService().default_user_settings.credentials.model_dump()
 
 
 @pytest.fixture(scope="module")

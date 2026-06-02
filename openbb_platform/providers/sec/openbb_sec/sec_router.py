@@ -1,4 +1,3 @@
-# pylint: disable=W0613:unused-argument
 """SEC Router."""
 
 from openbb_core.app.model.command_context import CommandContext
@@ -12,7 +11,10 @@ from openbb_core.app.provider_interface import (
 from openbb_core.app.query import Query
 from openbb_core.app.router import Router
 
-router = Router(prefix="/sec")
+router = Router(
+    prefix="",
+    description="U.S. Securities and Exchange Commission (SEC) public data.",
+)
 
 
 @router.command(
@@ -122,13 +124,13 @@ async def institutions_search(
             description="Explore XBRL taxonomies progressively.",
             code=[
                 "# List all available taxonomy families",
-                "obb.regulators.sec.schema_files(provider='sec')",
+                "obb.sec.schema_files(provider='sec')",
                 "# List components for US GAAP (latest year)",
-                "obb.regulators.sec.schema_files(taxonomy='us-gaap', provider='sec')",
+                "obb.sec.schema_files(taxonomy='us-gaap', provider='sec')",
                 "# List presentation components for US GAAP 2024",
-                "obb.regulators.sec.schema_files(taxonomy='us-gaap', year=2024, provider='sec')",
+                "obb.sec.schema_files(taxonomy='us-gaap', year=2024, provider='sec')",
                 "# Get the Statement of Income presentation structure",
-                "obb.regulators.sec.schema_files(taxonomy='us-gaap', year=2024, component='soi', provider='sec')",
+                "obb.sec.schema_files(taxonomy='us-gaap', year=2024, component='soi', provider='sec')",
             ],
         ),
     ],
@@ -174,7 +176,7 @@ async def rss_litigation(
     standard_params: StandardParams,
     extra_params: ExtraParams,
 ) -> OBBject:
-    """Get the RSS feed that provides links to litigation releases concerning civil lawsuits brought by the Commission in federal court."""  # noqa: E501 pylint: disable=C0301
+    """Get the RSS feed that provides links to litigation releases concerning civil lawsuits brought by the Commission in federal court."""  # noqa: E501
     return await OBBject.from_query(Query(**locals()))
 
 

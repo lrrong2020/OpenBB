@@ -1,6 +1,5 @@
 """SEC Compare Company Facts Model."""
 
-# pylint: disable=unused-argument
 
 from typing import Any
 from warnings import warn
@@ -13,12 +12,13 @@ from openbb_core.provider.standard_models.compare_company_facts import (
 )
 from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS
 from openbb_core.provider.utils.errors import EmptyDataError
+from pydantic import Field, field_validator
+
 from openbb_sec.utils.definitions import (
     FACT_CHOICES,
     FACTS,
     FISCAL_PERIODS,
 )
-from pydantic import Field, field_validator
 
 
 class SecCompareCompanyFactsQueryParams(CompareCompanyFactsQueryParams):
@@ -118,7 +118,7 @@ class SecCompareCompanyFactsData(CompareCompanyFactsData):
     fact: str = Field(
         description="The display name of the fact or concept.",
     )
-    unit: str = Field(
+    unit: str | None = Field(
         default=None,
         description="The unit of measurement for the fact or concept.",
     )
@@ -141,7 +141,6 @@ class SecCompareCompanyFactsFetcher(
         **kwargs: Any,
     ) -> dict:
         """Return the raw data from the SEC endpoint."""
-        # pylint: disable=import-outside-toplevel
         from openbb_sec.utils.frames import get_concept, get_frame
 
         results: dict = {}
@@ -185,6 +184,6 @@ class SecCompareCompanyFactsFetcher(
         metadata = data.get("metadata")
         results_data = data.get("data", [])
         return AnnotatedResult(
-            result=[SecCompareCompanyFactsData.model_validate(d) for d in results_data],  # type: ignore
+            result=[SecCompareCompanyFactsData.model_validate(d) for d in results_data],
             metadata=metadata,
         )

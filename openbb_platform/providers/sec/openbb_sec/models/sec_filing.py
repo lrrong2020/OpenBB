@@ -1,9 +1,8 @@
 """SEC Filing Model."""
 
-# pylint: disable=unused-argument
 
 from datetime import date as dateType
-from typing import Any
+from typing import Any, cast
 
 from openbb_core.app.model.abstract.error import OpenBBError
 from openbb_core.provider.abstract.data import Data
@@ -173,7 +172,7 @@ class SecFilingData(Data):
     )
 
 
-class SecBaseFiling(Data):  # pylint: disable=too-many-instance-attributes
+class SecBaseFiling(Data):
     """Base SEC Filing model."""
 
     _url: str = PrivateAttr(default="")
@@ -195,49 +194,49 @@ class SecBaseFiling(Data):  # pylint: disable=too-many-instance-attributes
     _trading_symbols: list | None = PrivateAttr(default=None)
     _use_cache: bool = PrivateAttr(default=True)
 
-    @computed_field(title="Base URL", description="Base URL of the filing.")  # type: ignore
+    @computed_field(title="Base URL", description="Base URL of the filing.")
     @property
     def base_url(self) -> str:
         """Base URL of the filing."""
         return self._url
 
-    @computed_field(title="Entity Name", description="Name of the entity filing.")  # type: ignore
+    @computed_field(title="Entity Name", description="Name of the entity filing.")
     @property
     def name(self) -> str:
         """Entity name."""
         return self._name
 
-    @computed_field(title="CIK", description="Central Index Key.")  # type: ignore
+    @computed_field(title="CIK", description="Central Index Key.")
     @property
     def cik(self) -> str:
         """Central Index Key."""
         return self._cik
 
-    @computed_field(title="Trading Symbols", description="Trading symbols, if available.")  # type: ignore
+    @computed_field(title="Trading Symbols", description="Trading symbols, if available.")
     @property
     def trading_symbols(self) -> list | None:
         """Trading symbols, if available."""
         return self._trading_symbols
 
-    @computed_field(title="SIC", description="Standard Industrial Classification.")  # type: ignore
+    @computed_field(title="SIC", description="Standard Industrial Classification.")
     @property
     def sic(self) -> str:
         """Standard Industrial Classification."""
         return self._sic
 
-    @computed_field(title="SIC Organization", description="SIC Organization Name.")  # type: ignore
+    @computed_field(title="SIC Organization", description="SIC Organization Name.")
     @property
     def sic_organization_name(self) -> str | None:
         """Standard Industrial Classification Organization Name."""
         return self._sic_organization_name
 
-    @computed_field(title="Filing Date", description="Filing date.")  # type: ignore
+    @computed_field(title="Filing Date", description="Filing date.")
     @property
     def filing_date(self) -> dateType:
         """Filing date."""
         return dateType.fromisoformat(self._filing_date)
 
-    @computed_field(  # type: ignore
+    @computed_field(
         title="Period Ending",
         description="Date of the ending period for the filing, if available.",
     )
@@ -248,7 +247,7 @@ class SecBaseFiling(Data):  # pylint: disable=too-many-instance-attributes
             return dateType.fromisoformat(self._period_ending)
         return None
 
-    @computed_field(  # type: ignore
+    @computed_field(
         title="Fiscal Year End",
         description="Fiscal year end of the entity, if available. Format: MM-DD",
     )
@@ -257,25 +256,25 @@ class SecBaseFiling(Data):  # pylint: disable=too-many-instance-attributes
         """Fiscal year end date of the entity."""
         return self._fiscal_year_end
 
-    @computed_field(title="Document Type", description="Specific SEC filing type.")  # type: ignore
+    @computed_field(title="Document Type", description="Specific SEC filing type.")
     @property
     def document_type(self) -> str:
         """Document type."""
         return self._document_type
 
-    @computed_field(title="Has Cover Page", description="True if the filing has a cover page.")  # type: ignore
+    @computed_field(title="Has Cover Page", description="True if the filing has a cover page.")
     @property
     def has_cover_page(self) -> bool:
         """True if the filing has a cover page."""
         return bool(self._cover_page_url)
 
-    @computed_field(title="Cover Page", description="Cover page information, if available.")  # type: ignore
+    @computed_field(title="Cover Page", description="Cover page information, if available.")
     @property
     def cover_page(self) -> dict | None:
         """Cover page information, if available."""
         return self._cover_page
 
-    @computed_field(  # type: ignore
+    @computed_field(
         title="Content Description",
         description="Description of attached content, mostly applicable to 8-K filings.",
     )
@@ -284,7 +283,7 @@ class SecBaseFiling(Data):  # pylint: disable=too-many-instance-attributes
         """Document description, if available."""
         return self._description
 
-    @computed_field(title="Document URLs", description="List of files associated with the filing.")  # type: ignore
+    @computed_field(title="Document URLs", description="List of files associated with the filing.")
     @property
     def document_urls(self) -> list | None:
         """List of document URLs."""
@@ -292,8 +291,8 @@ class SecBaseFiling(Data):  # pylint: disable=too-many-instance-attributes
 
     def __init__(self, url: str, use_cache: bool = True):
         """Initialize the Filing class."""
-        # pylint: disable=import-outside-toplevel
         from openbb_core.provider.utils.helpers import run_async
+
         from openbb_sec.utils.helpers import cik_map
 
         super().__init__()
@@ -309,7 +308,7 @@ class SecBaseFiling(Data):  # pylint: disable=too-many-instance-attributes
         if len(check_val) != 18:
             raise ValueError("Invalid SEC URL supplied, must be a filing URL.")
 
-        new_url = url.split(check_val)[0] + check_val + "/"
+        new_url = url.split(check_val, maxsplit=1)[0] + check_val + "/"
 
         cik_check = new_url.split("/")[-3]
         new_url = new_url.replace(f"/{cik_check}/", f"/{cik_check.lstrip('0')}/")
@@ -343,43 +342,21 @@ class SecBaseFiling(Data):  # pylint: disable=too-many-instance-attributes
     @staticmethod
     async def _adownload_file(url, use_cache: bool = True):
         """Download a file asynchronously from a SEC URL."""
-        # pylint: disable=import-outside-toplevel
-        from aiohttp_client_cache import SQLiteBackend
-        from aiohttp_client_cache.session import CachedSession
-        from openbb_core.app.utils import get_user_cache_directory
-        from openbb_core.provider.utils.helpers import amake_request
+        from openbb_sec.utils.cache import cached_request
         from openbb_sec.utils.definitions import SEC_HEADERS
         from openbb_sec.utils.helpers import sec_callback
 
-        response: dict | list | str | None = None
-        if use_cache is True:
-            cache_dir = f"{get_user_cache_directory()}/http/sec_filings"
-            async with CachedSession(cache=SQLiteBackend(cache_dir)) as session:
-                try:
-                    await session.delete_expired_responses()
-                    response = await amake_request(
-                        url,
-                        headers=SEC_HEADERS,
-                        session=session,
-                        response_callback=sec_callback,
-                        raise_for_status=True,
-                    )  # type: ignore
-                finally:
-                    await session.close()
-        else:
-            response = await amake_request(
-                url,
-                headers=SEC_HEADERS,
-                response_callback=sec_callback,
-                raise_for_status=True,
-            )  # type: ignore
-
-        return response
+        return await cached_request(
+            url,
+            headers=SEC_HEADERS,
+            response_callback=sec_callback,
+            raise_for_status=True,
+            use_cache=use_cache,
+        )
 
     @staticmethod
     def download_file(url, read_html_table: bool = False, use_cache: bool = True):
         """Download a file from a SEC URL."""
-        # pylint: disable=import-outside-toplevel
         from openbb_core.provider.utils.helpers import run_async  # noqa
         from warnings import warn
 
@@ -401,7 +378,6 @@ class SecBaseFiling(Data):  # pylint: disable=too-many-instance-attributes
     @staticmethod
     def try_html_table(text: str, **kwargs) -> list:
         """Attempt to parse tables from a HTML string. All keyword arguments passed to `pandas.read_html`"""
-        # pylint: disable=import-outside-toplevel
         from io import StringIO  # noqa
         from pandas import read_html
 
@@ -412,11 +388,10 @@ class SecBaseFiling(Data):  # pylint: disable=too-many-instance-attributes
 
     def _download_index_headers(
         self,
-    ):  # pylint: disable=too-many-branches, too-many-statements, too-many-locals
+    ):
         """Download the index headers table."""
-        # pylint: disable=import-outside-toplevel
         import re  # noqa
-        from bs4 import BeautifulSoup
+        from bs4 import BeautifulSoup, Tag
 
         try:
             if not self._index_headers_download:
@@ -428,14 +403,14 @@ class SecBaseFiling(Data):  # pylint: disable=too-many-instance-attributes
                 response = self._index_headers_download
 
             soup = BeautifulSoup(response, "html.parser")
-            text = soup.find("pre").text
+            text = cast("Tag", soup.find("pre")).text
 
             def document_to_dict(doc):
                 """Convert the document section to a dictionary."""
                 doc_dict: dict = {}
-                doc_dict["type"] = re.search(r"<TYPE>(.*?)\n", doc).group(1).strip()  # type: ignore
-                doc_dict["sequence"] = re.search(r"<SEQUENCE>(.*?)\n", doc).group(1).strip()  # type: ignore
-                doc_dict["filename"] = re.search(r"<FILENAME>(.*?)\n", doc).group(1).strip()  # type: ignore
+                doc_dict["type"] = re.search(r"<TYPE>(.*?)\n", doc).group(1).strip()  # ty: ignore[unresolved-attribute]
+                doc_dict["sequence"] = re.search(r"<SEQUENCE>(.*?)\n", doc).group(1).strip()  # ty: ignore[unresolved-attribute]
+                doc_dict["filename"] = re.search(r"<FILENAME>(.*?)\n", doc).group(1).strip()  # ty: ignore[unresolved-attribute]
                 description_match = re.search(r"<DESCRIPTION>(.*?)\n", doc)
 
                 if description_match:
@@ -511,7 +486,7 @@ class SecBaseFiling(Data):  # pylint: disable=too-many-instance-attributes
             ) from e
 
     @staticmethod
-    def _multiplier_map(string) -> int:  # pylint: disable=too-many-return-statements
+    def _multiplier_map(string) -> int:
         """Map a string to a multiplier."""
         if string.lower() == "millions":
             return 1000000
@@ -529,9 +504,8 @@ class SecBaseFiling(Data):  # pylint: disable=too-many-instance-attributes
 
     def _download_cover_page(
         self,
-    ):  # pylint: disable=too-many-branches, too-many-statements, too-many-locals
+    ):
         """Download the cover page table."""
-        # pylint: disable=import-outside-toplevel
         from pandas import MultiIndex, to_datetime
 
         symbols_list: list = []
@@ -676,8 +650,6 @@ class SecBaseFiling(Data):  # pylint: disable=too-many-instance-attributes
         repr_str = "SEC Filing(\n"
 
         for k, v in self.model_computed_fields.items():
-            if not v:
-                continue
             repr_str += f"  {k} : {v.return_type.__name__} - {v.description}\n"
 
         repr_str += ")"
@@ -702,7 +674,7 @@ class SecFilingFetcher(Fetcher[SecFilingQueryParams, SecFilingData]):
         """Extract the raw data from the SEC site."""
         try:
             data = SecBaseFiling(query.url, query.use_cache)
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:
             raise OpenBBError(e) from e
 
         return data.model_dump(exclude_none=True)

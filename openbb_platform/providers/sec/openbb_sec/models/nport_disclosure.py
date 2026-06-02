@@ -1,6 +1,5 @@
 """SEC NPORT Holings Model."""
 
-# pylint: disable =[unused-argument,too-many-locals,too-many-branches]
 
 from datetime import date as dateType
 from typing import Any
@@ -245,13 +244,9 @@ class SecNportDisclosureFetcher(
         **kwargs: Any,
     ) -> dict:
         """Return the raw data from the SEC endpoint."""
-        # pylint: disable=import-outside-toplevel
         import asyncio  # noqa
         import xmltodict
-        from aiohttp_client_cache import SQLiteBackend
-        from aiohttp_client_cache.session import CachedSession
-        from openbb_core.app.utils import get_user_cache_directory
-        from openbb_core.provider.utils.helpers import amake_request
+        from openbb_sec.utils.cache import cached_request
         from openbb_sec.utils.helpers import HEADERS, get_nport_candidates
         from pandas import DataFrame, Series, Timestamp, offsets, to_datetime
 
@@ -281,7 +276,7 @@ class SecNportDisclosureFetcher(
         new_date: str = ""
 
         if query.year is not None and query.quarter is None:
-            query.quarter = 4 if query.year < max(dates).year else 1
+            query.quarter = 4 if query.year < to_datetime(dates).max().year else 1
 
         if query.quarter is not None and query.year is not None:
             date = (
@@ -304,30 +299,16 @@ class SecNportDisclosureFetcher(
             """Response callback for the request."""
             return await response.read()
 
-        response: dict | list[dict] = []
-        if query.use_cache is True:
-            cache_dir = f"{get_user_cache_directory()}/http/sec_etf"
-            async with CachedSession(cache=SQLiteBackend(cache_dir)) as session:
-                try:
-                    response = await amake_request(
-                        filing_url,
-                        headers=HEADERS,
-                        session=session,
-                        response_callback=callback,  # type: ignore
-                    )
-                finally:
-                    await session.close()
-        else:
-            response = await amake_request(
-                filing_url,
-                headers=HEADERS,
-                response_callback=callback,  # type: ignore
-            )
-        results = xmltodict.parse(response)  # type: ignore
+        response = await cached_request(
+            filing_url,
+            headers=HEADERS,
+            response_callback=callback,
+            use_cache=query.use_cache,
+        )
+        results = xmltodict.parse(response)
 
         return results
 
-    # pylint: disable=too-many-statements
     @staticmethod
     def transform_data(  # noqa: PLR0912
         query: SecNportDisclosureQueryParams,
@@ -335,7 +316,6 @@ class SecNportDisclosureFetcher(
         **kwargs: Any,
     ) -> AnnotatedResult[list[SecNportDisclosureData]]:
         """Transform the data."""
-        # pylint: disable=import-outside-toplevel
         from pandas import DataFrame, to_datetime
         from pandas.tseries.offsets import MonthEnd
 
@@ -693,7 +673,7 @@ class SecNportDisclosureFetcher(
         month_2: str = ""
         month_3: str = ""
         try:
-            gen_info = response["edgarSubmission"]["formData"].get("genInfo", {})  # type: ignore
+            gen_info = response["edgarSubmission"]["formData"].get("genInfo", {})
             if gen_info:
                 metadata["fund_name"] = gen_info.get("seriesName")
                 metadata["series_id"] = gen_info.get("seriesId")
@@ -704,7 +684,7 @@ class SecNportDisclosureFetcher(
                 month_1 = (current_month - MonthEnd(2)).date().strftime("%Y-%m-%d")
                 month_2 = (current_month - MonthEnd(1)).date().strftime("%Y-%m-%d")
                 month_3 = current_month.strftime("%Y-%m-%d")
-            fund_info = response["edgarSubmission"]["formData"].get("fundInfo", {})  # type: ignore
+            fund_info = response["edgarSubmission"]["formData"].get("fundInfo", {})
             if fund_info:
                 metadata["total_assets"] = float(fund_info.pop("totAssets", None))
                 metadata["total_liabilities"] = float(fund_info.pop("totLiabs", None))
@@ -781,7 +761,7 @@ class SecNportDisclosureFetcher(
                     },
                 }
                 metadata["gains"] = gains
-                _borrowers = fund_info["borrowers"].get("borrower", [])
+                _borrowers = (fund_info.get("borrowers") or {}).get("borrower", [])
                 if _borrowers:
                     borrowers = [
                         {
@@ -792,7 +772,7 @@ class SecNportDisclosureFetcher(
                         for d in _borrowers
                     ]
                     metadata["borrowers"] = borrowers
-        except Exception as e:  # pylint: disable=W0718
+        except Exception as e:
             warn(f"Error extracting metadata: {e}")
         return AnnotatedResult(
             result=[SecNportDisclosureData.model_validate(d) for d in results],

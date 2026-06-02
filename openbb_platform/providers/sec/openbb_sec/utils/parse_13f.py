@@ -7,7 +7,6 @@ from openbb_core.app.model.abstract.error import OpenBBError
 
 def date_to_quarter_end(date: str) -> str:
     """Convert a date to the end of the calendar quarter."""
-    # pylint: disable=import-outside-toplevel
     from pandas import to_datetime
     from pandas.tseries.offsets import QuarterEnd
 
@@ -20,9 +19,9 @@ def date_to_quarter_end(date: str) -> str:
 
 async def get_13f_candidates(symbol: str | None = None, cik: str | None = None):
     """Get the 13F-HR filings for a given symbol or CIK."""
-    # pylint: disable=import-outside-toplevel
-    from openbb_sec.models.company_filings import SecCompanyFilingsFetcher
     from pandas import DataFrame, to_datetime
+
+    from openbb_sec.models.company_filings import SecCompanyFilingsFetcher
 
     fetcher = SecCompanyFilingsFetcher()
     params: dict[str, Any] = {}
@@ -36,12 +35,12 @@ async def get_13f_candidates(symbol: str | None = None, cik: str | None = None):
     params["use_cache"] = False
     params["form_type"] = "13F-HR"
     filings = await fetcher.fetch_data(params, {})
-    filings = [d.model_dump() for d in filings]  # type: ignore
+    filings = [d.model_dump() for d in filings]  # ty: ignore[unresolved-attribute]
     if len(filings) == 0:
         raise OpenBBError(f"No 13F-HR filings found for {symbol if symbol else cik}.")
 
     # Filings before June 30, 2013 are non-structured and are not supported by downstream parsers.
-    up_to = to_datetime("2013-06-30").date()  # pylint: disable=unused-variable # noqa
+    up_to = to_datetime("2013-06-30").date()  # noqa: F841
     return (
         DataFrame(data=filings)
         .query("`report_date` >= @up_to")
@@ -60,8 +59,8 @@ async def complete_submission_callback(response, _):
 
 async def get_complete_submission(url: str):
     """Get the Complete Submission TXT file string from the SEC API."""
-    # pylint: disable=import-outside-toplevel
     from openbb_core.provider.utils.helpers import amake_request
+
     from openbb_sec.utils.definitions import HEADERS
 
     return await amake_request(
@@ -71,7 +70,6 @@ async def get_complete_submission(url: str):
 
 def parse_header(filing_str: str) -> dict:
     """Parse the header of a Complete Submission TXT file string."""
-    # pylint: disable=import-outside-toplevel
     import xmltodict
     from bs4 import BeautifulSoup
 
@@ -86,9 +84,9 @@ def parse_header(filing_str: str) -> dict:
         header_dict = xmltodict.parse(str(header_xml))["headerData"]
     except KeyError:
         header_xml = soup.find("type")
-        header_dict = xmltodict.parse(str(header_xml)).get("type")  # type: ignore
+        header_dict = xmltodict.parse(str(header_xml)).get("type")
     if header_dict:
-        return header_dict  # type: ignore
+        return header_dict
     raise OpenBBError(
         "Failed to parse the form header."
         + " Check the `filing_str` to for the tag, 'headerData'."
@@ -105,7 +103,7 @@ def get_submission_type(filing_str: str):
         except KeyError:
             form_type = header["#text"]
             return form_type
-    raise OpenBBError(
+    raise OpenBBError(  # pragma: no cover - parse_header raises before returning a falsy header
         "Failed to get the submission type from the form header."
         + " Check the response from `parse_header`."
     )
@@ -124,7 +122,6 @@ def get_period_ending(filing_str: str):
 
 async def parse_13f_hr(filing: str):
     """Parse a 13F-HR filing from the Complete Submission TXT file string."""
-    # pylint: disable=import-outside-toplevel
     import xmltodict
     from bs4 import BeautifulSoup
     from numpy import nan
@@ -132,17 +129,19 @@ async def parse_13f_hr(filing: str):
 
     # Check if the input string is a URL
     if filing.startswith("https://"):
-        filing = await get_complete_submission(filing)  # type: ignore
+        filing = await get_complete_submission(filing)
 
     soup = BeautifulSoup(filing, "xml")
 
     info_table = soup.find_all("informationTable")
 
     if not info_table:
-        info_table = soup.find_all("table")[-1]  # type: ignore[assignment]
+        # Keep this a list (slice, not index) so ``info_table[0]`` below selects
+        # the last <table>; indexing a bare Tag with ``[0]`` raised KeyError: 0.
+        info_table = soup.find_all("table")[-1:]
 
     parsed_xml = xmltodict.parse(
-        str(info_table[0]).replace("ns1:", "").replace("n1:", "")  # type: ignore
+        str(info_table[0]).replace("ns1:", "").replace("n1:", "")
     )["informationTable"]["infoTable"]
 
     if parsed_xml is None:
@@ -152,7 +151,7 @@ async def parse_13f_hr(filing: str):
             + " Documents filed before Q2 2013 are not supported."
         )
 
-    period_ending = get_period_ending(soup)  # type: ignore
+    period_ending = get_period_ending(soup)  # ty: ignore[invalid-argument-type]
     data = (
         DataFrame(parsed_xml)
         if isinstance(parsed_xml, list)

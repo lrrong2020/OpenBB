@@ -1,8 +1,7 @@
 """SEC HTM/HTML File Model."""
 
-# pylint: disable=unused-argument
 
-from typing import Any
+from typing import Any, cast
 
 from openbb_core.app.model.abstract.error import OpenBBError
 from openbb_core.provider.abstract.data import Data
@@ -64,7 +63,6 @@ class SecHtmFileFetcher(Fetcher[SecHtmFileQueryParams, SecHtmFileData]):
         **kwargs: Any,
     ) -> dict:
         """Return the raw data from the SEC endpoint."""
-        # pylint: disable=import-outside-toplevel
         from openbb_sec.models.sec_filing import SecBaseFiling
 
         return {
@@ -77,18 +75,17 @@ class SecHtmFileFetcher(Fetcher[SecHtmFileQueryParams, SecHtmFileData]):
         query: SecHtmFileQueryParams, data: dict, **kwargs: Any
     ) -> SecHtmFileData:
         """Transform the data to the standard format."""
-        # pylint: disable=import-outside-toplevel
-        from bs4 import BeautifulSoup  # noqa
+        from bs4 import BeautifulSoup, Tag  # noqa
 
         if not data or not data.get("content"):
             raise OpenBBError("Failed to extract HTM file data.")
 
         content = data.pop("content", "")
-        soup = BeautifulSoup(content, "html.parser").find("html")
+        soup = cast("Tag", BeautifulSoup(content, "html.parser").find("html"))
 
         # Remove style elements that add background color to table rows
         for row in soup.find_all("tr"):
-            if "background-color" in row.get("style", ""):
+            if "background-color" in cast("str", row.get("style", "")):
                 del row["style"]
             for attr in ["class", "bgcolor"]:
                 if attr in row.attrs:

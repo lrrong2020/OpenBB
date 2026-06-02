@@ -1,6 +1,5 @@
 """SEC Institutions Search Model."""
 
-# pylint: disable=unused-argument
 
 from typing import Any
 
@@ -18,7 +17,7 @@ class SecInstitutionsSearchQueryParams(QueryParams):
 
     query: str = Field(description="Search query.", default="")
 
-    use_cache: bool | None = Field(
+    use_cache: bool = Field(
         default=True,
         description="Whether or not to use cache.",
     )
@@ -62,7 +61,6 @@ class SecInstitutionsSearchFetcher(
         **kwargs: Any,
     ) -> list[dict]:
         """Return the raw data from the SEC endpoint."""
-        # pylint: disable=import-outside-toplevel
         from openbb_sec.utils.helpers import get_all_ciks
 
         institutions = await get_all_ciks(use_cache=query.use_cache)

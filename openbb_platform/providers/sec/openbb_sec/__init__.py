@@ -1,6 +1,7 @@
 """SEC provider module."""
 
 from openbb_core.provider.abstract.provider import Provider
+
 from openbb_sec.models.balance_sheet import SecBalanceSheetFetcher
 from openbb_sec.models.balance_sheet_growth import SecBalanceSheetGrowthFetcher
 from openbb_sec.models.cash_flow import SecCashFlowStatementFetcher

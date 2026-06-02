@@ -1,21 +1,19 @@
-"""Test Regulators extension."""
+"""Test SEC extension."""
 
 import pytest
 from openbb_core.app.model.obbject import OBBject
 
 
-# pylint: disable=inconsistent-return-statements
 @pytest.fixture(scope="session")
 def obb(pytestconfig):
     """Fixture to setup obb."""
 
     if pytestconfig.getoption("markexpr") != "not integration":
-        import openbb  # pylint: disable=import-outside-toplevel
+        import openbb
 
         return openbb.obb
 
 
-# pylint: disable=redefined-outer-name
 
 
 @pytest.mark.parametrize(
@@ -26,9 +24,9 @@ def obb(pytestconfig):
     ],
 )
 @pytest.mark.integration
-def test_regulators_sec_cik_map(params, obb):
+def test_sec_cik_map(params, obb):
     """Test the SEC CIK map endpoint."""
-    result = obb.regulators.sec.cik_map(**params)
+    result = obb.sec.cik_map(**params)
     assert result
     assert isinstance(result, OBBject)
     assert hasattr(result.results, "cik")
@@ -42,9 +40,9 @@ def test_regulators_sec_cik_map(params, obb):
     ],
 )
 @pytest.mark.integration
-def test_regulators_sec_institutions_search(params, obb):
+def test_sec_institutions_search(params, obb):
     """Test the SEC institutions search endpoint."""
-    result = obb.regulators.sec.institutions_search(**params)
+    result = obb.sec.institutions_search(**params)
     assert result
     assert isinstance(result, OBBject)
     assert len(result.results) > 0
@@ -66,9 +64,9 @@ def test_regulators_sec_institutions_search(params, obb):
     ],
 )
 @pytest.mark.integration
-def test_regulators_sec_schema_files(params, obb):
+def test_sec_schema_files(params, obb):
     """Test the SEC schema files endpoint."""
-    result = obb.regulators.sec.schema_files(**params)
+    result = obb.sec.schema_files(**params)
     assert result
     assert isinstance(result, OBBject)
     assert len(result.results) > 0
@@ -82,9 +80,9 @@ def test_regulators_sec_schema_files(params, obb):
     ],
 )
 @pytest.mark.integration
-def test_regulators_sec_symbol_map(params, obb):
+def test_sec_symbol_map(params, obb):
     """Test the SEC symbol map endpoint."""
-    result = obb.regulators.sec.symbol_map(**params)
+    result = obb.sec.symbol_map(**params)
     assert result
     assert isinstance(result, OBBject)
     assert hasattr(result.results, "symbol")
@@ -96,9 +94,9 @@ def test_regulators_sec_symbol_map(params, obb):
     [{"provider": "sec"}],
 )
 @pytest.mark.integration
-def test_regulators_sec_rss_litigation(params, obb):
+def test_sec_rss_litigation(params, obb):
     """Test the SEC RSS litigation endpoint."""
-    result = obb.regulators.sec.rss_litigation(**params)
+    result = obb.sec.rss_litigation(**params)
     assert result
     assert isinstance(result, OBBject)
     assert len(result.results) > 0
@@ -109,9 +107,9 @@ def test_regulators_sec_rss_litigation(params, obb):
     [{"query": "oil", "use_cache": False, "provider": "sec"}],
 )
 @pytest.mark.integration
-def test_regulators_sec_sic_search(params, obb):
+def test_sec_sic_search(params, obb):
     """Test the SEC SIC search endpoint."""
-    result = obb.regulators.sec.sic_search(**params)
+    result = obb.sec.sic_search(**params)
     assert result
     assert isinstance(result, OBBject)
     assert len(result.results) > 0
@@ -130,11 +128,11 @@ def test_regulators_sec_sic_search(params, obb):
     ],
 )
 @pytest.mark.integration
-def test_regulators_sec_filing_headers(params, obb):
+def test_sec_filing_headers(params, obb):
     """Test the SEC Filing Headers endpoint."""
     from openbb_sec.models.sec_filing import SecFilingData
 
-    result = obb.regulators.sec.filing_headers(**params)
+    result = obb.sec.filing_headers(**params)
     assert result
     assert isinstance(result, OBBject)
     assert isinstance(result.results, SecFilingData)
@@ -154,11 +152,11 @@ def test_regulators_sec_filing_headers(params, obb):
     ],
 )
 @pytest.mark.integration
-def test_regulators_sec_htm_file(params, obb):
+def test_sec_htm_file(params, obb):
     """Test the SEC HTM File endpoint."""
     from openbb_sec.models.htm_file import SecHtmFileData
 
-    result = obb.regulators.sec.htm_file(**params)
+    result = obb.sec.htm_file(**params)
     assert result
     assert isinstance(result, OBBject)
     assert isinstance(result.results, SecHtmFileData)

@@ -1,6 +1,5 @@
 """SEC Form 13F-HR Model."""
 
-# pylint: disable =unused-argument
 
 from typing import Any
 
@@ -50,7 +49,6 @@ class SecForm13FHRFetcher(Fetcher[SecForm13FHRQueryParams, list[SecForm13FHRData
         **kwargs: Any,
     ) -> list[dict]:
         """Return the raw data from the SEC endpoint."""
-        # pylint: disable=import-outside-toplevel
         import asyncio  # noqa
         from openbb_core.app.model.abstract.error import OpenBBError
         from openbb_core.provider.utils.errors import EmptyDataError

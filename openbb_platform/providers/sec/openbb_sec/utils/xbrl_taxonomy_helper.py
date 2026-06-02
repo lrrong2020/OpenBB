@@ -97,11 +97,9 @@ SEC Taxonomy Reference Links
   - SBS Repos & Facilities:  https://www.sec.gov/data-research/standard-taxonomies/security-based-swap-data-repositories-and-execution-facilities
   - NRSROs:                  https://www.sec.gov/data-research/standard-taxonomies/nationally-recognized-statistical-rating-organizations
   - EDGAR Taxonomy XML Index: https://www.sec.gov/info/edgar/edgartaxonomies.xml
-"""  # noqa: E501  # pylint: disable=line-too-long
+"""  # noqa: E501
 
 # flake8: noqa: PLR0912, PLR0914
-# pylint: disable=broad-except, too-many-instance-attributes
-# pylint: disable=C0302, R0912, R0914, R0915
 
 import warnings
 from dataclasses import dataclass, field
@@ -669,29 +667,30 @@ def _discover_ifrs_dates() -> dict[int, str]:
     Results are cached so the network request happens at most once per
     process lifetime.
     """
-    # pylint: disable=import-outside-toplevel
     import re
 
-    global _ifrs_version_dates_cache  # noqa: PLW0603  # pylint: disable=W0603
+    global _ifrs_version_dates_cache  # noqa: PLW0603
 
     if _ifrs_version_dates_cache is not None:
         return _ifrs_version_dates_cache
 
     discovered: dict[int, str] = {}
     try:
-        from openbb_core.provider.utils.helpers import make_request
+        from openbb_sec.utils.cache import cached_text
 
-        resp = make_request("https://www.sec.gov/info/edgar/edgartaxonomies.xml")
-        resp.raise_for_status()
+        text = cached_text(
+            "https://www.sec.gov/info/edgar/edgartaxonomies.xml",
+            expire=3600 * 24 * 7,
+        )
         # Extract all IFRS date strings from href URLs
         # e.g. https://xbrl.ifrs.org/taxonomy/2025-03-27/...
         dates = set(
-            re.findall(r"xbrl\.ifrs\.org/taxonomy/(\d{4}-\d{2}-\d{2})/", resp.text)
+            re.findall(r"xbrl\.ifrs\.org/taxonomy/(\d{4}-\d{2}-\d{2})/", text)
         )
         for d in dates:
             year = int(d[:4])
             discovered[year] = d
-    except Exception:  # pylint: disable=broad-except  # noqa: S110
+    except Exception:  # noqa: S110
         pass
 
     # Merge: discovered dates take precedence, fallback fills gaps
@@ -997,7 +996,7 @@ class FASBClient:
         list[str]
             Sorted list of filenames present in that directory.
         """
-        import re  # pylint: disable=import-outside-toplevel
+        import re
 
         if not dir_url.endswith("/"):
             dir_url += "/"
@@ -1044,7 +1043,7 @@ class FASBClient:
 
         try:
             files = self.list_files(dir_url)
-        except Exception:  # pylint: disable=broad-except
+        except Exception:
             return None
 
         for fname in files:
@@ -1054,7 +1053,6 @@ class FASBClient:
 
     def get_available_years(self, taxonomy: str, config: TaxonomyConfig) -> list[int]:
         """Scrapes the base directory to find available taxonomy years."""
-        # pylint: disable=import-outside-toplevel
         import re
 
         if config.style == TaxonomyStyle.STATIC:
@@ -1090,7 +1088,6 @@ class FASBClient:
         For EXTERNAL (IFRS), parses the entry-point XSD for standard sub-schemas.
         For STATIC taxonomies, returns a fixed list.
         """
-        # pylint: disable=import-outside-toplevel
         import re
 
         if config.style == TaxonomyStyle.STATIC:
@@ -1149,7 +1146,7 @@ class FASBClient:
                 files = self.list_files(base_url)
                 # Extract component names from actual presentation / sub-schema files.
                 # Use the regex to pull component names out of real filenames.
-                components: set[str] = set()  # type: ignore[no-redef]
+                components: set[str] = set()
                 for fname in files:
                     # Try the configured regex (replace {year} with a catch-all date pattern)
                     if config.presentation_pattern_regex:
@@ -1169,28 +1166,22 @@ class FASBClient:
             except Exception:
                 return []
 
-        return []
+        return []  # pragma: no cover - all five TaxonomyStyle members (STATIC, EXTERNAL, FASB_STANDARD, SEC_EMBEDDED, SEC_STANDALONE) return above, so this final fallthrough is unreachable
 
     def fetch_file(self, url: str) -> BytesIO:
         """Download a file as an in-memory byte stream."""
-        # pylint: disable=import-outside-toplevel
-        from openbb_core.provider.utils.helpers import make_request
+        from openbb_sec.utils.cache import cached_bytes
 
         try:
-            response = make_request(url)
-            response.raise_for_status()
-            return BytesIO(response.content)
+            return BytesIO(cached_bytes(url))
         except Exception as e:
             raise OpenBBError(f"Failed to fetch {url}: {e}") from e
 
     def _fetch_url_content(self, url: str) -> str:
         """Get directory listing content."""
-        # pylint: disable=import-outside-toplevel
-        from openbb_core.provider.utils.helpers import make_request
+        from openbb_sec.utils.cache import cached_text
 
-        response = make_request(url)
-        response.raise_for_status()
-        return response.text
+        return cached_text(url, expire=3600 * 24 * 7)
 
 
 # Additional namespaces for XSD parsing
@@ -1211,7 +1202,6 @@ class XBRLParser:
         self.element_properties: dict[str, dict[str, Any]] = {}
 
     def _get_xml_root(self, file_content: str | BytesIO) -> Element | None:
-        # pylint: disable=import-outside-toplevel
         from defusedxml.ElementTree import parse
 
         return parse(file_content).getroot()
@@ -1248,9 +1238,18 @@ class XBRLParser:
             embedded_linkbase = None
             imports: list[dict[str, str]] = []
 
+            # "xsd" and "xs" are interchangeable prefixes for the same XML
+            # Schema namespace, and ElementTree.findall() matches by namespace
+            # URI -- so collapse them to the unique set of URIs. Iterating the
+            # raw prefix list processes identical nodes twice, which collected
+            # every import and role type a second time.
+            xsd_ns_uris = {
+                XSD_NS.get(prefix, "http://www.w3.org/2001/XMLSchema")
+                for prefix in ("xsd", "xs")
+            }
+
             # Parse imports to identify external taxonomies
-            for prefix in ["xsd", "xs"]:
-                ns_uri = XSD_NS.get(prefix, "http://www.w3.org/2001/XMLSchema")
+            for ns_uri in xsd_ns_uris:
                 for imp in root.findall(f"{{{ns_uri}}}import"):
                     namespace = imp.get("namespace", "")
                     schema_location = imp.get("schemaLocation", "")
@@ -1259,11 +1258,9 @@ class XBRLParser:
                             {"namespace": namespace, "schemaLocation": schema_location}
                         )
 
-            # Parse elements - try both xsd: and xs: prefixes
-            for prefix in ["xsd", "xs"]:
-                for elem in root.findall(
-                    f".//{{{XSD_NS.get(prefix, 'http://www.w3.org/2001/XMLSchema')}}}element"
-                ):
+            # Parse elements across the XML Schema namespace
+            for ns_uri in xsd_ns_uris:
+                for elem in root.findall(f".//{{{ns_uri}}}element"):
                     elem_id = elem.get("id")
                     if not elem_id:
                         continue
@@ -1283,8 +1280,7 @@ class XBRLParser:
                     }
 
             # Parse role types from annotation/appinfo
-            for prefix in ["xsd", "xs"]:
-                ns_uri = XSD_NS.get(prefix, "http://www.w3.org/2001/XMLSchema")
+            for ns_uri in xsd_ns_uris:
                 for role_type in root.findall(
                     f".//{{{ns_uri}}}annotation/{{{ns_uri}}}appinfo/{{{NS['link']}}}roleType"
                 ):
@@ -1471,15 +1467,15 @@ class XBRLParser:
 
                     # Update standard labels store (simple string)
                     if "label" in label_data:
-                        self.labels[element_id] = label_data["label"]  # type: ignore
+                        self.labels[element_id] = label_data["label"]  # ty: ignore[invalid-assignment]
                     elif "documentation" not in label_data and list(
                         label_data.values()
                     ):
-                        self.labels[element_id] = list(label_data.values())[0]  # type: ignore
+                        self.labels[element_id] = list(label_data.values())[0]  # ty: ignore[invalid-assignment]
 
                     # Update documentation store
                     if "documentation" in label_data:
-                        self.documentation[element_id] = label_data["documentation"]  # type: ignore
+                        self.documentation[element_id] = label_data["documentation"]  # ty: ignore[invalid-assignment]
 
                     if element_id not in new_labels:
                         new_labels[element_id] = {}
@@ -1642,7 +1638,7 @@ class XBRLParser:
                     }
                     count += 1
             return count
-        except Exception:  # pylint: disable=broad-except  # noqa: S112
+        except Exception:  # noqa: S112
             return 0
 
     def parse_presentation(
@@ -1736,7 +1732,7 @@ class XBRLParser:
                 my_children_rels = [
                     r for r in relationships if r["parent"] == element_id
                 ]
-                my_children_rels.sort(key=lambda x: float(x["order"]))  # type: ignore
+                my_children_rels.sort(key=lambda x: float(x["order"]))
 
                 for rel in my_children_rels:
                     child_node = build_node(
@@ -1846,7 +1842,7 @@ class XBRLParser:
             Mapping of namespace URI → prefix (e.g.,
             ``"http://xbrl.sec.gov/ecd/2024"`` → ``"ecd"``).
         """
-        import re  # pylint: disable=import-outside-toplevel
+        import re
 
         # Parse xmlns declarations from the first portion of the document
         header = raw_content[:10000].decode("utf-8", errors="replace")
@@ -1890,7 +1886,7 @@ class XBRLParser:
 
         # 3. Heuristic: for URIs like http://xbrl.sec.gov/ecd/2024,
         #    take the segment before the trailing year/date
-        import re  # pylint: disable=import-outside-toplevel
+        import re
 
         parts = ns_uri.rstrip("/").split("/")
         # Walk backwards past date-like segments to find the semantic name.
@@ -2019,8 +2015,7 @@ class XBRLParser:
               ``table`` (role short name), ``parent`` (parent element_id),
               ``order`` (float), and ``preferred_label`` (role short name).
         """
-        # pylint: disable=import-outside-toplevel
-        from openbb_core.provider.utils.helpers import make_request
+        from openbb_sec.utils.cache import cached_bytes
         from openbb_sec.utils.definitions import HEADERS as SEC_HEADERS
 
         link_ns = "http://www.xbrl.org/2003/linkbase"
@@ -2040,7 +2035,7 @@ class XBRLParser:
             return labels_map, presentation_map
 
         # Resolve schema URL (may be relative)
-        from urllib.parse import urljoin  # pylint: disable=import-outside-toplevel
+        from urllib.parse import urljoin
 
         schema_url = (
             schema_href
@@ -2050,14 +2045,14 @@ class XBRLParser:
 
         # 2. Fetch company schema and find linkbaseRef entries
         try:
-            schema_resp = make_request(schema_url, headers=SEC_HEADERS)
-            schema_resp.raise_for_status()
-            schema_root = self._get_xml_root(BytesIO(schema_resp.content))
+            schema_root = self._get_xml_root(
+                BytesIO(cached_bytes(schema_url, headers=SEC_HEADERS))
+            )
 
             if schema_root is None:
                 return labels_map, presentation_map
 
-        except Exception:  # pylint: disable=broad-except  # noqa: S112
+        except Exception:  # noqa: S112
             return labels_map, presentation_map
 
         label_url = None
@@ -2079,9 +2074,9 @@ class XBRLParser:
         # 3. Parse label linkbase
         if label_url:
             try:
-                lab_resp = make_request(label_url, headers=SEC_HEADERS)
-                lab_resp.raise_for_status()
-                lab_root = self._get_xml_root(BytesIO(lab_resp.content))
+                lab_root = self._get_xml_root(
+                    BytesIO(cached_bytes(label_url, headers=SEC_HEADERS))
+                )
 
                 if lab_root is not None:
                     # Build loc_map: xlink:label -> element_id
@@ -2119,15 +2114,15 @@ class XBRLParser:
                                 labels_map[elem_id] = {}
 
                             labels_map[elem_id].update(resource_map[to_label])
-            except Exception:  # pylint: disable=broad-except  # noqa: S110
+            except Exception:  # noqa: S110
                 pass
 
         # 4. Parse presentation linkbase for hierarchy, order, and preferred labels
         if pre_url:
             try:
-                pre_resp = make_request(pre_url, headers=SEC_HEADERS)
-                pre_resp.raise_for_status()
-                pre_root = self._get_xml_root(BytesIO(pre_resp.content))
+                pre_root = self._get_xml_root(
+                    BytesIO(cached_bytes(pre_url, headers=SEC_HEADERS))
+                )
                 if pre_root is not None:
                     # Process each presentationLink (table/role) separately
                     for plink in pre_root.findall(f".//{{{link_ns}}}presentationLink"):
@@ -2164,7 +2159,7 @@ class XBRLParser:
                                 if child_id not in presentation_map:
                                     presentation_map[child_id] = []
                                 presentation_map[child_id].append(entry)
-            except Exception:  # pylint: disable=broad-except  # noqa: S110
+            except Exception:  # noqa: S110
                 pass
 
         return labels_map, presentation_map
@@ -2453,7 +2448,7 @@ class XBRLManager:
                 if loaded > 0:
                     self._properties_loaded_for.add((taxonomy, year))
                     return
-            except Exception:  # pylint: disable=broad-except  # noqa: S112
+            except Exception:  # noqa: S112
                 continue
 
     def _get_roles_for_taxonomy(self, taxonomy: str, year: int) -> list[dict[str, Any]]:
@@ -2506,7 +2501,7 @@ class XBRLManager:
                 _, roles, _, _ = self.parser.parse_schema(content)
                 if roles:
                     return roles
-            except Exception:  # pylint: disable=broad-except  # noqa: S112
+            except Exception:  # noqa: S112
                 continue
         return []
 
@@ -2523,7 +2518,6 @@ class XBRLManager:
            cross-referencing which roles appear in each component's
            presentation file
         """
-        # pylint: disable=import-outside-toplevel
         import re
 
         config = TAXONOMIES.get(taxonomy)
@@ -2623,7 +2617,7 @@ class XBRLManager:
                                 category = "notes"
                             else:
                                 category = "disclosure"
-                    except Exception:  # pylint: disable=broad-except  # noqa: S110
+                    except Exception:  # noqa: S110
                         pass
 
                 results.append(
@@ -2694,7 +2688,7 @@ class XBRLManager:
 
                     if comp_roles:
                         break
-                except Exception:  # pylint: disable=broad-except  # noqa: S112
+                except Exception:  # noqa: S112
                     continue
 
             if comp_roles:
@@ -2756,7 +2750,6 @@ class XBRLManager:
         For FASB taxonomies, also loads the dedicated *-doc-{year}.xml
         documentation file (separate from the label file).
         """
-        # pylint: disable=import-outside-toplevel
 
         if (taxonomy, year) in self._labels_loaded_for:
             return
@@ -2799,7 +2792,7 @@ class XBRLManager:
                         or len(self.parser.documentation) > docs_before
                     ):
                         loaded_any = True
-                except Exception:  # pylint: disable=broad-except  # noqa: S112
+                except Exception:  # noqa: S112
                     continue
 
             if loaded_any:
@@ -2820,7 +2813,7 @@ class XBRLManager:
                     )
                 if self.parser.labels:
                     self._labels_loaded_for.add((taxonomy, year))
-            except Exception:  # pylint: disable=broad-except  # noqa: S110
+            except Exception:  # noqa: S110
                 pass
 
             # Also load doc XSD and main schema for fallback labels
@@ -2836,7 +2829,7 @@ class XBRLManager:
                         self.parser.parse_label_linkbase(
                             content, TaxonomyStyle.SEC_EMBEDDED
                         )
-                except Exception:  # pylint: disable=broad-except  # noqa: S112
+                except Exception:  # noqa: S112
                     continue
 
             return
@@ -2898,7 +2891,7 @@ class XBRLManager:
                     or len(self.parser.documentation) > docs_before
                 ):
                     loaded_any = True
-            except Exception:  # pylint: disable=broad-except  # noqa: S112
+            except Exception:  # noqa: S112
                 continue
 
         # Load dedicated documentation files (labels and docs are often
@@ -2926,7 +2919,7 @@ class XBRLManager:
 
                 if len(self.parser.documentation) > docs_before:
                     loaded_any = True
-            except Exception:  # pylint: disable=broad-except  # noqa: S112
+            except Exception:  # noqa: S112
                 continue
 
         if loaded_any:
@@ -2957,7 +2950,7 @@ class XBRLManager:
                 try:
                     ref_content = self.client.fetch_file(ref_url)
                     self.parser.parse_reference_linkbase(ref_content)
-                except Exception:  # pylint: disable=broad-except  # noqa: S110
+                except Exception:  # noqa: S110
                     pass
 
     def _load_frc_core_labels(self, year: int):
@@ -2988,7 +2981,7 @@ class XBRLManager:
 
             if len(self.parser.labels) > labels_before:
                 self._labels_loaded_for.add(frc_key)
-        except Exception:  # pylint: disable=broad-except  # noqa: S110
+        except Exception:  # noqa: S110
             pass
 
     def _parse_entire_file(
@@ -3021,7 +3014,7 @@ class XBRLManager:
             Parsed presentation tree, or empty list if the ``-entire-`` file
             is not available.
         """
-        from urllib.parse import urljoin  # pylint: disable=import-outside-toplevel
+        from urllib.parse import urljoin
 
         base_url = config.base_url_template.format(year=year)
         found = self.client.find_file(
@@ -3062,7 +3055,7 @@ class XBRLManager:
                         sub_content, config.style
                     )
                 all_nodes.extend(sub_nodes)
-            except Exception:  # pylint: disable=broad-except  # noqa: S112
+            except Exception:  # noqa: S112
                 continue
         return all_nodes
 
@@ -3095,7 +3088,6 @@ class XBRLManager:
             Hierarchical presentation tree (for a specific standard) or
             flat element list (for ``standard``).
         """
-        # pylint: disable=import-outside-toplevel
         import re
         from urllib.parse import urljoin
 
@@ -3145,7 +3137,7 @@ class XBRLManager:
                             content, TaxonomyStyle.FASB_STANDARD
                         )
                     all_nodes.extend(nodes)
-                except Exception:  # pylint: disable=broad-except  # noqa: S112
+                except Exception:  # noqa: S112
                     continue
 
             if all_nodes:
@@ -3180,7 +3172,6 @@ class XBRLManager:
             A list of XBRLNode objects representing the hierarchical
             presentation structure of the component.
         """
-        # pylint: disable=import-outside-toplevel
 
         config = TAXONOMIES.get(taxonomy)
         if not config:
@@ -3262,7 +3253,7 @@ class XBRLManager:
                 nodes = self._parse_entire_file(taxonomy, year, config)
                 if nodes:
                     return nodes
-            except Exception:  # pylint: disable=broad-except  # noqa: S110
+            except Exception:  # noqa: S110
                 pass
 
             # Fall back to the main schema and flat element extraction

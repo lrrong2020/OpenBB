@@ -1,6 +1,5 @@
 """SEC Company Filings Model."""
 
-# pylint: disable=unused-argument
 
 from datetime import (
     date as dateType,
@@ -17,8 +16,9 @@ from openbb_core.provider.standard_models.company_filings import (
 )
 from openbb_core.provider.utils.descriptions import QUERY_DESCRIPTIONS
 from openbb_core.provider.utils.errors import EmptyDataError
-from openbb_sec.utils.definitions import FORM_LIST, HEADERS
 from pydantic import Field, field_validator
+
+from openbb_sec.utils.definitions import FORM_LIST, HEADERS
 
 
 class SecCompanyFilingsQueryParams(CompanyFilingsQueryParams):
@@ -186,13 +186,12 @@ class SecCompanyFilingsFetcher(
         **kwargs: Any,
     ) -> list[dict]:
         """Extract the data from the SEC endpoint."""
-        # pylint: disable=import-outside-toplevel
-        from aiohttp_client_cache import SQLiteBackend
-        from aiohttp_client_cache.session import CachedSession
-        from openbb_core.app.utils import get_user_cache_directory
-        from openbb_core.provider.utils.helpers import amake_request, amake_requests
-        from openbb_sec.utils.helpers import symbol_map
+        import asyncio
+
         from pandas import DataFrame
+
+        from openbb_sec.utils.cache import cached_request
+        from openbb_sec.utils.helpers import symbol_map
 
         filings = DataFrame()
 
@@ -206,31 +205,21 @@ class SecCompanyFilingsFetcher(
             raise OpenBBError("CIK or symbol must be provided.")
 
         # The leading 0s need to be inserted but are typically removed from the data to store as an integer.
-        if len(query.cik) != 10:  # type: ignore
+        if len(query.cik) != 10:  # ty: ignore[invalid-argument-type]
             cik_: str = ""
-            temp = 10 - len(query.cik)  # type: ignore
+            temp = 10 - len(query.cik)  # ty: ignore[invalid-argument-type]
             for i in range(temp):
                 cik_ = cik_ + "0"
-            query.cik = cik_ + str(query.cik)  # type: ignore
+            query.cik = cik_ + str(query.cik)
 
         url = f"https://data.sec.gov/submissions/CIK{query.cik}.json"
-        data: dict | list[dict] = []
-        if query.use_cache is True:
-            cache_dir = f"{get_user_cache_directory()}/http/sec_company_filings"
-            async with CachedSession(
-                cache=SQLiteBackend(cache_dir, expire_after=3600 * 24)
-            ) as session:
-                await session.delete_expired_responses()
-                try:
-                    data = await amake_request(url, headers=HEADERS, session=session)  # type: ignore
-                finally:
-                    await session.close()
-        else:
-            data = await amake_request(url, headers=HEADERS)  # type: ignore
+        data = await cached_request(
+            url, headers=HEADERS, use_cache=query.use_cache, expire=3600 * 24
+        )
 
         # This seems to work for the data structure.
         filings = (
-            DataFrame.from_records(data["filings"].get("recent")) if "filings" in data else DataFrame()  # type: ignore
+            DataFrame.from_records(data["filings"].get("recent")) if "filings" in data else DataFrame()
         )
         results = filings.to_dict("records")
 
@@ -241,30 +230,27 @@ class SecCompanyFilingsFetcher(
             or query.limit == 0
         ):
 
-            async def callback(response, session):
-                """Response callback for excess company filings."""
-                result = await response.json()
-                if result:
-                    new_data = DataFrame.from_records(result)
-                    results.extend(new_data.to_dict("records"))
-
             urls: list = []
-            new_urls = DataFrame(data["filings"].get("files")) if "filings" in data else DataFrame()  # type: ignore
+            new_urls = DataFrame(data["filings"].get("files")) if "filings" in data else DataFrame()
             for i in new_urls.index:
-                new_cik: str = data["filings"]["files"][i]["name"]  # type: ignore
+                new_cik: str = data["filings"]["files"][i]["name"]
                 new_url: str = "https://data.sec.gov/submissions/" + new_cik
                 urls.append(new_url)
-            if query.use_cache is True:
-                cache_dir = f"{get_user_cache_directory()}/http/sec_company_filings"
-                async with CachedSession(
-                    cache=SQLiteBackend(cache_dir, expire_after=3600 * 24)
-                ) as session:
-                    try:
-                        await amake_requests(urls, headers=HEADERS, session=session, response_callback=callback)  # type: ignore
-                    finally:
-                        await session.close()
-            else:
-                await amake_requests(urls, headers=HEADERS, response_callback=callback)  # type: ignore
+
+            extra = await asyncio.gather(
+                *[
+                    cached_request(
+                        new_url,
+                        headers=HEADERS,
+                        use_cache=query.use_cache,
+                        expire=3600 * 24,
+                    )
+                    for new_url in urls
+                ]
+            )
+            for result in extra:
+                if result:
+                    results.extend(DataFrame.from_records(result).to_dict("records"))
 
         return results
 
@@ -273,7 +259,6 @@ class SecCompanyFilingsFetcher(
         query: SecCompanyFilingsQueryParams, data: list[dict], **kwargs: Any
     ) -> list[SecCompanyFilingsData]:
         """Transform the data."""
-        # pylint: disable=import-outside-toplevel
         from numpy import nan
         from pandas import NA, DataFrame, to_datetime
 
@@ -305,7 +290,7 @@ class SecCompanyFilingsFetcher(
             filings = filings[filings["filingDate"] >= query.start_date]
         if query.end_date:
             filings = filings[filings["filingDate"] <= query.end_date]
-        base_url = f"https://www.sec.gov/Archives/edgar/data/{str(int(query.cik))}/"  # type: ignore
+        base_url = f"https://www.sec.gov/Archives/edgar/data/{str(int(query.cik))}/"  # ty: ignore[invalid-argument-type]
         filings["primaryDocumentUrl"] = (
             base_url
             + filings["accessionNumber"].str.replace("-", "")

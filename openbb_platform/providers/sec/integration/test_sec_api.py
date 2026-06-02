@@ -1,4 +1,4 @@
-"""Integration tests for the regulators API."""
+"""Integration tests for the SEC API."""
 
 import base64
 
@@ -18,7 +18,6 @@ def headers():
     return {"Authorization": f"Basic {base64_bytes.decode('ascii')}"}
 
 
-# pylint: disable=redefined-outer-name
 
 
 @pytest.mark.parametrize(
@@ -29,12 +28,12 @@ def headers():
     ],
 )
 @pytest.mark.integration
-def test_regulators_sec_cik_map(params, headers):
+def test_sec_cik_map(params, headers):
     """Test the SEC CIK map endpoint."""
     params = {p: v for p, v in params.items() if v}
 
     query_str = get_querystring(params, [])
-    url = f"http://0.0.0.0:8000/api/v1/regulators/sec/cik_map?{query_str}"
+    url = f"http://localhost:8000/api/v1/sec/cik_map?{query_str}"
     result = requests.get(url, headers=headers, timeout=10)
     assert isinstance(result, requests.Response)
     assert result.status_code == 200
@@ -47,12 +46,12 @@ def test_regulators_sec_cik_map(params, headers):
     ],
 )
 @pytest.mark.integration
-def test_regulators_sec_institutions_search(params, headers):
+def test_sec_institutions_search(params, headers):
     """Test the SEC institutions search endpoint."""
     params = {p: v for p, v in params.items() if v}
 
     query_str = get_querystring(params, [])
-    url = f"http://0.0.0.0:8000/api/v1/regulators/sec/institutions_search?{query_str}"
+    url = f"http://localhost:8000/api/v1/sec/institutions_search?{query_str}"
     result = requests.get(url, headers=headers, timeout=10)
     assert isinstance(result, requests.Response)
     assert result.status_code == 200
@@ -74,12 +73,12 @@ def test_regulators_sec_institutions_search(params, headers):
     ],
 )
 @pytest.mark.integration
-def test_regulators_sec_schema_files(params, headers):
+def test_sec_schema_files(params, headers):
     """Test the SEC schema files endpoint."""
     params = {p: v for p, v in params.items() if v}
 
     query_str = get_querystring(params, [])
-    url = f"http://0.0.0.0:8000/api/v1/regulators/sec/schema_files?{query_str}"
+    url = f"http://localhost:8000/api/v1/sec/schema_files?{query_str}"
     result = requests.get(url, headers=headers, timeout=10)
     assert isinstance(result, requests.Response)
     assert result.status_code == 200
@@ -93,12 +92,12 @@ def test_regulators_sec_schema_files(params, headers):
     ],
 )
 @pytest.mark.integration
-def test_regulators_sec_symbol_map(params, headers):
+def test_sec_symbol_map(params, headers):
     """Test the SEC symbol map endpoint."""
     params = {p: v for p, v in params.items() if v}
 
     query_str = get_querystring(params, [])
-    url = f"http://0.0.0.0:8000/api/v1/regulators/sec/symbol_map?{query_str}"
+    url = f"http://localhost:8000/api/v1/sec/symbol_map?{query_str}"
     result = requests.get(url, headers=headers, timeout=10)
     assert isinstance(result, requests.Response)
     assert result.status_code == 200
@@ -109,12 +108,12 @@ def test_regulators_sec_symbol_map(params, headers):
     [{"provider": "sec"}],
 )
 @pytest.mark.integration
-def test_regulators_sec_rss_litigation(params, headers):
+def test_sec_rss_litigation(params, headers):
     """Test the SEC RSS litigation endpoint."""
     params = {p: v for p, v in params.items() if v}
 
     query_str = get_querystring(params, [])
-    url = f"http://0.0.0.0:8000/api/v1/regulators/sec/rss_litigation?{query_str}"
+    url = f"http://localhost:8000/api/v1/sec/rss_litigation?{query_str}"
     result = requests.get(url, headers=headers, timeout=10)
     assert isinstance(result, requests.Response)
     assert result.status_code == 200
@@ -125,12 +124,12 @@ def test_regulators_sec_rss_litigation(params, headers):
     [{"query": "oil", "use_cache": False, "provider": "sec"}],
 )
 @pytest.mark.integration
-def test_regulators_sec_sic_search(params, headers):
+def test_sec_sic_search(params, headers):
     """Test the SEC SIC search endpoint."""
     params = {p: v for p, v in params.items() if v}
 
     query_str = get_querystring(params, [])
-    url = f"http://0.0.0.0:8000/api/v1/regulators/sec/sic_search?{query_str}"
+    url = f"http://localhost:8000/api/v1/sec/sic_search?{query_str}"
     result = requests.get(url, headers=headers, timeout=10)
     assert isinstance(result, requests.Response)
     assert result.status_code == 200
@@ -149,12 +148,12 @@ def test_regulators_sec_sic_search(params, headers):
     ],
 )
 @pytest.mark.integration
-def test_regulators_sec_filing_headers(params, headers):
+def test_sec_filing_headers(params, headers):
     """Test the SEC Filing headers endpoint."""
     params = {p: v for p, v in params.items() if v}
 
     query_str = get_querystring(params, [])
-    url = f"http://0.0.0.0:8000/api/v1/regulators/sec/filing_headers?{query_str}"
+    url = f"http://localhost:8000/api/v1/sec/filing_headers?{query_str}"
     result = requests.get(url, headers=headers, timeout=10)
     assert isinstance(result, requests.Response)
     assert result.status_code == 200
@@ -173,12 +172,12 @@ def test_regulators_sec_filing_headers(params, headers):
     ],
 )
 @pytest.mark.integration
-def test_regulators_sec_htm_file(params, headers):
+def test_sec_htm_file(params, headers):
     """Test the SEC HTM File endpoint."""
     params = {p: v for p, v in params.items() if v}
 
     query_str = get_querystring(params, [])
-    url = f"http://0.0.0.0:8000/api/v1/regulators/sec/htm_file?{query_str}"
+    url = f"http://localhost:8000/api/v1/sec/htm_file?{query_str}"
     result = requests.get(url, headers=headers, timeout=10)
     assert isinstance(result, requests.Response)
     assert result.status_code == 200

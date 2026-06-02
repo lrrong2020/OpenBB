@@ -1,6 +1,5 @@
 """SEC Litigation RSS Feed Model."""
 
-# pylint: disable=unused-argument
 
 from datetime import datetime
 from typing import Any
@@ -9,8 +8,9 @@ from openbb_core.app.model.abstract.error import OpenBBError
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.fetcher import Fetcher
 from openbb_core.provider.abstract.query_params import QueryParams
-from openbb_sec.utils.definitions import HEADERS
 from pydantic import Field
+
+from openbb_sec.utils.definitions import HEADERS
 
 
 class SecRssLitigationQueryParams(QueryParams):
@@ -51,7 +51,6 @@ class SecRssLitigationFetcher(
         **kwargs: Any,
     ) -> list[dict]:
         """Return the raw data from the SEC endpoint."""
-        # pylint: disable=import-outside-toplevel
         import re  # noqa
         import xmltodict
         from openbb_core.provider.utils.helpers import make_request

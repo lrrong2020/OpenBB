@@ -1,6 +1,5 @@
 """Company type detection, filing-date resolution, and fiscal metadata."""
 
-# pylint: disable=R0912,R0914
 
 from __future__ import annotations
 
@@ -395,7 +394,7 @@ def detect_reporting_currency(facts: dict[str, Any]) -> str:
     if not currency_counts:
         return "USD"
 
-    return max(currency_counts, key=currency_counts.get)  # type: ignore[arg-type]
+    return max(currency_counts, key=lambda _k: currency_counts[_k])
 
 
 def prior_period_end(date: str) -> str | None:

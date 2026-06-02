@@ -1,6 +1,5 @@
 """SEC Equity FTD Model."""
 
-# pylint: disable=unused-argument
 
 from typing import Any
 
@@ -32,7 +31,7 @@ class SecEquityFtdQueryParams(EquityFtdQueryParams):
         """,
         default=0,
     )
-    use_cache: bool | None = Field(
+    use_cache: bool = Field(
         default=True,
         description="Whether or not to use cache for the request, default is True."
         + " Each reporting period is a separate URL, new reports will be added to the cache.",
@@ -65,7 +64,6 @@ class SecEquityFtdFetcher(
         **kwargs: Any,
     ) -> list[dict]:
         """Extract the data from the SEC website."""
-        # pylint: disable=import-outside-toplevel
         import asyncio  # noqa
         from openbb_sec.utils.helpers import download_zip_file, get_ftd_urls  # noqa
 

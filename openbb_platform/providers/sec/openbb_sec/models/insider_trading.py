@@ -1,6 +1,5 @@
 """SEC Insider Trading Model."""
 
-# pylint: disable =unused-argument
 
 from datetime import date as dateType
 from typing import Any
@@ -179,7 +178,6 @@ class SecInsiderTradingFetcher(
     @staticmethod
     def transform_query(params: dict[str, Any]) -> SecInsiderTradingQueryParams:
         """Transform query parameters."""
-        # pylint: disable=import-outside-toplevel
         from datetime import datetime, timedelta
 
         start_date = params.get("start_date")
@@ -198,7 +196,6 @@ class SecInsiderTradingFetcher(
         **kwargs: Any,
     ) -> list[dict]:
         """Extract the data from the SEC archives."""
-        # pylint: disable=import-outside-toplevel
         from openbb_sec.utils.form4 import get_form_4
 
         return await get_form_4(

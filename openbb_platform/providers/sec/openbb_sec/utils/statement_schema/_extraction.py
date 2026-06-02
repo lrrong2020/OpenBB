@@ -1,6 +1,5 @@
 """Row-level value extraction from SEC XBRL facts."""
 
-# pylint: disable=R0912,R0914,R0915,R0917
 
 from __future__ import annotations
 
@@ -133,7 +132,7 @@ def _get_annual_values(
                 if ref_filed is None or earliest < ref_filed:
                     ref_filed = earliest
 
-        if ref_filed is None:
+        if ref_filed is None:  # pragma: no cover - all_dates keys guarantee a ref filing
             continue
 
         for i, tc in enumerate(tag_candidates):
