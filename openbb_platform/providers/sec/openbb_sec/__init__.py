@@ -1,5 +1,7 @@
 """SEC provider module."""
 
+from importlib.util import find_spec
+
 from openbb_core.provider.abstract.provider import Provider
 
 from openbb_sec.models.balance_sheet import SecBalanceSheetFetcher
@@ -28,31 +30,63 @@ from openbb_sec.models.sec_filing import SecFilingFetcher
 from openbb_sec.models.sic_search import SecSicSearchFetcher
 from openbb_sec.models.symbol_map import SecSymbolMapFetcher
 
+# The SEC provider implements standard models that are normally surfaced through
+# the ``openbb-equity`` and ``openbb-etf`` routers. When either extension is not
+# installed, the affected models are registered under SEC-prefixed names and
+# exposed through the SEC router instead (see ``sec_router.py``).
+EQUITY_INSTALLED = find_spec("openbb_equity") is not None
+ETF_INSTALLED = find_spec("openbb_etf") is not None
+
+
+def _equity_key(standard: str, alias: str) -> str:
+    """Use ``standard`` when ``openbb-equity`` is installed, else the SEC ``alias``."""
+    return standard if EQUITY_INSTALLED else alias
+
+
+def _etf_key(standard: str, alias: str) -> str:
+    """Use ``standard`` when ``openbb-etf`` is installed, else the SEC ``alias``."""
+    return standard if ETF_INSTALLED else alias
+
+
 sec_provider = Provider(
     name="sec",
     website="https://www.sec.gov/data",
     description="SEC is the public listings regulatory body for the United States.",
     credentials=None,
     fetcher_dict={
-        "BalanceSheet": SecBalanceSheetFetcher,
-        "BalanceSheetGrowth": SecBalanceSheetGrowthFetcher,
-        "CashFlowStatement": SecCashFlowStatementFetcher,
-        "CashFlowStatementGrowth": SecCashFlowStatementGrowthFetcher,
+        _equity_key("BalanceSheet", "SecBalanceSheet"): SecBalanceSheetFetcher,
+        _equity_key("BalanceSheetGrowth", "SecBalanceSheetGrowth"): (
+            SecBalanceSheetGrowthFetcher
+        ),
+        _equity_key("CashFlowStatement", "SecCashFlowStatement"): (
+            SecCashFlowStatementFetcher
+        ),
+        _equity_key("CashFlowStatementGrowth", "SecCashFlowStatementGrowth"): (
+            SecCashFlowStatementGrowthFetcher
+        ),
         "CikMap": SecCikMapFetcher,
-        "CompanyFilings": SecCompanyFilingsFetcher,
-        "CompareCompanyFacts": SecCompareCompanyFactsFetcher,
-        "EquityFTD": SecEquityFtdFetcher,
-        "EquitySearch": SecEquitySearchFetcher,
+        _equity_key("CompanyFilings", "SecCompanyFilings"): SecCompanyFilingsFetcher,
+        _equity_key("CompareCompanyFacts", "SecCompareCompanyFacts"): (
+            SecCompareCompanyFactsFetcher
+        ),
+        _equity_key("EquityFTD", "SecEquityFtd"): SecEquityFtdFetcher,
+        _equity_key("EquitySearch", "SecEquitySearch"): SecEquitySearchFetcher,
         "Filings": SecCompanyFilingsFetcher,
-        "Form13FHR": SecForm13FHRFetcher,
+        _equity_key("Form13FHR", "SecForm13FHR"): SecForm13FHRFetcher,
         "SecHtmFile": SecHtmFileFetcher,
-        "IncomeStatement": SecIncomeStatementFetcher,
-        "IncomeStatementGrowth": SecIncomeStatementGrowthFetcher,
-        "InsiderTrading": SecInsiderTradingFetcher,
+        _equity_key("IncomeStatement", "SecIncomeStatement"): SecIncomeStatementFetcher,
+        _equity_key("IncomeStatementGrowth", "SecIncomeStatementGrowth"): (
+            SecIncomeStatementGrowthFetcher
+        ),
+        _equity_key("InsiderTrading", "SecInsiderTrading"): SecInsiderTradingFetcher,
         "InstitutionsSearch": SecInstitutionsSearchFetcher,
-        "LatestFinancialReports": SecLatestFinancialReportsFetcher,
-        "ManagementDiscussionAnalysis": SecManagementDiscussionAnalysisFetcher,
-        "NportDisclosure": SecNportDisclosureFetcher,
+        _equity_key("LatestFinancialReports", "SecLatestFinancialReports"): (
+            SecLatestFinancialReportsFetcher
+        ),
+        _equity_key(
+            "ManagementDiscussionAnalysis", "SecManagementDiscussionAnalysis"
+        ): (SecManagementDiscussionAnalysisFetcher),
+        _etf_key("NportDisclosure", "SecNportDisclosure"): SecNportDisclosureFetcher,
         "RssLitigation": SecRssLitigationFetcher,
         "SchemaFiles": SecSchemaFilesFetcher,
         "SecFiling": SecFilingFetcher,

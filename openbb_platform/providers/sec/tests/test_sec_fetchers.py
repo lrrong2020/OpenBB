@@ -166,7 +166,7 @@ def test_sec_compare_company_facts_fetcher(credentials=test_credentials):
         "symbol": None,
         "fact": "PaymentsForRepurchaseOfCommonStock",
         "year": 2023,
-        "fiscal_period": None,
+        "calendar_period": None,
         "instantaneous": False,
         "use_cache": False,
     }
