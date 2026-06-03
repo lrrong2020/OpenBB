@@ -661,7 +661,8 @@ class SecBaseFiling(Data):
         repr_str = "SEC Filing(\n"
 
         for k, v in self.model_computed_fields.items():
-            repr_str += f"  {k} : {v.return_type.__name__} - {v.description}\n"
+            type_name = getattr(v.return_type, "__name__", None) or str(v.return_type)
+            repr_str += f"  {k} : {type_name} - {v.description}\n"
 
         repr_str += ")"
 
