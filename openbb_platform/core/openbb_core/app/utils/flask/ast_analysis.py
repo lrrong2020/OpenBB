@@ -83,6 +83,8 @@ def _is_html_return(value: ast.AST | None) -> bool:
     """Return ``True`` when a return value is an HTML string or template render."""
     if isinstance(value, ast.Constant) and isinstance(value.value, str):
         return True
+    if isinstance(value, ast.JoinedStr):
+        return True
     if isinstance(value, ast.Tuple) and value.elts:
         return _is_html_return(value.elts[0])
     if isinstance(value, ast.Call):

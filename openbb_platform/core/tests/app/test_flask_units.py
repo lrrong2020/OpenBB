@@ -33,6 +33,15 @@ def test_detection_helpers():
     assert detection.is_flask_app(object()) is False
 
 
+def test_is_flask_app_true_via_mro():
+    class _StubFlask:
+        pass
+
+    _StubFlask.__module__ = "flask.app"
+    _StubFlask.__qualname__ = "Flask"
+    assert detection.is_flask_app(_StubFlask()) is True
+
+
 def test_package_lazy_exports():
     import openbb_core.app.utils.flask as pkg
 
@@ -465,6 +474,15 @@ def _v_make_response_html():
 
 def test_returns_html_make_response():
     assert aa.returns_html(_v_make_response_html) is True
+
+
+def _v_fstring_html():
+    symbol = "AAPL"
+    return f"<html><body>{symbol}</body></html>"
+
+
+def test_returns_html_fstring():
+    assert aa.returns_html(_v_fstring_html) is True
 
 
 def _v_args_dynamic_subscript():
