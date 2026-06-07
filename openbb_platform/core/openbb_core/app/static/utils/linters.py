@@ -1,7 +1,8 @@
 """Linters for the package."""
 
-import shutil
+import importlib.util
 import subprocess
+import sys
 from pathlib import Path
 from typing import (
     Literal,
@@ -26,37 +27,35 @@ class Linters:
 
     def run(
         self,
-        linter: Literal["black", "ruff"],
+        linter: Literal["ruff"],
         flags: list[str] | None = None,
     ):
         """Run linter with flags."""
-        if shutil.which(linter):
-            self.console.log(f"\n* {linter}")
-            self.print_separator("^")
-
-            command = [linter]
-            if flags:
-                command.extend(flags)  # type: ignore
-            subprocess.run(  # noqa: S603
-                command + list(self.directory.glob("*.py")), check=False
-            )
-
-            self.print_separator("-")
-        else:
+        if importlib.util.find_spec(linter) is None:
             self.console.log(f"\n* {linter} not found")
+            return
 
-    def black(self):
-        """Run black."""
-        flags = ["--line-length", "122"]
-        if not self.verbose and not Env().DEBUG_MODE:
-            flags.append("--quiet")
-        self.run(linter="black", flags=flags)
+        files = [str(p) for p in self.directory.glob("*.py")]
+        if not files:
+            # No targets: don't invoke the linter with zero file args, which
+            # would cause it to fall back to its default working-directory
+            # scan and touch unrelated files.
+            return
+
+        self.console.log(f"\n* {linter}")
+        self.print_separator("^")
+
+        command = [sys.executable, "-m", linter]
+        if flags:
+            command.extend(flags)
+        command.extend(files)
+        subprocess.run(command, check=False)  # noqa: S603
+
+        self.print_separator("-")
 
     def ruff(self):
         """Run ruff."""
-        self.black()
         flags = ["check", "--fix", "--unsafe-fixes"]
         if not self.verbose and not Env().DEBUG_MODE:
             flags.append("--silent")
         self.run(linter="ruff", flags=flags)
-        self.black()
