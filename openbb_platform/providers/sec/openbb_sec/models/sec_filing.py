@@ -298,22 +298,43 @@ class SecBaseFiling(Data):
 
     def __init__(self, url: str, use_cache: bool = True):
         """Initialize the Filing class."""
+        from urllib.parse import urlparse
+
         from openbb_core.provider.utils.helpers import run_async
 
         from openbb_sec.utils.helpers import cik_map
 
         super().__init__()
 
-        if not url:
+        if not url or not isinstance(url, str) or not url.strip():
             raise ValueError("Please enter a URL.")
 
-        if "/data/" not in url:
+        parsed = urlparse(url.strip())
+
+        if parsed.scheme not in ("http", "https"):
+            raise ValueError("Invalid SEC URL supplied, must use http or https scheme.")
+
+        host = (parsed.hostname or "").lower()
+        if host != "sec.gov" and not host.endswith(".sec.gov"):
+            raise ValueError(
+                "Invalid SEC URL supplied, host must be sec.gov"
+                " (e.g. https://www.sec.gov/...)."
+            )
+
+        path = parsed.path
+        if "/data/" not in path:
             raise ValueError("Invalid SEC URL supplied, must be a filing URL.")
 
-        check_val: str = url.split("/data/")[1].split("/")[1]
-
-        if len(check_val) != 18:
+        segments = path.split("/data/", 1)[1].split("/")
+        if len(segments) < 2:
             raise ValueError("Invalid SEC URL supplied, must be a filing URL.")
+
+        check_val: str = segments[1]
+
+        if len(check_val) != 18 or not check_val.isdigit():
+            raise ValueError("Invalid SEC URL supplied, must be a filing URL.")
+
+        url = parsed.scheme + "://" + parsed.netloc + path
 
         new_url = url.split(check_val, maxsplit=1)[0] + check_val + "/"
 

@@ -38,21 +38,37 @@ class SecHtmFileFetcher(Fetcher[SecHtmFileQueryParams, SecHtmFileData]):
     @staticmethod
     def transform_query(params: dict[str, Any]) -> SecHtmFileQueryParams:
         """Transform the query."""
-        if not params.get("url"):
+        from urllib.parse import urlparse
+
+        url = params.get("url") or ""
+
+        if not isinstance(url, str) or not url.strip():
             raise OpenBBError(ValueError("Please enter a URL."))
 
-        url = params.get("url", "")
+        parsed = urlparse(url.strip())
 
-        if (
-            not url.startswith("http")
-            or "sec.gov" not in url
-            or (not url.endswith(".htm") and not url.endswith(".html"))
-        ):
+        if parsed.scheme not in ("http", "https"):
+            raise OpenBBError(
+                ValueError("Invalid URL supplied, must use http or https scheme.")
+            )
+
+        host = (parsed.hostname or "").lower()
+        if host != "sec.gov" and not host.endswith(".sec.gov"):
+            raise OpenBBError(
+                ValueError(
+                    "Invalid URL supplied, host must be sec.gov (e.g. https://www.sec.gov/...)."
+                )
+            )
+
+        path = parsed.path or ""
+        if not (path.endswith(".htm") or path.endswith(".html")):
             raise OpenBBError(
                 ValueError(
                     "Invalid URL. Please a SEC URL that directs specifically to a HTM or HTML file."
                 )
             )
+
+        params["url"] = parsed.scheme + "://" + parsed.netloc + path
         return SecHtmFileQueryParams(**params)
 
     @staticmethod

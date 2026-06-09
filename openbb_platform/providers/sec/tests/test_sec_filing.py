@@ -102,9 +102,58 @@ class TestSecFilingInitValidation:
                 "https://www.sec.gov/Archives/edgar/data/317540/123/short.htm"
             )
 
+    def test_url_with_invalid_scheme_raises(self):
+        with pytest.raises(ValueError, match="http or https scheme"):
+            SecBaseFiling(
+                "ftp://www.sec.gov/Archives/edgar/data/317540/000031754024000045/x.htm"
+            )
+
+    def test_url_with_non_sec_host_raises(self):
+        with pytest.raises(ValueError, match="host must be sec.gov"):
+            SecBaseFiling(
+                "https://evil.com/Archives/edgar/data/317540/000031754024000045/x.htm"
+            )
+
+    def test_url_with_lookalike_host_raises(self):
+        with pytest.raises(ValueError, match="host must be sec.gov"):
+            SecBaseFiling(
+                "https://sec.gov.evil.com/Archives/edgar/data/317540/000031754024000045/x.htm"
+            )
+
+    def test_url_with_non_digit_accession_raises(self):
+        with pytest.raises(ValueError, match="must be a filing URL"):
+            SecBaseFiling(
+                "https://www.sec.gov/Archives/edgar/data/317540/00003175402400004X/x.htm"
+            )
+
+    def test_url_with_missing_accession_segment_raises(self):
+        with pytest.raises(ValueError, match="must be a filing URL"):
+            SecBaseFiling("https://www.sec.gov/Archives/edgar/data/317540")
+
 
 class TestSecFilingDownloadFile:
     """SecBaseFiling.download_file branches."""
+
+    def test_adownload_file_delegates_to_cached_request(self, monkeypatch):
+        captured: dict = {}
+
+        async def fake_cached_request(url, **kwargs):
+            captured["url"] = url
+            captured["kwargs"] = kwargs
+            return "payload"
+
+        monkeypatch.setattr(
+            "openbb_sec.utils.cache.cached_request", fake_cached_request
+        )
+        out = _run(
+            SecBaseFiling._adownload_file("https://www.sec.gov/x.htm", use_cache=False)
+        )
+        assert out == "payload"
+        assert captured["url"] == "https://www.sec.gov/x.htm"
+        assert captured["kwargs"]["use_cache"] is False
+        assert captured["kwargs"]["raise_for_status"] is True
+        assert "headers" in captured["kwargs"]
+        assert "response_callback" in captured["kwargs"]
 
     def test_non_html_with_read_table_warns_and_returns(self, monkeypatch):
         monkeypatch.setattr(SecBaseFiling, "_adownload_file", _async_return("rawtext"))
