@@ -6,7 +6,7 @@ import re
 import warnings
 from collections import Counter
 from copy import copy
-from typing import cast
+from typing import Any, cast
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup, Comment, XMLParsedAsHTMLWarning
@@ -3091,6 +3091,7 @@ def extract_periods_from_rows(
             # definitely a data row — stop collecting headers here.
             if (
                 _some_th_rows
+                and row_has_th_flags is not None
                 and row_idx < len(row_has_th_flags)
                 and not row_has_th_flags[row_idx]
             ):
@@ -7701,7 +7702,7 @@ def _convert_layout_table(table_elem, base_url: str = "") -> str | None:
     # ===== PATTERN 0: Bio-style tables with rowspan paragraph cells =====
     # Detect tables that have cells with rowspan containing paragraph content
     # (e.g., director biographies in proxy statements)
-    bio_sections = []
+    bio_sections: list[dict[str, Any]] = []
     for row in rows:
         cells = row.find_all(["td", "th"])
         for cell in cells:
@@ -7792,11 +7793,11 @@ def _convert_layout_table(table_elem, base_url: str = "") -> str | None:
         for section in bio_sections:
             if section["name"]:
                 result_parts.append(f"\n**{section['name']}**\n")
-            for item in section.get("metadata", []):  # ty: ignore[not-iterable]
+            for item in section.get("metadata", []):
                 result_parts.append(f"- {item}")
             if section["metadata"]:
                 result_parts.append("")  # Blank line after metadata
-            for para in section.get("paragraphs", []):  # ty: ignore[not-iterable]
+            for para in section.get("paragraphs", []):
                 result_parts.append(para)
                 result_parts.append("")  # Blank line after each paragraph
         if result_parts:
