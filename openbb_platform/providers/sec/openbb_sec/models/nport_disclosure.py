@@ -1,7 +1,7 @@
 """SEC NPORT Holings Model."""
 
 from datetime import date as dateType
-from typing import Any
+from typing import Any, cast
 from warnings import warn
 
 from openbb_core.app.model.abstract.error import OpenBBError
@@ -668,12 +668,13 @@ class SecNportDisclosureFetcher(
         try:
             gen_info = response["edgarSubmission"]["formData"].get("genInfo", {})
             if gen_info:
+                period_ending = gen_info.get("repPdDate")
                 metadata["fund_name"] = gen_info.get("seriesName")
                 metadata["series_id"] = gen_info.get("seriesId")
                 metadata["lei"] = gen_info.get("seriesLei")
-                metadata["period_ending"] = gen_info.get("repPdDate")
+                metadata["period_ending"] = period_ending
                 metadata["fiscal_year_end"] = gen_info.get("repPdEnd")
-                current_month = to_datetime(metadata["period_ending"])
+                current_month = to_datetime(cast(Any, period_ending))
                 month_1 = (current_month - MonthEnd(2)).date().strftime("%Y-%m-%d")
                 month_2 = (current_month - MonthEnd(1)).date().strftime("%Y-%m-%d")
                 month_3 = current_month.strftime("%Y-%m-%d")
