@@ -342,7 +342,7 @@ FTS_LOCATIONS = [
     {"label": "Uzbekistan", "value": "2K"},
     {"label": "Vanuatu", "value": "2L"},
     {"label": "Venezuela", "value": "X5"},
-    {"label": "Viet Nam", "value": "Q1"},
+    {"label": "Viet Nam", "value": "Q1"},  # codespell:ignore nam
     {"label": "Virgin Islands, British", "value": "D8"},
     {"label": "Virgin Islands, U.s.", "value": "VI"},
     {"label": "Wallis and Futuna", "value": "X8"},

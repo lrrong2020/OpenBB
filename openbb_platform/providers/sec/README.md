@@ -34,7 +34,8 @@ All endpoints are available under `obb.sec.*` in the Python/HTTP interface.
 | Funds | `nport_disclosure`, `nport_fund_metrics` |
 | Reference & lookups | `cik_map`, `symbol_map`, `institutions_search`, `sic_search`, `schema_files` |
 
-The SEC provider also implements standard models — financial statements (`balance_sheet`, `income_statement`, `cash_flow`, and their `*_growth`), `compare_company_facts`, `equity_search`, `equity_ftd`, `insider_trading`, `form_13f`, and `management_discussion_analysis`. When `openbb-equity` / `openbb-etf` are installed these are reached as `obb.equity.*` / `obb.etf.*` with `provider="sec"`; when they are not, the same models register directly as `obb.sec.*`.
+The SEC provider also implements standard models — financial statements (`balance_sheet`, `income_statement`, `cash_flow`, and their `*_growth`), `compare_company_facts`, `equity_search`, `equity_ftd`, `insider_trading`, `form_13f`, and `management_discussion_analysis`.
+When `openbb-equity` / `openbb-etf` are installed these are reached as `obb.equity.*` / `obb.etf.*` with `provider="sec"`; when they are not, the same models register directly as `obb.sec.*`.
 
 ## Basic usage
 
