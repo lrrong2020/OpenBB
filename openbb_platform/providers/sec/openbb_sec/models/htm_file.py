@@ -12,8 +12,8 @@ from pydantic import Field
 class SecHtmFileQueryParams(QueryParams):
     """SEC HTM File Query Parameters."""
 
-    url: str = Field(
-        default="",
+    url: str | None = Field(
+        default=None,
         description="URL for the SEC filing.",
     )
     use_cache: bool = Field(

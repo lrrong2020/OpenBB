@@ -1,12 +1,8 @@
-"""Unit tests for the unified SEC disk cache (``openbb_sec.utils.cache``).
-
-These tests exercise the cache wrapper directly with an isolated temp-directory
-``FanoutCache`` and mocked transport, since the fetcher suite always runs with
-``use_cache=False`` and never touches the caching code paths.
-"""
+"""Unit tests for the unified SEC disk cache."""
 
 import asyncio
 import contextlib
+import os
 
 import pytest
 
@@ -33,11 +29,6 @@ def temp_cache(tmp_path, monkeypatch):
     cache_module._cache = previous
 
 
-# ---------------------------------------------------------------------------
-# _parse_size / get_size_limit
-# ---------------------------------------------------------------------------
-
-
 @pytest.mark.parametrize(
     "value, expected",
     [
@@ -51,10 +42,10 @@ def temp_cache(tmp_path, monkeypatch):
         ("512MB", 512 * 1024**2),
         ("8GB", 8 * 1024**3),
         ("1.5TB", int(1.5 * 1024**4)),
-        ("2 gb", 2 * 1024**3),  # spaces + lowercase normalized
-        ("12345", 12345),  # bare number
-        ("badGB", cache_module.DEFAULT_SIZE_LIMIT),  # non-numeric w/ suffix
-        ("notanumber", cache_module.DEFAULT_SIZE_LIMIT),  # non-numeric bare
+        ("2 gb", 2 * 1024**3),
+        ("12345", 12345),
+        ("badGB", cache_module.DEFAULT_SIZE_LIMIT),
+        ("notanumber", cache_module.DEFAULT_SIZE_LIMIT),
     ],
 )
 def test_parse_size(value, expected):
@@ -70,14 +61,17 @@ def test_get_size_limit_env(monkeypatch):
     assert cache_module.get_size_limit() == 256 * 1024**2
 
 
-def test_get_cache_directory():
+def test_get_cache_directory(monkeypatch):
     """get_cache_directory points at a 'sec' subdirectory."""
+    monkeypatch.delenv(cache_module.CACHE_DIR_ENV_VAR, raising=False)
     assert cache_module.get_cache_directory().replace("\\", "/").endswith("/sec")
 
 
-# ---------------------------------------------------------------------------
-# get_cache singleton
-# ---------------------------------------------------------------------------
+def test_get_cache_directory_env_override(monkeypatch, tmp_path):
+    """get_cache_directory honors the OPENBB_SEC_CACHE_DIR override."""
+    target = tmp_path / "custom_sec_cache"
+    monkeypatch.setenv(cache_module.CACHE_DIR_ENV_VAR, str(target))
+    assert cache_module.get_cache_directory() == os.path.abspath(str(target))
 
 
 def test_get_cache_is_singleton(temp_cache):
@@ -86,11 +80,6 @@ def test_get_cache_is_singleton(temp_cache):
     second = temp_cache.get_cache()
     assert first is second
     assert temp_cache.get_size_limit() == temp_cache.DEFAULT_SIZE_LIMIT
-
-
-# ---------------------------------------------------------------------------
-# _make_key / _is_empty
-# ---------------------------------------------------------------------------
 
 
 def test_make_key():
@@ -117,11 +106,6 @@ def test_is_empty(value, empty):
     assert cache_module._is_empty(value) is empty
 
 
-# ---------------------------------------------------------------------------
-# _cache_set / _cache_get
-# ---------------------------------------------------------------------------
-
-
 def test_cache_set_get_roundtrip(temp_cache):
     """Values written can be read back; misses return None."""
     temp_cache._cache_set("k", {"a": 1}, None)
@@ -141,12 +125,7 @@ def test_cache_get_swallows_backend_errors(temp_cache, monkeypatch):
 
     monkeypatch.setattr(temp_cache, "get_cache", _Boom)
     assert temp_cache._cache_get("k") is None
-    temp_cache._cache_set("k", "v", None)  # must not raise
-
-
-# ---------------------------------------------------------------------------
-# cached_request (async, amake_request)
-# ---------------------------------------------------------------------------
+    temp_cache._cache_set("k", "v", None)
 
 
 def _patch_amake(monkeypatch, return_value, counter):
@@ -166,7 +145,6 @@ def test_cached_request_bypass(temp_cache, monkeypatch):
     result = asyncio.run(temp_cache.cached_request("http://x", use_cache=False))
     assert result == {"ok": 1}
     assert len(calls) == 1
-    # Nothing stored.
     assert temp_cache._cache_get(temp_cache._make_key("http://x")) is None
 
 
@@ -177,7 +155,7 @@ def test_cached_request_miss_then_hit(temp_cache, monkeypatch):
     first = asyncio.run(temp_cache.cached_request("http://x"))
     second = asyncio.run(temp_cache.cached_request("http://x"))
     assert first == second == {"ok": 1}
-    assert len(calls) == 1  # transport only invoked once
+    assert len(calls) == 1
 
 
 def test_cached_request_empty_not_stored(temp_cache, monkeypatch):
@@ -196,9 +174,60 @@ def test_cached_request_post(temp_cache, monkeypatch):
     assert calls == [("http://x", "POST")]
 
 
-# ---------------------------------------------------------------------------
-# cached_text / cached_bytes (sync, make_request)
-# ---------------------------------------------------------------------------
+class _FakeAsyncResponse:
+    def __init__(self, status=200, json_data=None, text_data="", headers=None):
+        self.status = status
+        self._json = json_data
+        self._text = text_data
+        self.headers = headers or {}
+
+    async def json(self):
+        return self._json
+
+    async def text(self, encoding=None):
+        return self._text
+
+
+def _patch_amake_callback(monkeypatch, response):
+    """Mock transport that invokes the response callback, like the real one."""
+
+    async def _fake(url, method="GET", response_callback=None, **kwargs):
+        return await response_callback(response, None)
+
+    monkeypatch.setattr(
+        "openbb_core.provider.utils.helpers.amake_request", _fake, raising=False
+    )
+
+
+def test_cached_request_default_callback_success(temp_cache, monkeypatch):
+    """A 2xx response with no caller callback is parsed as JSON and cached."""
+    _patch_amake_callback(monkeypatch, _FakeAsyncResponse(200, {"ok": 1}))
+    result = asyncio.run(temp_cache.cached_request("http://x"))
+    assert result == {"ok": 1}
+    assert temp_cache._cache_get(temp_cache._make_key("http://x")) == {"ok": 1}
+
+
+def test_cached_request_user_callback(temp_cache, monkeypatch):
+    """A caller-supplied callback is used for a successful response."""
+    _patch_amake_callback(monkeypatch, _FakeAsyncResponse(200, {"v": 2}))
+
+    async def callback(response, _session):
+        return await response.json()
+
+    result = asyncio.run(
+        temp_cache.cached_request("http://x", response_callback=callback)
+    )
+    assert result == {"v": 2}
+
+
+def test_cached_request_failed_not_cached(temp_cache, monkeypatch):
+    """A failed (non-2xx) response raises and is never cached."""
+    from openbb_core.app.model.abstract.error import OpenBBError
+
+    _patch_amake_callback(monkeypatch, _FakeAsyncResponse(503))
+    with pytest.raises(OpenBBError):
+        asyncio.run(temp_cache.cached_request("http://x"))
+    assert temp_cache._cache_get(temp_cache._make_key("http://x")) is None
 
 
 class _FakeResponse:
@@ -270,11 +299,6 @@ def test_cached_bytes_no_raise_for_status(temp_cache, monkeypatch):
     """raise_for_status=False returns the body even on an error response."""
     _patch_make(monkeypatch, _FakeResponse(content=b"x", status_ok=False), [])
     assert temp_cache.cached_bytes("http://x", raise_for_status=False) == b"x"
-
-
-# ---------------------------------------------------------------------------
-# aget_cached / aset_cached / clear_cache
-# ---------------------------------------------------------------------------
 
 
 def test_aget_aset_roundtrip(temp_cache):

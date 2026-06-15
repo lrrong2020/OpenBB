@@ -18,6 +18,7 @@ from openbb_sec.models.compare_company_facts import SecCompareCompanyFactsFetche
 from openbb_sec.models.equity_ftd import SecEquityFtdFetcher
 from openbb_sec.models.equity_search import SecEquitySearchFetcher
 from openbb_sec.models.form_13FHR import SecForm13FHRFetcher
+from openbb_sec.models.full_text_search import SecFullTextSearchFetcher
 from openbb_sec.models.htm_file import SecHtmFileFetcher
 from openbb_sec.models.income_statement import SecIncomeStatementFetcher
 from openbb_sec.models.income_statement_growth import SecIncomeStatementGrowthFetcher
@@ -28,9 +29,24 @@ from openbb_sec.models.management_discussion_analysis import (
     SecManagementDiscussionAnalysisFetcher,
 )
 from openbb_sec.models.nport_disclosure import SecNportDisclosureFetcher
+from openbb_sec.models.nport_fund_metrics import SecNportFundMetricsFetcher
 from openbb_sec.models.rss_litigation import SecRssLitigationFetcher
 from openbb_sec.models.schema_files import SecSchemaFilesFetcher
+from openbb_sec.models.sec_as_filed_statements import SecAsFiledStatementsFetcher
+from openbb_sec.models.sec_beneficial_ownership import SecBeneficialOwnershipFetcher
+from openbb_sec.models.sec_company_overview import SecCompanyOverviewFetcher
+from openbb_sec.models.sec_disclosures import SecDisclosuresFetcher
+from openbb_sec.models.sec_executive_compensation import (
+    SecExecutiveCompensationFetcher,
+)
 from openbb_sec.models.sec_filing import SecFilingFetcher
+from openbb_sec.models.sec_legal_proceedings import SecLegalProceedingsFetcher
+from openbb_sec.models.sec_management_ownership import SecManagementOwnershipFetcher
+from openbb_sec.models.sec_pay_versus_performance import (
+    SecPayVersusPerformanceFetcher,
+)
+from openbb_sec.models.sec_risk_factors import SecRiskFactorsFetcher
+from openbb_sec.models.sec_segment_revenue import SecSegmentRevenueFetcher
 from openbb_sec.models.sic_search import SecSicSearchFetcher
 from openbb_sec.models.symbol_map import SecSymbolMapFetcher
 from openbb_sec.utils.company_facts import resolve_company_facts
@@ -75,6 +91,26 @@ def test_sec_nport_disclosure_fetcher(credentials=test_credentials):
     params = {"symbol": "DIA", "year": 2025, "quarter": 1, "use_cache": False}
 
     fetcher = SecNportDisclosureFetcher()
+    result = fetcher.test(params, credentials)
+    assert result is None
+
+
+@pytest.mark.record_http
+def test_sec_nport_fund_metrics_fetcher(credentials=test_credentials):
+    """Test the SEC NPORT Fund Metrics fetcher."""
+    params = {"symbol": "XLK", "use_cache": False}
+
+    fetcher = SecNportFundMetricsFetcher()
+    result = fetcher.test(params, credentials)
+    assert result is None
+
+
+@pytest.mark.record_http
+def test_sec_full_text_search_fetcher(credentials=test_credentials):
+    """Test the SEC Full-Text Search fetcher."""
+    params = {"query": "climate change", "form_type": "8-K", "limit": 10}
+
+    fetcher = SecFullTextSearchFetcher()
     result = fetcher.test(params, credentials)
     assert result is None
 
@@ -132,7 +168,7 @@ def test_sec_institutions_search_fetcher(credentials=test_credentials):
 @pytest.mark.record_http
 def test_sec_rss_litigation_fetcher(credentials=test_credentials):
     """Test the SEC RSS Litigation fetcher."""
-    params = {}
+    params = {"limit": 2}
 
     fetcher = SecRssLitigationFetcher()
     result = fetcher.test(params, credentials)
@@ -343,3 +379,45 @@ def test_sec_cash_flow_growth_fetcher(blk_facts, credentials=test_credentials):
     ):
         result = fetcher.test(params, credentials)
     assert result is None
+
+
+@pytest.mark.record_http
+def test_sec_filing_section_fetchers(credentials=test_credentials):
+    """Test the filing-section fetchers against one shared 10-K filing.
+
+    All section fetchers resolve to the same filing, which is parsed once
+    (memoized by URL), so the shared cassette records the filing a single time.
+    """
+    params = {
+        "symbol": "WDFC",
+        "calendar_year": 2024,
+        "calendar_period": "Q3",
+        "use_cache": False,
+    }
+
+    assert SecDisclosuresFetcher().test(params, credentials) is None
+    assert SecRiskFactorsFetcher().test(params, credentials) is None
+    assert SecCompanyOverviewFetcher().test(params, credentials) is None
+    assert SecSegmentRevenueFetcher().test(params, credentials) is None
+    assert SecLegalProceedingsFetcher().test(params, credentials) is None
+    assert (
+        SecAsFiledStatementsFetcher().test(
+            {**params, "statement_type": "balance"}, credentials
+        )
+        is None
+    )
+
+
+@pytest.mark.record_http
+def test_sec_proxy_statement_fetchers(credentials=test_credentials):
+    """Test the DEF 14A-based fetchers against one shared proxy statement.
+
+    All proxy fetchers resolve to the same DEF 14A, downloaded once (cached by
+    URL), so the shared cassette records the filing a single time.
+    """
+    params = {"symbol": "CAT", "calendar_year": 2024, "use_cache": False}
+
+    assert SecBeneficialOwnershipFetcher().test(params, credentials) is None
+    assert SecManagementOwnershipFetcher().test(params, credentials) is None
+    assert SecExecutiveCompensationFetcher().test(params, credentials) is None
+    assert SecPayVersusPerformanceFetcher().test(params, credentials) is None

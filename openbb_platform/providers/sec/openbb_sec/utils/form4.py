@@ -171,7 +171,7 @@ async def get_form_4_data(url) -> dict:
     """Get the form 4 data."""
     from warnings import warn  # noqa
     from xmltodict import parse
-    from openbb_core.provider.utils.helpers import amake_request
+    from openbb_sec.utils.ratelimit import sec_amake_request as amake_request
 
     async def response_callback(response, _):
         """Response callback function."""
@@ -183,7 +183,7 @@ async def get_form_4_data(url) -> dict:
         response_callback=response_callback,
         timeout=30,
     )
-    response_text = response.decode("utf-8")  # ty: ignore[unresolved-attribute]
+    response_text = response.decode("utf-8")
 
     if "Traffic Limit" in response_text:
         raise OpenBBError(

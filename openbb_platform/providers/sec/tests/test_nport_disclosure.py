@@ -115,7 +115,6 @@ class TestNportExtract:
 
         q = SecNportDisclosureQueryParams(symbol="DIA", use_cache=False)
         out = _run(SecNportDisclosureFetcher.aextract_data(q, None))
-        # No year/quarter -> first (most recent) candidate doc is fetched.
         assert captured["url"] == "https://sec.gov/a.xml"
         assert out["edgarSubmission"]["headerData"]["submissionType"] == "NPORT-P"
 
@@ -131,7 +130,6 @@ class TestNportExtract:
         async def fake_cached(url, **kwargs):
             return _NPORT_XML
 
-        # Skip the 1s backoff between retries.
         async def no_sleep(*args, **kwargs):
             return None
 
@@ -149,8 +147,7 @@ class TestNportExtract:
         assert "edgarSubmission" in out
 
     def test_candidate_lookup_retries_exhausted_reraises(self, monkeypatch):
-        # Every attempt fails -> the two interim failures warn-and-retry, and
-        # after the final attempt the original error is re-raised (line 270).
+        """Exhausted retries re-raise the original error after warnings."""
         state = {"n": 0}
 
         async def always_fail(symbol, use_cache=True):
@@ -172,7 +169,6 @@ class TestNportExtract:
         with pytest.warns(Warning, match="Retrying"):
             with pytest.raises(RuntimeError, match="RemoteDisconnected"):
                 _run(SecNportDisclosureFetcher.aextract_data(q, None))
-        # 3 attempts total: 2 warned retries + the final re-raise.
         assert state["n"] == 3
 
     def test_year_quarter_nearest_date(self, monkeypatch):
@@ -191,7 +187,6 @@ class TestNportExtract:
             SecNportDisclosureQueryParams,
         )
 
-        # 2025-Q1 quarter-end matches the 2025-03-31 candidate exactly.
         q = SecNportDisclosureQueryParams(
             symbol="DIA", year=2025, quarter=1, use_cache=False
         )
@@ -200,10 +195,8 @@ class TestNportExtract:
         assert "edgarSubmission" in out
 
     def test_year_only_infers_quarter_from_string_dates(self, monkeypatch):
-        # year supplied without quarter -> the quarter is inferred from the
-        # candidate ``period_ending`` values, which arrive as strings. Computing
-        # ``max(dates).year`` on raw strings raised AttributeError, so the dates
-        # must be coerced to datetimes before reading ``.year``.
+        """A year without a quarter infers the quarter from string dates."""
+
         async def fake_cached(url, **kwargs):
             return _NPORT_XML
 
@@ -218,7 +211,6 @@ class TestNportExtract:
 
         q = SecNportDisclosureQueryParams(symbol="DIA", year=2025, use_cache=False)
         out = _run(SecNportDisclosureFetcher.aextract_data(q, None))
-        # 2025 == latest candidate year -> Q1 inferred; a.xml (2025-03-31) chosen.
         assert "edgarSubmission" in out
 
 
@@ -232,7 +224,7 @@ class TestNportTransformDataGuards:
             )
 
     def test_non_nport_payload_returns_empty_result(self):
-        # No holdings parsed, no metadata -> empty result, empty metadata.
+        """A submission with no holdings yields an empty result and metadata."""
         response = {
             "edgarSubmission": {
                 "headerData": {"submissionType": "NPORT-P"},
@@ -284,11 +276,9 @@ class TestNportHoldings:
         assert d["asset_conditional"] == "asset-desc"
         assert d["maturity_date"] == date(2030, 1, 1)
         assert d["coupon_kind"] == "Fixed"
-        # annualized_return normalized to a fraction
         assert d["annualized_return"] == pytest.approx(0.035)
         assert d["exchange_currency"] == "EUR"
         assert d["exchange_rate"] == 1.1
-        # weight normalized
         assert d["weight"] == pytest.approx(0.05)
 
     def test_option_derivative(self):
@@ -327,7 +317,6 @@ class TestNportHoldings:
         assert d["exercise_price"] == 10.0
         assert d["exercise_currency"] == "USD"
         assert d["shares_per_contract"] == 100.0
-        # delta == "XXXX" sentinel is skipped
         assert "delta" not in d
         assert d["unrealized_gain"] == 12.5
 
@@ -364,7 +353,6 @@ class TestNportHoldings:
         assert d["underlying_name"] == "SPX"
         assert d["other_id"] == "IDIDX"
         assert d["payoff_profile"] == "Long"
-        # expDate fallback used when expDt absent
         assert d["expiry_date"] == date(2026, 3, 31)
         assert d["notional_amount"] == 5000.0
         assert d["notional_currency"] == "USD"
@@ -481,8 +469,7 @@ class TestNportHoldings:
         assert d["unrealized_gain"] == 3.0
 
     def test_swap_derivative_with_other_ref_instrument(self):
-        # descRefInstrmnt carries otherRefInst (not indexBasketInfo), so the
-        # underlying name comes from issueTitle.
+        """A swap's underlying name comes from otherRefInst issueTitle."""
         swap = {
             "name": "SwapHld2",
             "pctVal": "0.25",
@@ -514,11 +501,10 @@ class TestNportHoldings:
         )
         assert d["derivative_category"] == "SWP"
         assert d["underlying_name"] == "SwapUnder"
-        # No indexBasketInfo -> other_id stays unset.
         assert "other_id" not in d
 
     def test_option_derivative_with_numeric_delta(self):
-        # A non-"XXXX" delta is retained and normalized to a fraction.
+        """A numeric delta is retained rather than dropped as the sentinel."""
         opt = {
             "name": "OptHld2",
             "pctVal": "2.0",
@@ -541,7 +527,6 @@ class TestNportHoldings:
             },
         }
         d = _transform_nport(_wrap_nport([opt])).result[0].model_dump(exclude_none=True)
-        # delta is retained as-is (not the "XXXX" sentinel that gets skipped).
         assert d["delta"] == "0.5"
 
     def test_repurchase_agreement(self):
@@ -646,13 +631,11 @@ class TestNportMetadata:
         assert meta["total_liabilities"] == 50_000.0
         assert meta["net_assets"] == 950_000.0
         assert meta["cash_and_equivalents"] == "1234"
-        # Returns keyed by the three month-end dates, normalized to fractions
         assert meta["returns"] == {
             "2025-01-31": pytest.approx(0.01),
             "2025-02-28": pytest.approx(0.02),
             "2025-03-31": pytest.approx(0.03),
         }
-        # Flow + gains structures
         assert meta["flow"]["2025-03-31"] == {
             "creation": 120.0,
             "redemption": 60.0,
@@ -663,9 +646,33 @@ class TestNportMetadata:
         }
         assert meta["borrowers"] == [{"name": "B1", "lei": "BLEI", "value": 999.0}]
 
+    def test_multi_class_monthly_returns_uses_first(self):
+        """Multiple share classes (list of monthlyTotReturn) use the first class."""
+        fund_info = self._fund_info()
+        fund_info["returnInfo"]["monthlyTotReturns"]["monthlyTotReturn"] = [
+            {"@rtn1": "1.0", "@rtn2": "2.0", "@rtn3": "3.0"},
+            {"@rtn1": "9.0", "@rtn2": "9.0", "@rtn3": "9.0"},
+        ]
+        holding = {"name": "Hld", "pctVal": "5.0", "valUSD": "1000", "identifiers": {}}
+        res = _transform_nport(
+            _wrap_nport([holding], fund_info=fund_info, gen_info=self._gen_info())
+        )
+        assert res.metadata["returns"]["2025-01-31"] == pytest.approx(0.01)
+
+    def test_single_holding_dict_is_wrapped(self):
+        """A single holding (dict, not list) is wrapped into a one-row table."""
+        holding = {
+            "name": "Solo",
+            "pctVal": "100.0",
+            "valUSD": "1000",
+            "identifiers": {},
+        }
+        res = _transform_nport(_wrap_nport(holding))
+        assert len(res.result) == 1
+        assert res.result[0].name == "Solo"
+
     def test_metadata_extraction_error_warns(self):
-        # fundInfo present but missing returnInfo -> the metadata block raises
-        # internally and is caught with a warning, leaving partial metadata.
+        """A metadata-block error is caught and warns, leaving partial metadata."""
         holding = {
             "name": "Hld",
             "pctVal": "5.0",
@@ -686,5 +693,105 @@ class TestNportMetadata:
                     gen_info=self._gen_info(),
                 )
             )
-        # genInfo-derived metadata still made it in before the failure.
         assert res.metadata["fund_name"] == "Test Fund"
+
+
+class TestNportNewBranches:
+    """N-MFP routing, date selection, and blank-string nulling."""
+
+    def _nmfp(self, schedule):
+        """Wrap a money market schedule in an N-MFP submission envelope."""
+        return {
+            "edgarSubmission": {
+                "headerData": {"submissionType": "N-MFP3"},
+                "formData": {
+                    "generalInfo": {
+                        "nameOfSeries": "MMF",
+                        "seriesId": "S1",
+                        "reportDate": "2026-05-31",
+                    },
+                    "seriesLevelInfo": {"netAssetOfSeries": "100"},
+                    "scheduleOfPortfolioSecuritiesInfo": schedule,
+                },
+            }
+        }
+
+    def test_nmfp_routed_to_parser(self):
+        """An N-MFP submission is parsed via the money market branch."""
+        res = _transform_nport(
+            self._nmfp(
+                [
+                    {
+                        "nameOfIssuer": "T-Bill",
+                        "includingValueOfAnySponsorSupport": "10",
+                        "percentageOfMoneyMarketFundNetAssets": "0.5",
+                    }
+                ]
+            )
+        )
+        assert len(res.result) == 1
+        assert res.result[0].name == "T-Bill"
+        assert res.metadata["fund_name"] == "MMF"
+
+    def test_nmfp_no_holdings_raises(self):
+        """An N-MFP submission with no holdings raises EmptyDataError."""
+        with pytest.raises(EmptyDataError):
+            _transform_nport(self._nmfp(None))
+
+    def test_blank_strings_nulled(self):
+        """Whitespace-only holding fields become None so empty columns drop."""
+        holding = {
+            "name": "Hld",
+            "pctVal": "5.0",
+            "valUSD": "1000",
+            "curCd": "   ",
+            "identifiers": {},
+        }
+        row = _transform_nport(_wrap_nport([holding])).result[0]
+        assert row.model_dump()["currency"] is None
+
+    def test_date_exact_match(self, monkeypatch):
+        """A requested date selects the matching filing period."""
+        captured = {}
+
+        class _Resp:
+            async def read(self):
+                return _NPORT_XML
+
+        async def fake_cached(url, response_callback=None, **kwargs):
+            captured["url"] = url
+            return await response_callback(_Resp(), None)
+
+        monkeypatch.setattr(
+            "openbb_sec.utils.helpers.get_nport_candidates",
+            _async_return(_nport_candidates()),
+        )
+        monkeypatch.setattr("openbb_sec.utils.cache.cached_request", fake_cached)
+        from openbb_sec.models.nport_disclosure import SecNportDisclosureQueryParams
+
+        q = SecNportDisclosureQueryParams(
+            symbol="DIA", date=date(2024, 12, 31), use_cache=False
+        )
+        _run(SecNportDisclosureFetcher.aextract_data(q, None))
+        assert captured["url"] == "https://sec.gov/b.xml"
+
+    def test_date_no_match_falls_back_to_latest(self, monkeypatch):
+        """An unmatched date falls back to the most recent filing."""
+        captured = {}
+
+        async def fake_cached(url, **kwargs):
+            captured["url"] = url
+            return _NPORT_XML
+
+        monkeypatch.setattr(
+            "openbb_sec.utils.helpers.get_nport_candidates",
+            _async_return(_nport_candidates()),
+        )
+        monkeypatch.setattr("openbb_sec.utils.cache.cached_request", fake_cached)
+        from openbb_sec.models.nport_disclosure import SecNportDisclosureQueryParams
+
+        q = SecNportDisclosureQueryParams(
+            symbol="DIA", date=date(2020, 1, 1), use_cache=False
+        )
+        _run(SecNportDisclosureFetcher.aextract_data(q, None))
+        assert captured["url"] == "https://sec.gov/a.xml"

@@ -16,6 +16,27 @@ class SecForm13FHRQueryParams(Form13FHRQueryParams):
     Source: https://www.sec.gov/Archives/edgar/data/
     """
 
+    __json_schema_extra__ = {
+        "symbol": {
+            "x-widget_config": {
+                "label": "13F Filer",
+                "type": "endpoint",
+                "optionsEndpoint": "/api/v1/sec/13f_filers",
+                "style": {"popupWidth": 600},
+                "description": "Pick a 13F filer - an institutional investment"
+                " manager or a company - by name.",
+            }
+        },
+        "date": {
+            "x-widget_config": {
+                "label": "Filing Period",
+                "type": "endpoint",
+                "optionsEndpoint": "/api/v1/sec/13f_periods",
+                "optionsParams": {"symbol": "$symbol"},
+            }
+        },
+    }
+
 
 class SecForm13FHRData(Form13FHRData):
     """SEC Form 13F-HR Data."""

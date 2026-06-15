@@ -5,7 +5,6 @@ from datetime import (
     datetime,
 )
 from typing import Any
-from warnings import warn
 
 from openbb_core.app.model.abstract.error import OpenBBError
 from openbb_core.provider.abstract.fetcher import Fetcher
@@ -27,10 +26,24 @@ class SecCompanyFilingsQueryParams(CompanyFilingsQueryParams):
     """
 
     __json_schema_extra__ = {
+        "symbol": {
+            "x-widget_config": {
+                "type": "endpoint",
+                "optionsEndpoint": "/api/v1/sec/companies",
+                "style": {"popupWidth": 950},
+            }
+        },
         "form_type": {
             "multiple_items_allowed": True,
             "choices": FORM_LIST,
-        }
+            "x-widget_config": {
+                "type": "endpoint",
+                "optionsEndpoint": "/api/v1/sec/form_types",
+                "optionsParams": {"symbol": "$symbol"},
+                "multiSelect": False,
+                "style": {"popupWidth": 950},
+            },
+        },
     }
 
     cik: str | int | None = Field(
@@ -61,7 +74,7 @@ class SecCompanyFilingsQueryParams(CompanyFilingsQueryParams):
     @field_validator("form_type", mode="before", check_fields=False)
     @classmethod
     def validate_form_type(cls, v):
-        """Validate form_type."""
+        """Normalize form_type, accepting catalog and live EDGAR form codes."""
         if not v:
             return None
         if isinstance(v, str):
@@ -70,23 +83,12 @@ class SecCompanyFilingsQueryParams(CompanyFilingsQueryParams):
             forms = v
         else:
             raise OpenBBError("Unexpected form_type value.")
-        new_forms: list = []
-        messages: list = []
-        for form in forms:
-            if form.upper() in FORM_LIST:
-                new_forms.append(form.upper())
-            else:
-                messages.append(f"Invalid form type: {form}")
-
-        if not new_forms:
-            raise OpenBBError(
-                f"No valid forms provided -> {', '.join(messages)} -> Valid forms: {', '.join(FORM_LIST)}"
-            )
-
-        if new_forms and messages:
-            warn("\n ".join(messages))
-
-        return ",".join(new_forms) if len(new_forms) > 1 else new_forms[0]
+        normalized = [
+            form.upper() if form.upper() in FORM_LIST else form
+            for form in (item.strip() for item in forms)
+            if form
+        ]
+        return ",".join(normalized) if normalized else None
 
 
 class SecCompanyFilingsData(CompanyFilingsData):

@@ -57,6 +57,51 @@ def test_get_13f_candidates_no_filings_symbol_branch():
             asyncio.run(parse_13f.get_13f_candidates(symbol="AAPL"))
 
 
+def test_get_13f_candidates_returns_filings():
+    """Filings return as a report-date-indexed URL series; pre-2013 dropped."""
+    from datetime import date
+    from types import SimpleNamespace
+
+    def _mk(report_date, url):
+        return SimpleNamespace(
+            model_dump=lambda rd=report_date, u=url: {
+                "report_date": rd,
+                "complete_submission_url": u,
+            }
+        )
+
+    class _Fetcher:
+        async def fetch_data(self, params, creds):
+            return [
+                _mk(date(2023, 9, 30), "https://sec.gov/new.txt"),
+                _mk(date(2010, 3, 31), "https://sec.gov/old.txt"),
+            ]
+
+    with patch("openbb_sec.models.company_filings.SecCompanyFilingsFetcher", _Fetcher):
+        out = asyncio.run(parse_13f.get_13f_candidates(symbol="BRK-A"))
+    assert out.loc[date(2023, 9, 30)] == "https://sec.gov/new.txt"
+    assert date(2010, 3, 31) not in out.index
+
+
+def test_get_complete_submission_uses_amake_request(monkeypatch):
+    """get_complete_submission calls the rate-limited request with the callback."""
+    captured = {}
+
+    async def _amake(url, **kwargs):
+        captured["url"] = url
+        captured["kwargs"] = kwargs
+        return "FILING TEXT"
+
+    monkeypatch.setattr("openbb_sec.utils.ratelimit.sec_amake_request", _amake)
+    out = asyncio.run(parse_13f.get_complete_submission("https://sec.gov/x.txt"))
+    assert out == "FILING TEXT"
+    assert captured["url"] == "https://sec.gov/x.txt"
+    assert (
+        captured["kwargs"]["response_callback"]
+        is parse_13f.complete_submission_callback
+    )
+
+
 def test_complete_submission_callback_status():
     """complete_submission_callback returns text on 200, raises otherwise."""
 
@@ -184,8 +229,67 @@ def test_parse_13f_hr_url_fetches_submission():
         return _INFO_TABLE_XML
 
     with patch.object(parse_13f, "get_complete_submission", _fake_get):
-        records = asyncio.run(parse_13f.parse_13f_hr("https://sec.gov/filing.txt"))
+        records = asyncio.run(
+            parse_13f.parse_13f_hr("https://sec.gov/filing.txt", use_cache=False)
+        )
     assert len(records) == 2
+
+
+def test_parse_13f_hr_url_cache_hit(monkeypatch):
+    """A cached parse is returned without downloading the filing."""
+
+    async def _aget(key):
+        return [{"value": 1}]
+
+    async def _boom(url):
+        raise AssertionError("should not download on a cache hit")
+
+    monkeypatch.setattr("openbb_sec.utils.cache.aget_cached", _aget)
+    monkeypatch.setattr(parse_13f, "get_complete_submission", _boom)
+    records = asyncio.run(parse_13f.parse_13f_hr("https://sec.gov/x.txt"))
+    assert records == [{"value": 1}]
+
+
+def test_parse_13f_hr_url_cache_write(monkeypatch):
+    """A freshly parsed URL filing is written to the cache."""
+    saved: dict = {}
+
+    async def _aget(key):
+        return None
+
+    async def _aset(key, value, expire=None):
+        saved["key"] = key
+        saved["value"] = value
+
+    async def _fake_get(url):
+        return _INFO_TABLE_XML
+
+    monkeypatch.setattr("openbb_sec.utils.cache.aget_cached", _aget)
+    monkeypatch.setattr("openbb_sec.utils.cache.aset_cached", _aset)
+    monkeypatch.setattr(parse_13f, "get_complete_submission", _fake_get)
+    records = asyncio.run(parse_13f.parse_13f_hr("https://sec.gov/x.txt"))
+    assert len(records) == 2
+    assert saved["key"] == "GET https://sec.gov/x.txt ::13f-parsed"
+    assert saved["value"] == records
+
+
+def test_parse_13f_hr_period_regex_fallback():
+    """A period tag the fast regex misses falls back to header parsing."""
+    xml = (
+        '<?xml version="1.0"?>\n<edgarSubmission>\n'
+        "<headerData><filerInfo>"
+        "<periodOfReport >03-31-2023</periodOfReport>"
+        "</filerInfo></headerData>\n"
+        "<informationTable><infoTable>"
+        "<nameOfIssuer>X CORP</nameOfIssuer><titleOfClass>COM</titleOfClass>"
+        "<cusip>000000000</cusip><value>10</value>"
+        "<shrsOrPrnAmt><sshPrnamt>5</sshPrnamt><sshPrnamtType>SH</sshPrnamtType>"
+        "</shrsOrPrnAmt><investmentDiscretion>SOLE</investmentDiscretion>"
+        "<votingAuthority><Sole>5</Sole></votingAuthority>"
+        "</infoTable></informationTable>\n</edgarSubmission>"
+    )
+    records = asyncio.run(parse_13f.parse_13f_hr(xml))
+    assert str(records[0]["period_ending"]) == "2023-03-31"
 
 
 def test_parse_13f_hr_single_info_table():

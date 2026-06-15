@@ -1,18 +1,4 @@
-"""Unified disk cache for the SEC provider.
-
-A single, settings-configurable, size-bounded cache backed by ``diskcache``
-that replaces the assorted per-endpoint SQLite and in-memory caches previously
-scattered across the package. Every cached SEC response lives under
-``{cache_directory}/sec`` and shares one LRU-evicted store whose maximum size is
-configurable through the ``OPENBB_SEC_CACHE_SIZE_LIMIT`` environment variable
-(bytes, or a human-friendly string such as ``"8GB"``).
-
-The transport layer is unchanged: requests still go through
-``openbb_core.provider.utils.helpers.amake_request`` and ``make_request``. This
-module only adds a persistent cache in front of them. ``diskcache`` is
-synchronous, so async call sites run cache I/O in a worker thread via
-``asyncio.to_thread`` to keep the event loop unblocked.
-"""
+"""Unified disk cache for the SEC provider."""
 
 import asyncio
 import contextlib
@@ -23,20 +9,14 @@ from typing import TYPE_CHECKING, Any, Literal
 if TYPE_CHECKING:
     from diskcache import FanoutCache
 
-# Name of the environment variable that overrides the cache size limit.
 SIZE_LIMIT_ENV_VAR = "OPENBB_SEC_CACHE_SIZE_LIMIT"
 
-# 8 GiB default. The SEC corpus (company facts, filings, frames) is large and
-# the user opted for a cache that may grow to a substantial size.
+CACHE_DIR_ENV_VAR = "OPENBB_SEC_CACHE_DIR"
+
 DEFAULT_SIZE_LIMIT = 8 * 1024**3
 
-# Number of SQLite shards. Sharding reduces write contention when many requests
-# resolve concurrently (the package fans out heavily with ``asyncio.gather``).
 _CACHE_SHARDS = 8
 
-# Per-operation SQLite lock timeout, in seconds. Cache ops run in worker
-# threads, so a modest wait trades a little latency for fewer spurious misses
-# under contention; ``FanoutCache`` degrades to a miss rather than raising.
 _CACHE_TIMEOUT = 1.0
 
 _cache: "FanoutCache | None" = None
@@ -70,6 +50,10 @@ def get_size_limit() -> int:
 
 def get_cache_directory() -> str:
     """Return the root directory of the unified SEC cache."""
+    override = os.environ.get(CACHE_DIR_ENV_VAR)
+    if override:
+        return os.path.abspath(os.path.expanduser(override))
+
     from openbb_core.app.utils import get_user_cache_directory
 
     return os.path.join(get_user_cache_directory(), "sec")
@@ -104,10 +88,7 @@ def _is_empty(value: Any) -> bool:
 
 
 def _cache_set(key: str, value: Any, expire: "float | None") -> None:
-    """Write a value to the cache, swallowing backend errors.
-
-    A cache write failure must never break the request that produced the value.
-    """
+    """Write a value to the cache, swallowing backend errors."""
     with contextlib.suppress(Exception):
         get_cache().set(key, value, expire=expire, retry=True)
 
@@ -134,11 +115,9 @@ async def cached_request(
     url : str
         The URL to request.
     use_cache : bool
-        When False, bypass the cache entirely and call ``amake_request``
-        directly. Defaults to True.
+        When False, bypass the cache entirely and call ``amake_request`` directly.
     expire : float | None
-        Seconds until the cached entry expires. ``None`` (default) persists the
-        entry until evicted by the size limit.
+        Seconds until the cached entry expires. ``None`` persists until evicted.
     method : str
         HTTP method, by default ``"GET"``.
     **kwargs
@@ -148,9 +127,23 @@ async def cached_request(
     Returns
     -------
     Any
-        The parsed response (the value returned by ``amake_request``).
+        The parsed response.
     """
-    from openbb_core.provider.utils.helpers import amake_request
+    from openbb_core.app.model.abstract.error import OpenBBError
+
+    from openbb_sec.utils.ratelimit import sec_amake_request as amake_request
+
+    user_callback = kwargs.pop("response_callback", None)
+
+    async def _checked_callback(response: Any, session: Any) -> Any:
+        status = getattr(response, "status", 200)
+        if status >= 400:
+            raise OpenBBError(f"SEC request failed with HTTP {status}: {url}")
+        if user_callback is not None:
+            return await user_callback(response, session)
+        return await response.json()
+
+    kwargs["response_callback"] = _checked_callback
 
     if not use_cache:
         return await amake_request(url, method=method, **kwargs)
@@ -181,11 +174,11 @@ def cached_text(
     url : str
         The URL to request.
     use_cache : bool
-        When False, bypass the cache entirely. Defaults to True.
+        When False, bypass the cache entirely.
     expire : float | None
         Seconds until the cached entry expires. ``None`` persists until evicted.
     raise_for_status : bool
-        Raise for non-2xx responses before caching. Defaults to True.
+        Raise for non-2xx responses before caching.
     **kwargs
         Forwarded to ``make_request`` (e.g. ``headers``, ``timeout``).
 
@@ -194,7 +187,7 @@ def cached_text(
     str
         The response body text.
     """
-    from openbb_core.provider.utils.helpers import make_request
+    from openbb_sec.utils.ratelimit import sec_make_request as make_request
 
     key = _make_key(url, suffix=" ::text")
     if use_cache:
@@ -219,22 +212,18 @@ def cached_bytes(
     raise_for_status: bool = True,
     **kwargs: Any,
 ) -> bytes:
-    """Fetch a URL's raw body through ``make_request`` with disk caching.
-
-    Mirrors :func:`cached_text` but returns the response ``content`` as bytes,
-    for binary resources such as XBRL schema and linkbase files (which are
-    immutable per filing and benefit most from a persistent cache).
+    """Fetch a URL's raw body (bytes) through ``make_request`` with disk caching.
 
     Parameters
     ----------
     url : str
         The URL to request.
     use_cache : bool
-        When False, bypass the cache entirely. Defaults to True.
+        When False, bypass the cache entirely.
     expire : float | None
         Seconds until the cached entry expires. ``None`` persists until evicted.
     raise_for_status : bool
-        Raise for non-2xx responses before caching. Defaults to True.
+        Raise for non-2xx responses before caching.
     **kwargs
         Forwarded to ``make_request`` (e.g. ``headers``, ``timeout``).
 
@@ -243,7 +232,7 @@ def cached_bytes(
     bytes
         The response body as raw bytes.
     """
-    from openbb_core.provider.utils.helpers import make_request
+    from openbb_sec.utils.ratelimit import sec_make_request as make_request
 
     key = _make_key(url, suffix=" ::bytes")
     if use_cache:
@@ -261,12 +250,7 @@ def cached_bytes(
 
 
 async def aget_cached(key: str) -> Any:
-    """Read a value from the SEC cache by key, off the event loop.
-
-    For callers that cache parsed or derived values keyed by something other than
-    a plain request URL (e.g. Form 4 rows keyed by filing URL). Returns ``None``
-    on a miss.
-    """
+    """Read a value from the SEC cache by key, off the event loop."""
     return await asyncio.to_thread(_cache_get, key)
 
 

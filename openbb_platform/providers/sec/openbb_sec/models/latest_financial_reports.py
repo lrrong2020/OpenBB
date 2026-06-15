@@ -36,7 +36,15 @@ class SecLatestFinancialReportsQueryParams(LatestFinancialReportsQueryParams):
     """
 
     __json_schema_extra__ = {
-        "report_type": {"multiple_items_allowed": True, "choices": report_type_choices}
+        "report_type": {
+            "multiple_items_allowed": True,
+            "choices": report_type_choices,
+            "x-widget_config": {
+                "type": "endpoint",
+                "optionsEndpoint": "/api/v1/sec/report_types",
+                "multiSelect": False,
+            },
+        }
     }
 
     date: dateType | None = Field(

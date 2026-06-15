@@ -45,14 +45,12 @@ class TestCompanyFilingsQuery:
     def test_empty_form_returns_none(self):
         assert SecCompanyFilingsQueryParams(form_type="").form_type is None
 
-    def test_partial_invalid_warns_and_keeps_valid(self):
-        with pytest.warns(Warning, match="Invalid form type: BOGUS"):
-            qp = SecCompanyFilingsQueryParams(form_type="10-K,BOGUS")
-        assert qp.form_type == "10-K"
+    def test_catalog_and_live_codes_kept(self):
+        qp = SecCompanyFilingsQueryParams(form_type="10-K,BOGUS")
+        assert qp.form_type == "10-K,BOGUS"
 
-    def test_all_invalid_raises(self):
-        with pytest.raises(OpenBBError, match="No valid forms"):
-            SecCompanyFilingsQueryParams(form_type="BOGUS")
+    def test_live_code_accepted(self):
+        assert SecCompanyFilingsQueryParams(form_type="BOGUS").form_type == "BOGUS"
 
     def test_unexpected_type_raises(self):
         with pytest.raises(OpenBBError, match="Unexpected form_type value"):

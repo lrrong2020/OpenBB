@@ -17,8 +17,8 @@ def obb(pytestconfig):
 @pytest.mark.parametrize(
     "params",
     [
-        ({"symbol": "TSLA", "provider": "sec", "use_cache": None}),
-        ({"symbol": "SQQQ", "provider": "sec", "use_cache": None}),
+        ({"symbol": "TSLA", "provider": "sec", "use_cache": True}),
+        ({"symbol": "SQQQ", "provider": "sec", "use_cache": True}),
     ],
 )
 @pytest.mark.integration
@@ -34,7 +34,7 @@ def test_sec_cik_map(params, obb):
 @pytest.mark.parametrize(
     "params",
     [
-        ({"query": "berkshire hathaway", "provider": "sec", "use_cache": None}),
+        ({"query": "berkshire hathaway", "provider": "sec", "use_cache": True}),
     ],
 )
 @pytest.mark.integration
@@ -56,7 +56,6 @@ def test_sec_institutions_search(params, obb):
                 "taxonomy": "us-gaap",
                 "year": 2024,
                 "component": "soi",
-                "category": None,
             }
         ),
     ],
@@ -73,8 +72,8 @@ def test_sec_schema_files(params, obb):
 @pytest.mark.parametrize(
     "params",
     [
-        ({"query": "0000909832", "provider": "sec", "use_cache": None}),
-        ({"query": "0001067983", "provider": "sec", "use_cache": None}),
+        ({"query": "0000909832", "provider": "sec", "use_cache": True}),
+        ({"query": "0001067983", "provider": "sec", "use_cache": True}),
     ],
 )
 @pytest.mark.integration
@@ -159,3 +158,226 @@ def test_sec_htm_file(params, obb):
     assert isinstance(result, OBBject)
     assert isinstance(result.results, SecHtmFileData)
     assert hasattr(result.results, "content")
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        (
+            {
+                "symbol": "AAPL",
+                "calendar_year": 2023,
+                "provider": "sec",
+                "use_cache": True,
+            }
+        ),
+    ],
+)
+@pytest.mark.integration
+def test_sec_disclosures(params, obb):
+    """Test the SEC disclosures endpoint."""
+    result = obb.sec.disclosures(**params)
+    assert result
+    assert isinstance(result, OBBject)
+    assert len(result.results) > 0
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        (
+            {
+                "symbol": "AAPL",
+                "calendar_year": 2023,
+                "provider": "sec",
+                "use_cache": True,
+            }
+        ),
+    ],
+)
+@pytest.mark.integration
+def test_sec_risk_factors(params, obb):
+    """Test the SEC risk factors endpoint."""
+    result = obb.sec.risk_factors(**params)
+    assert result
+    assert isinstance(result, OBBject)
+    assert len(result.results) > 0
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        (
+            {
+                "symbol": "AAPL",
+                "calendar_year": 2023,
+                "provider": "sec",
+                "use_cache": True,
+            }
+        ),
+    ],
+)
+@pytest.mark.integration
+def test_sec_company_overview(params, obb):
+    """Test the SEC company overview endpoint."""
+    result = obb.sec.company_overview(**params)
+    assert result
+    assert isinstance(result, OBBject)
+    assert result.results.content
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        (
+            {
+                "symbol": "AAPL",
+                "calendar_year": 2023,
+                "statement_type": "balance",
+                "provider": "sec",
+                "use_cache": True,
+            }
+        ),
+    ],
+)
+@pytest.mark.integration
+def test_sec_financial_statements(params, obb):
+    """Test the SEC as-filed financial statements endpoint."""
+    result = obb.sec.financial_statements(**params)
+    assert result
+    assert isinstance(result, OBBject)
+    assert len(result.results) > 0
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        (
+            {
+                "symbol": "AAPL",
+                "calendar_year": 2023,
+                "provider": "sec",
+                "use_cache": True,
+            }
+        ),
+    ],
+)
+@pytest.mark.integration
+def test_sec_segment_revenue(params, obb):
+    """Test the SEC segment and geographic revenue endpoint."""
+    result = obb.sec.segment_revenue(**params)
+    assert result
+    assert isinstance(result, OBBject)
+    assert len(result.results) > 0
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        (
+            {
+                "symbol": "AAPL",
+                "calendar_year": 2023,
+                "provider": "sec",
+                "use_cache": True,
+            }
+        ),
+    ],
+)
+@pytest.mark.integration
+def test_sec_legal_proceedings(params, obb):
+    """Test the SEC legal proceedings endpoint."""
+    result = obb.sec.legal_proceedings(**params)
+    assert result
+    assert isinstance(result, OBBject)
+    assert len(result.results) > 0
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        ({"query": "climate change", "form_type": "8-K", "provider": "sec"}),
+    ],
+)
+@pytest.mark.integration
+def test_sec_full_text_search(params, obb):
+    """Test the SEC full-text search endpoint."""
+    result = obb.sec.full_text_search(**params)
+    assert result
+    assert isinstance(result, OBBject)
+    assert len(result.results) > 0
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        ({"symbol": "XLK", "provider": "sec"}),
+    ],
+)
+@pytest.mark.integration
+def test_sec_nport_fund_metrics(params, obb):
+    """Test the SEC NPORT fund metrics endpoint."""
+    result = obb.sec.nport_fund_metrics(**params)
+    assert result
+    assert isinstance(result, OBBject)
+    assert len(result.results) > 0
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        ({"symbol": "CAT", "calendar_year": 2024, "provider": "sec"}),
+    ],
+)
+@pytest.mark.integration
+def test_sec_beneficial_ownership(params, obb):
+    """Test the SEC beneficial ownership endpoint."""
+    result = obb.sec.beneficial_ownership(**params)
+    assert result
+    assert isinstance(result, OBBject)
+    assert result.results.content
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        ({"symbol": "CAT", "calendar_year": 2024, "provider": "sec"}),
+    ],
+)
+@pytest.mark.integration
+def test_sec_management_ownership(params, obb):
+    """Test the SEC management ownership endpoint."""
+    result = obb.sec.management_ownership(**params)
+    assert result
+    assert isinstance(result, OBBject)
+    assert result.results.content
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        ({"symbol": "CAT", "calendar_year": 2024, "provider": "sec"}),
+    ],
+)
+@pytest.mark.integration
+def test_sec_executive_compensation(params, obb):
+    """Test the SEC executive compensation endpoint."""
+    result = obb.sec.executive_compensation(**params)
+    assert result
+    assert isinstance(result, OBBject)
+    assert result.results.content
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        ({"symbol": "CAT", "calendar_year": 2024, "provider": "sec"}),
+    ],
+)
+@pytest.mark.integration
+def test_sec_pay_versus_performance(params, obb):
+    """Test the SEC pay versus performance endpoint."""
+    result = obb.sec.pay_versus_performance(**params)
+    assert result
+    assert isinstance(result, OBBject)
+    assert len(result.results) > 0

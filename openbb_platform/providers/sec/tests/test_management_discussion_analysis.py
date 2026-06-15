@@ -22,6 +22,7 @@ import pytest
 from openbb_core.app.model.abstract.error import OpenBBError
 from openbb_core.provider.utils.errors import EmptyDataError
 
+import openbb_sec.models.management_discussion_analysis as mda_mod
 from openbb_sec.models.company_filings import SecCompanyFilingsData
 from openbb_sec.models.management_discussion_analysis import (
     SecManagementDiscussionAnalysisData,
@@ -31,6 +32,16 @@ from openbb_sec.models.management_discussion_analysis import (
 
 F = SecManagementDiscussionAnalysisFetcher
 Q = SecManagementDiscussionAnalysisQueryParams
+
+_FS_FROM_URL = "openbb_sec.models.sec_financials.FinancialStatements.from_url"
+
+
+@pytest.fixture(autouse=True)
+def _no_network_fallback():
+    """Make the full-submission MD&A fallback fail closed (no network in tests)."""
+    with patch(_FS_FROM_URL, side_effect=RuntimeError("no network in tests")):
+        yield
+
 
 # ---------------------------------------------------------------------------
 # fixtures / helpers
@@ -216,6 +227,22 @@ def test_transform_data_split_header_bare_item():
     assert "Dividends split" in res.content
 
 
+def test_transform_data_mixed_case_header_inline_remainder():
+    """Mixed-case 'Item 7.' header with body text on the same line (line 1568)."""
+    html = (
+        "<html><body>"
+        "<p>Item 7. Management's Discussion and Analysis of Financial Condition"
+        " and Results of Operations The following discussion should be read"
+        " together with the financial statements.</p>"
+        f"{_body('inline')}"
+        "<h2>Item 8. Financial Statements</h2><p>Out of scope.</p>"
+        "</body></html>"
+    )
+    res = F.transform_data(Q(symbol="AAPL"), _data(html))
+    assert res.content.startswith("## Item 7. Management's Discussion")
+    assert "The following discussion should be read" in res.content
+
+
 def test_transform_data_standalone_heading_fallback():
     """No Item number; standalone MD&A heading fallback (lines 1181-1195)."""
     html = (
@@ -333,7 +360,7 @@ def test_transform_data_toc_table_at_eof_raises():
 
 
 def test_transform_data_no_mda_section_raises():
-    """No locatable MD&A section raises EmptyDataError (line 1431)."""
+    """No locatable MD&A section, and the full-text fallback is empty, raises."""
     html = (
         "<html><body><h2>Item 1. Business</h2>"
         "<p>Just business description, no MD&A anywhere in this filing.</p>"
@@ -342,6 +369,31 @@ def test_transform_data_no_mda_section_raises():
     with pytest.raises(EmptyDataError) as exc:
         F.transform_data(Q(symbol="AAPL"), _data(html))
     assert "Could not locate the MD&A section" in str(exc.value)
+
+
+def test_mda_from_full_text_returns_item():
+    from types import SimpleNamespace
+
+    fs = SimpleNamespace(get_item=lambda _n: {"text": "  Item 7 MD&A body.  "})
+    with patch(_FS_FROM_URL, return_value=fs):
+        assert mda_mod._mda_from_full_text("u", True) == "Item 7 MD&A body."
+
+
+def test_mda_from_full_text_no_item():
+    from types import SimpleNamespace
+
+    fs = SimpleNamespace(get_item=lambda _n: None)
+    with patch(_FS_FROM_URL, return_value=fs):
+        assert mda_mod._mda_from_full_text("u", True) == ""
+
+
+def test_transform_data_full_text_fallback():
+    html = (
+        "<html><body><h2>Item 1. Business</h2><p>No MD&A here at all.</p></body></html>"
+    )
+    with patch.object(mda_mod, "_mda_from_full_text", return_value="**MD&A**\n\nbody"):
+        res = F.transform_data(Q(symbol="AAPL"), _data(html))
+    assert res.content == "**MD&A**\n\nbody"
 
 
 # ---- stub / cross-reference anchor extraction ----------------------------

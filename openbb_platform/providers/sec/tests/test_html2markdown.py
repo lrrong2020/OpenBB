@@ -2162,6 +2162,55 @@ def test_bch_year_at_pos0_with_category_shift():
     assert "2025" in flat
 
 
+def test_bch_trailing_units_note_not_a_header():
+    # A units note positioned to the right of the years is skipped by the
+    # trailing super-header gap-fill rather than absorbed as a column (2203-2206).
+    rows = [
+        [("", 1), ("SEGMENTS", 2), ("(in millions, except per share)", 1)],
+        [("", 1), ("2025", 1), ("2024", 1)],
+        [("Rev", 1), ("1", 1), ("2", 1)],
+    ]
+    layers, count = _bch(rows)
+    flat = _flat(layers)
+    assert "2025" in flat
+    assert not any("million" in c.lower() for c in flat)
+
+
+def test_bch_category_without_subheaders_gets_empty_slot():
+    # A category whose column span holds no year header gets a single empty
+    # header slot (2911-2915). BETA sits between two year groups with none of
+    # its own, so it is not absorbed by the trailing gap-fill.
+    rows = [
+        [("", 1), ("ALPHA", 3), ("BETA", 3), ("GAMMA", 3)],
+        [
+            ("", 1),
+            ("2025", 1),
+            ("2024", 1),
+            ("2023", 1),
+            ("", 1),
+            ("", 1),
+            ("", 1),
+            ("2022", 1),
+            ("2021", 1),
+            ("2020", 1),
+        ],
+        [
+            ("Rev", 1),
+            ("1", 1),
+            ("2", 1),
+            ("3", 1),
+            ("4", 1),
+            ("5", 1),
+            ("6", 1),
+            ("7", 1),
+            ("8", 1),
+            ("9", 1),
+        ],
+    ]
+    layers, count = _bch(rows)
+    assert "BETA" in layers[0]
+
+
 def test_bch_all_empty_row_between_headers():
     # An all-empty row appearing between header rows is skipped (1899-1900).
     rows = [
@@ -4578,17 +4627,16 @@ def test_process_element_toc_navigation_table_with_empty_row():
 
 
 def test_convert_table_multilevel_year_position_shift():
-    # A multi-level header whose year row begins at column 0 triggers the
-    # year-position shift alignment (header_col_positions += shift).
+    """A year sub-header row starting at column 0 is shifted to align with data."""
     html = (
         "<table>"
         "<tr><td>Item</td><td>A Corp</td><td>B Corp</td><td>C Corp</td></tr>"
-        "<tr><td>2025</td><td>2024</td></tr>"
+        "<tr><td>2025</td><td>2024</td><td>2023</td></tr>"
         "<tr><td>Rev</td><td>1</td><td>2</td><td>3</td></tr>"
         "</table>"
     )
     out = h2m.convert_table(_table(html))
-    # Deterministic rendering of the realigned multi-level header table.
+    assert "| 2025 | 2024 | 2023 |" in out
     assert "| Rev | 1 | 2 | 3 |" in out
 
 

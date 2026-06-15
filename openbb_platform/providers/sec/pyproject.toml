@@ -8,12 +8,17 @@ readme = "README.md"
 requires-python = ">=3.10,<4"
 dependencies = [
     "openbb-core[pandas]>=2.0.0",
+    "openbb-platform-api>=1.3.6",
+    "fastmcp>=3.2.0",
     "diskcache>=5.6.3",
     "defusedxml>=0.7.1",
     "xmltodict>=0.13.0",
     "beautifulsoup4>=4.12",
     "lxml>=5.2.1",
 ]
+
+[project.scripts]
+openbb-sec = "openbb_sec.cli:main"
 
 [project.entry-points."openbb_provider_extension"]
 sec = "openbb_sec:sec_provider"
@@ -44,6 +49,7 @@ include = [
 
 [tool.uv.sources]
 openbb-core = { path = "../../core", editable = true }
+openbb-platform-api = { path = "../../extensions/platform_api", editable = true }
 openbb-devtools = { path = "../../extensions/devtools", editable = true }
 
 [tool.ruff]
@@ -62,6 +68,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
+"openbb_sec/cli.py" = ["T201", "S404", "S603", "PLC0415"]
 "openbb_sec/sec_router.py" = ["ARG001", "PLC0415", "SLF001"]
 "openbb_sec/models/*.py" = ["ARG002", "PLC0415", "PLR0911", "PLR0912", "PLR0914", "PLR0915", "PLR0917"]
 "openbb_sec/utils/*.py" = ["PLR0911", "PLR0912", "PLR0913", "PLR0914", "PLR0915", "PLR0917", "SLF001", "BLE001"]

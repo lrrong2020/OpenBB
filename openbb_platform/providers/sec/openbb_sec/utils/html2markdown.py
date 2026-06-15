@@ -2027,9 +2027,15 @@ def build_column_headers_from_colspan(rows_with_colspan, _year_pos_shift):
     if header_row_count >= len(parsed_rows):
         return None, 0
 
-    # Separate category rows and year rows
     category_rows = [
-        (idx, p) for idx, p, is_yr, is_cat in header_info if is_cat and not is_yr
+        (idx, p)
+        for idx, p, is_yr, is_cat in header_info
+        if (is_cat and not is_yr)
+        or (
+            not is_yr
+            and not is_cat
+            and any(has_visible_text(t) and s > 0 for t, _c, s in p)
+        )
     ]
     year_rows = [(idx, p) for idx, p, is_yr, is_cat in header_info if is_yr]
 
@@ -2173,6 +2179,29 @@ def build_column_headers_from_colspan(rows_with_colspan, _year_pos_shift):
             else:
                 continue
             break
+
+    if column_headers_list and category_rows:
+        max_year_pos = max(column_headers_positions)
+        covered = set(column_headers_positions)
+        for _, cat_parsed in category_rows:
+            for text, _colspan, start in cat_parsed:
+                t = (text or "").strip()
+                if not t or start <= max_year_pos or start in covered:
+                    continue
+                if t.startswith("(") and (
+                    "million" in t.lower() or "except" in t.lower()
+                ):
+                    continue
+                covered.add(start)
+                column_headers_list.append(t)
+                column_headers_positions.append(start)
+        if len(column_headers_positions) > 1:
+            _order = sorted(
+                range(len(column_headers_positions)),
+                key=lambda k: column_headers_positions[k],
+            )
+            column_headers_list = [column_headers_list[k] for k in _order]
+            column_headers_positions = [column_headers_positions[k] for k in _order]
 
     if not column_headers_list:
         # No year row headers found
@@ -7119,7 +7148,9 @@ def _join_split_paragraphs(markdown: str) -> str:
 
     # Patterns for structural lines that should never be joined
     # Note: \d{1,2}\.\s matches numbered lists (1-99) but NOT years like "2024."
-    _STRUCTURAL_RE = re.compile(r"^(?:#|\||- |\* |\d{1,2}\.\s|<img|<a\s|\[)")
+    _STRUCTURAL_RE = re.compile(
+        r"^(?:#|\||- |\* |\d{1,2}\.\s|\(\d{1,2}\)|<img|<a\s|\[)"
+    )
     # Connecting words that always indicate mid-sentence when at line end
     _CONNECTING_RE = re.compile(
         r"\b(and|or|the|a|an|of|to|in|for|with|by|from|at|on|as|that|which|but|"
@@ -7175,6 +7206,7 @@ def _join_split_paragraphs(markdown: str) -> str:
 
         # --- Iterative joining loop ---
         is_bullet = bool(_BULLET_RE.match(stripped))
+        is_footnote = bool(re.match(r"^\(\d{1,2}\)", stripped))
         joined_any = True
         join_count = 0
 
@@ -7230,7 +7262,10 @@ def _join_split_paragraphs(markdown: str) -> str:
                     should_join = (
                         nxt[0].islower()
                         or (
-                            len(cur_stripped) > 30 and join_count == 0 and not is_bullet
+                            len(cur_stripped) > 30
+                            and join_count == 0
+                            and not is_bullet
+                            and not is_footnote
                         )
                         or _has_cont_punct
                     )

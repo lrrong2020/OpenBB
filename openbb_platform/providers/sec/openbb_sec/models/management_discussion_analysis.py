@@ -20,6 +20,26 @@ class SecManagementDiscussionAnalysisQueryParams(
 ):
     """SEC Management & Discussion Query."""
 
+    __json_schema_extra__ = {
+        "symbol": {
+            "x-widget_config": {
+                "type": "endpoint",
+                "optionsEndpoint": "/api/v1/sec/companies",
+                "searchable": True,
+                "style": {"popupWidth": 950},
+                "description": "Pick a company with standardized SEC"
+                " financials (ranked by market cap).",
+            },
+        },
+        "calendar_year": {
+            "x-widget_config": {
+                "type": "endpoint",
+                "optionsEndpoint": "/api/v1/sec/filing_options",
+                "optionsParams": {"symbol": "$symbol"},
+            },
+        },
+    }
+
     include_tables: bool = Field(
         default=True,
         description="Return tables formatted as markdown in the text. Default is True.",
@@ -41,6 +61,22 @@ class SecManagementDiscussionAnalysisData(ManagementDiscussionAnalysisData):
     url: str = Field(
         description="The URL of the filing from which the data was extracted."
     )
+
+
+def _mda_from_full_text(url: str, use_cache: bool) -> str:
+    """Read Item 7 (MD&A) from a filing's full-submission text.
+
+    Old SGML filings (pre-HTML) have no locatable HTML section anchor, so the
+    HTML parser cannot find the MD&A; the plain-text item extractor reads it
+    from the full submission instead. Returns "" on any failure.
+    """
+    try:
+        from openbb_sec.models.sec_financials import FinancialStatements
+
+        item = FinancialStatements.from_url(url, use_cache).get_item("7")
+    except Exception:  # noqa: BLE001
+        return ""
+    return (item.get("text") or "").strip() if item else ""
 
 
 class SecManagementDiscussionAnalysisFetcher(
@@ -1424,6 +1460,10 @@ class SecManagementDiscussionAnalysisFetcher(
                 return SecManagementDiscussionAnalysisData(**data)
 
         if best_start is None:
+            fallback = _mda_from_full_text(data.get("url", ""), query.use_cache)
+            if fallback:
+                data["content"] = fallback
+                return SecManagementDiscussionAnalysisData(**data)
             raise EmptyDataError(
                 "Could not locate the MD&A section in the filing."
                 f" -> {data.get('url', '')}"
@@ -1469,8 +1509,14 @@ class SecManagementDiscussionAnalysisFetcher(
         # Detection strategy: ALL-CAPS words at the start of the content
         # form the section title (e.g. "ITEM 2. MANAGEMENT'S DISCUSSION
         # AND ANALYSIS …").  The title may span multiple lines; it ends
-        # at the first word containing a lowercase letter.  For mixed-case
-        # filings that use "Item N." we simply prepend '#'.
+        # at the first word containing a lowercase letter.
+        mda_heading_re = re.compile(
+            r"^((?:Part\s+\S+[.\s,\-–—]*\s*)?Item\s+\d+\.?\s+"
+            r"(?:Management.s\s+Discussion\s+and\s+Analysis"
+            r"(?:\s+of\s+Financial\s+Condition\s+and\s+Results\s+of\s+Operations)?"
+            r"|Operating\s+and\s+Financial\s+Review(?:\s+and\s+Prospects)?))",
+            re.IGNORECASE,
+        )
         mda_lines = mda_content.splitlines()
         if mda_lines:
             first = mda_lines[0].strip()
@@ -1511,8 +1557,15 @@ class SecManagementDiscussionAnalysisFetcher(
                         new_lines.append(body_text)
                     mda_lines = new_lines + mda_lines[lines_consumed:]
                 elif re.match(r"Item\s+\d", first, re.IGNORECASE):
-                    # Mixed-case "Item N." header — just add '#' prefix.
-                    mda_lines[0] = "## " + first
+                    heading_match = mda_heading_re.match(first)
+                    heading = heading_match.group(1).strip() if heading_match else first
+                    remainder = (
+                        first[heading_match.end() :].strip() if heading_match else ""
+                    )
+                    new_lines = ["## " + heading, ""]
+                    if remainder:
+                        new_lines.append(remainder)
+                    mda_lines = new_lines + mda_lines[1:]
 
                 mda_content = "\n".join(mda_lines)
 

@@ -14,7 +14,7 @@ class SecInstitutionsSearchQueryParams(QueryParams):
     Source: https://sec.gov/
     """
 
-    query: str = Field(description="Search query.", default="")
+    query: str | None = Field(description="Search query.", default=None)
 
     use_cache: bool = Field(
         default=True,

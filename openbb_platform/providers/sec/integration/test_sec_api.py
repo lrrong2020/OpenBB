@@ -179,3 +179,204 @@ def test_sec_htm_file(params, headers):
     result = requests.get(url, headers=headers, timeout=10)
     assert isinstance(result, requests.Response)
     assert result.status_code == 200
+
+
+@pytest.mark.parametrize(
+    "params",
+    [({"symbol": "AAPL", "calendar_year": 2023, "provider": "sec"})],
+)
+@pytest.mark.integration
+def test_sec_disclosures(params, headers):
+    """Test the SEC disclosures endpoint."""
+    params = {p: v for p, v in params.items() if v}
+
+    query_str = get_querystring(params, [])
+    url = f"http://localhost:8000/api/v1/sec/disclosures?{query_str}"
+    result = requests.get(url, headers=headers, timeout=30)
+    assert isinstance(result, requests.Response)
+    assert result.status_code == 200
+
+
+@pytest.mark.parametrize(
+    "params",
+    [({"symbol": "AAPL", "calendar_year": 2023, "provider": "sec"})],
+)
+@pytest.mark.integration
+def test_sec_risk_factors(params, headers):
+    """Test the SEC risk factors endpoint."""
+    params = {p: v for p, v in params.items() if v}
+
+    query_str = get_querystring(params, [])
+    url = f"http://localhost:8000/api/v1/sec/risk_factors?{query_str}"
+    result = requests.get(url, headers=headers, timeout=30)
+    assert isinstance(result, requests.Response)
+    assert result.status_code == 200
+
+
+@pytest.mark.parametrize(
+    "params",
+    [({"symbol": "AAPL", "calendar_year": 2023, "provider": "sec"})],
+)
+@pytest.mark.integration
+def test_sec_company_overview(params, headers):
+    """Test the SEC company overview endpoint."""
+    params = {p: v for p, v in params.items() if v}
+
+    query_str = get_querystring(params, [])
+    url = f"http://localhost:8000/api/v1/sec/company_overview?{query_str}"
+    result = requests.get(url, headers=headers, timeout=30)
+    assert isinstance(result, requests.Response)
+    assert result.status_code == 200
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        (
+            {
+                "symbol": "AAPL",
+                "calendar_year": 2023,
+                "statement_type": "balance",
+                "provider": "sec",
+            }
+        )
+    ],
+)
+@pytest.mark.integration
+def test_sec_financial_statements(params, headers):
+    """Test the SEC as-filed financial statements endpoint."""
+    params = {p: v for p, v in params.items() if v}
+
+    query_str = get_querystring(params, [])
+    url = f"http://localhost:8000/api/v1/sec/financial_statements?{query_str}"
+    result = requests.get(url, headers=headers, timeout=30)
+    assert isinstance(result, requests.Response)
+    assert result.status_code == 200
+
+
+@pytest.mark.parametrize(
+    "params",
+    [({"symbol": "AAPL", "calendar_year": 2023, "provider": "sec"})],
+)
+@pytest.mark.integration
+def test_sec_segment_revenue(params, headers):
+    """Test the SEC segment and geographic revenue endpoint."""
+    params = {p: v for p, v in params.items() if v}
+
+    query_str = get_querystring(params, [])
+    url = f"http://localhost:8000/api/v1/sec/segment_revenue?{query_str}"
+    result = requests.get(url, headers=headers, timeout=30)
+    assert isinstance(result, requests.Response)
+    assert result.status_code == 200
+
+
+@pytest.mark.parametrize(
+    "params",
+    [({"symbol": "AAPL", "calendar_year": 2023, "provider": "sec"})],
+)
+@pytest.mark.integration
+def test_sec_legal_proceedings(params, headers):
+    """Test the SEC legal proceedings endpoint."""
+    params = {p: v for p, v in params.items() if v}
+
+    query_str = get_querystring(params, [])
+    url = f"http://localhost:8000/api/v1/sec/legal_proceedings?{query_str}"
+    result = requests.get(url, headers=headers, timeout=30)
+    assert isinstance(result, requests.Response)
+    assert result.status_code == 200
+
+
+@pytest.mark.parametrize(
+    "params",
+    [({"query": "climate change", "form_type": "8-K", "provider": "sec"})],
+)
+@pytest.mark.integration
+def test_sec_full_text_search(params, headers):
+    """Test the SEC full-text search endpoint."""
+    params = {p: v for p, v in params.items() if v}
+
+    query_str = get_querystring(params, [])
+    url = f"http://localhost:8000/api/v1/sec/full_text_search?{query_str}"
+    result = requests.get(url, headers=headers, timeout=30)
+    assert isinstance(result, requests.Response)
+    assert result.status_code == 200
+
+
+@pytest.mark.parametrize(
+    "params",
+    [({"symbol": "XLK", "provider": "sec"})],
+)
+@pytest.mark.integration
+def test_sec_nport_fund_metrics(params, headers):
+    """Test the SEC NPORT fund metrics endpoint."""
+    params = {p: v for p, v in params.items() if v}
+
+    query_str = get_querystring(params, [])
+    url = f"http://localhost:8000/api/v1/sec/nport_fund_metrics?{query_str}"
+    result = requests.get(url, headers=headers, timeout=30)
+    assert isinstance(result, requests.Response)
+    assert result.status_code == 200
+
+
+@pytest.mark.parametrize(
+    "params",
+    [({"symbol": "CAT", "calendar_year": 2024, "provider": "sec"})],
+)
+@pytest.mark.integration
+def test_sec_beneficial_ownership(params, headers):
+    """Test the SEC beneficial ownership endpoint."""
+    params = {p: v for p, v in params.items() if v}
+
+    query_str = get_querystring(params, [])
+    url = f"http://localhost:8000/api/v1/sec/beneficial_ownership?{query_str}"
+    result = requests.get(url, headers=headers, timeout=30)
+    assert isinstance(result, requests.Response)
+    assert result.status_code == 200
+
+
+@pytest.mark.parametrize(
+    "params",
+    [({"symbol": "CAT", "calendar_year": 2024, "provider": "sec"})],
+)
+@pytest.mark.integration
+def test_sec_management_ownership(params, headers):
+    """Test the SEC management ownership endpoint."""
+    params = {p: v for p, v in params.items() if v}
+
+    query_str = get_querystring(params, [])
+    url = f"http://localhost:8000/api/v1/sec/management_ownership?{query_str}"
+    result = requests.get(url, headers=headers, timeout=30)
+    assert isinstance(result, requests.Response)
+    assert result.status_code == 200
+
+
+@pytest.mark.parametrize(
+    "params",
+    [({"symbol": "CAT", "calendar_year": 2024, "provider": "sec"})],
+)
+@pytest.mark.integration
+def test_sec_executive_compensation(params, headers):
+    """Test the SEC executive compensation endpoint."""
+    params = {p: v for p, v in params.items() if v}
+
+    query_str = get_querystring(params, [])
+    url = f"http://localhost:8000/api/v1/sec/executive_compensation?{query_str}"
+    result = requests.get(url, headers=headers, timeout=30)
+    assert isinstance(result, requests.Response)
+    assert result.status_code == 200
+
+
+@pytest.mark.parametrize(
+    "params",
+    [({"symbol": "CAT", "calendar_year": 2024, "provider": "sec"})],
+)
+@pytest.mark.integration
+def test_sec_pay_versus_performance(params, headers):
+    """Test the SEC pay versus performance endpoint."""
+    params = {p: v for p, v in params.items() if v}
+
+    query_str = get_querystring(params, [])
+    url = f"http://localhost:8000/api/v1/sec/pay_versus_performance?{query_str}"
+    result = requests.get(url, headers=headers, timeout=30)
+    assert isinstance(result, requests.Response)
+    assert result.status_code == 200
