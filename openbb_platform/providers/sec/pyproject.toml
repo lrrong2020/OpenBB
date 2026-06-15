@@ -109,4 +109,5 @@ filterwarnings = [
     "error",
     "ignore::DeprecationWarning:openbb_core.provider.utils.client",
     "ignore::pytest.PytestUnraisableExceptionWarning",
+    "ignore::starlette.exceptions.StarletteDeprecationWarning",
 ]
