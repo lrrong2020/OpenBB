@@ -20,7 +20,7 @@ Then add `http://localhost:6900` as a custom backend in the OpenBB Workspace.
 pip install openbb-sec
 ```
 
-This installs the provider, the OpenBB Workspace dashboards, and the `openbb-sec` command — no extras. With `uv`, `uvx openbb-sec ...` runs the same command without installing anything permanently.
+A single install brings the provider, the OpenBB Workspace dashboards, the Filing Viewer MCP, and the `openbb-sec` command.
 
 ## Coverage
 
@@ -67,7 +67,7 @@ obb.sec.nport_fund_metrics(symbol="VTI")
 
 The package ships ready-to-use OpenBB Workspace dashboards (`SEC Form 10-K/Q` and `SEC Filings`), a Filing Viewer that re-serves EDGAR documents for in-app rendering, and an MCP server that exposes the open document to the Workspace agent as text.
 
-Launch a self-contained Workspace backend (no separate `openbb-api` step required):
+Launch a self-contained Workspace backend:
 
 ```bash
 openbb-sec serve --host 0.0.0.0 --port 6900
