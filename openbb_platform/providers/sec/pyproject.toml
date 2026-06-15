@@ -110,4 +110,5 @@ filterwarnings = [
     "ignore::DeprecationWarning:openbb_core.provider.utils.client",
     "ignore::pytest.PytestUnraisableExceptionWarning",
     "ignore::starlette.exceptions.StarletteDeprecationWarning",
+    "ignore:SelectableGroups dict interface is deprecated:DeprecationWarning",
 ]
