@@ -137,14 +137,17 @@ def test_command_delegates_to_from_query(command_name):
     mock_from_query.assert_awaited_once()
 
 
-def _load_standalone_router_module():
-    """Re-execute ``sec_router`` with both install flags forced to False.
+def _load_router_module(*, equity_installed: bool, etf_installed: bool):
+    """Re-execute ``sec_router`` with the install flags forced to given values.
 
     Loaded under a private module name so the live ``openbb_sec.sec_router``
     used elsewhere in the suite is untouched. ``Router.command`` is replaced
-    during load with a passthrough decorator so the fallback endpoints bind
-    without requiring the SEC-prefixed models to be resolved through the live
-    provider registry or FastAPI's response-model machinery.
+    during load with a passthrough decorator so the endpoints bind without
+    requiring the SEC-prefixed models to be resolved through the live provider
+    registry or FastAPI's response-model machinery.
+
+    This exercises the install-gated endpoint definitions regardless of which
+    extensions are actually present in the test environment.
     """
     import importlib.util
     from pathlib import Path
@@ -154,15 +157,15 @@ def _load_standalone_router_module():
     import openbb_sec
 
     spec = importlib.util.spec_from_file_location(
-        "openbb_sec_sec_router_standalone",
+        f"openbb_sec_sec_router_e{int(equity_installed)}t{int(etf_installed)}",
         Path(openbb_sec.__file__).parent / "sec_router.py",
     )
     module = importlib.util.module_from_spec(spec)
     original_equity = openbb_sec.EQUITY_INSTALLED
     original_etf = openbb_sec.ETF_INSTALLED
     original_command = Router.command
-    openbb_sec.EQUITY_INSTALLED = False
-    openbb_sec.ETF_INSTALLED = False
+    openbb_sec.EQUITY_INSTALLED = equity_installed
+    openbb_sec.ETF_INSTALLED = etf_installed
 
     def _passthrough_command(self, func=None, **_kwargs):
         """Bind ``func`` without touching the underlying FastAPI router."""
@@ -178,6 +181,11 @@ def _load_standalone_router_module():
         openbb_sec.ETF_INSTALLED = original_etf
         Router.command = original_command  # type: ignore[assignment]
     return module
+
+
+def _load_standalone_router_module():
+    """Re-execute ``sec_router`` with both install flags forced to False."""
+    return _load_router_module(equity_installed=False, etf_installed=False)
 
 
 class TestStandaloneFallbackEndpoints:
@@ -204,6 +212,49 @@ class TestStandaloneFallbackEndpoints:
     def test_standalone_endpoint_body_delegates_to_from_query(self, endpoint_name):
         """Each fallback endpoint body calls ``OBBject.from_query(Query(**locals()))``."""
         module = _load_standalone_router_module()
+        fn = getattr(module, endpoint_name)
+
+        sentinel = object()
+        with (
+            patch.object(module, "Query", new=MagicMock()) as mock_query,
+            patch.object(
+                module.OBBject,
+                "from_query",
+                new=AsyncMock(return_value=sentinel),
+            ) as mock_from_query,
+        ):
+            out = asyncio.run(
+                fn(
+                    cc=MagicMock(),
+                    provider_choices=MagicMock(),
+                    standard_params=MagicMock(),
+                    extra_params=MagicMock(),
+                )
+            )
+        assert out is sentinel
+        mock_query.assert_called_once()
+        mock_from_query.assert_awaited_once()
+
+
+class TestInstalledExtensionEndpoints:
+    """Endpoints registered when ``openbb-equity`` / ``openbb-etf`` ARE installed.
+
+    Where those extensions are absent the installed-path branch never executes
+    live, so it is exercised by reloading the router with the flags forced True.
+    """
+
+    _INSTALLED_NAMES = ("company_filings", "latest_financial_reports")
+
+    def test_installed_module_binds_endpoints(self):
+        """The installed-path endpoints bind when equity/etf are present."""
+        module = _load_router_module(equity_installed=True, etf_installed=True)
+        for name in self._INSTALLED_NAMES:
+            assert callable(getattr(module, name, None)), f"missing {name}"
+
+    @pytest.mark.parametrize("endpoint_name", _INSTALLED_NAMES)
+    def test_installed_endpoint_body_delegates_to_from_query(self, endpoint_name):
+        """Each installed-path endpoint body calls ``OBBject.from_query``."""
+        module = _load_router_module(equity_installed=True, etf_installed=True)
         fn = getattr(module, endpoint_name)
 
         sentinel = object()
@@ -486,6 +537,15 @@ def _apps_widget_ids(apps):
         for group in app.get("groups", []):
             ids.update(group.get("widgetIds", []))
     return ids
+
+
+def test_get_apps_json_remaps_for_equity(monkeypatch):
+    """With openbb-equity installed, form_13f maps to the equity widget id."""
+    monkeypatch.setattr(sec_router, "EQUITY_INSTALLED", True)
+    monkeypatch.setattr(sec_router, "ETF_INSTALLED", False)
+    ids = _apps_widget_ids(asyncio.run(sec_router.get_apps_json()))
+    assert "equity_ownership_form_13f_sec_obb" in ids
+    assert "sec_form_13f_sec_obb" not in ids
 
 
 def test_get_apps_json_remaps_for_etf(monkeypatch):
