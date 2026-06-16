@@ -130,15 +130,23 @@ def us_gaap_components_meta():
 
 
 @pytest.fixture(scope="module")
-def hmrc_dpl_loaded():
-    """HMRC DPL 2021 fully loaded — ``(manager, nodes)``.
+def frc_dpl_loaded():
+    """FRC DPL 2024 fully loaded — ``(manager, nodes)``.
 
     ``get_structure`` internally calls ``_ensure_labels`` and
-    ``_ensure_element_properties``, so the returned manager has
-    all parser state populated.
+    ``_ensure_element_properties`` (and FRC core labels), so the returned
+    manager has all parser state populated.
     """
     mgr = XBRLManager()
-    nodes = mgr.get_structure("hmrc-dpl", 2021, "standard")
+    nodes = mgr.get_structure("frc-dpl", 2024, "standard")
+    return mgr, nodes
+
+
+@pytest.fixture(scope="module")
+def frc_core_loaded():
+    """FRC core 2024 fully loaded — ``(manager, nodes)``."""
+    mgr = XBRLManager()
+    nodes = mgr.get_structure("frc-core", 2024, "standard")
     return mgr, nodes
 
 
@@ -211,7 +219,7 @@ class TestTaxonomyRegistry:
     """Tests for the TAXONOMIES registry and its configuration objects."""
 
     def test_registry_has_expected_taxonomies(self):
-        """All 24 registered taxonomies should be present."""
+        """All 25 registered taxonomies should be present."""
         expected = {
             "us-gaap",
             "srt",
@@ -220,7 +228,8 @@ class TestTaxonomyRegistry:
             "cyd",
             "ffd",
             "ifrs",
-            "hmrc-dpl",
+            "frc-core",
+            "frc-dpl",
             "rxp",
             "spac",
             "cef",
@@ -279,12 +288,15 @@ class TestTaxonomyRegistry:
                 assert "xbrl.sec.gov" in config.base_url_template, key
 
     def test_url_templates_have_year_placeholder(self):
-        """Non-STATIC taxonomies must have {year} in their base_url_template."""
+        """Non-STATIC URL-templated taxonomies must have {year} in base_url_template."""
         for key, config in TAXONOMIES.items():
-            if config.style != TaxonomyStyle.STATIC:
-                assert "{year}" in config.base_url_template, (
-                    f"{key} missing {{year}} placeholder"
-                )
+            # FRC taxonomies resolve members from the per-year suite ZIP map,
+            # not a {year} URL template, so they are exempt.
+            if config.style == TaxonomyStyle.STATIC or key in ("frc-core", "frc-dpl"):
+                continue
+            assert "{year}" in config.base_url_template, (
+                f"{key} missing {{year}} placeholder"
+            )
 
     def test_static_taxonomy_has_no_year_placeholder(self):
         """STATIC taxonomies should NOT have {year} in their base_url_template."""
@@ -1127,108 +1139,90 @@ class TestCalculationParsing:
             assert isinstance(info["parent_tag"], str)
 
 
-class TestHMRCDPLTaxonomy:
-    """Offline tests for HMRC Detailed Profit & Loss taxonomy support."""
+class TestFRCTaxonomy:
+    """Offline tests for FRC taxonomy suite support (frc-core, frc-dpl)."""
 
-    def test_hmrc_dpl_in_registry(self):
-        """hmrc-dpl should be in the TAXONOMIES registry."""
-        assert "hmrc-dpl" in TAXONOMIES
+    def test_frc_in_registry(self):
+        """frc-core and frc-dpl should be in the TAXONOMIES registry."""
+        assert "frc-core" in TAXONOMIES
+        assert "frc-dpl" in TAXONOMIES
+        assert "hmrc-dpl" not in TAXONOMIES
 
-    def test_hmrc_dpl_config(self):
-        """hmrc-dpl config should have correct fields."""
-        config = TAXONOMIES["hmrc-dpl"]
-        assert config.style == TaxonomyStyle.EXTERNAL
-        assert config.has_label_linkbase is True
-        assert "{year}" in config.base_url_template
-        assert "hmrc.gov.uk" in config.base_url_template
-        assert config.label_file_pattern == "dpl-{year}-label.xml"
-        assert config.presentation_file_template == "dpl-{year}-presentation.xml"
+    def test_frc_configs(self):
+        """FRC configs should be EXTERNAL sourced from frc.org.uk."""
+        for key in ("frc-core", "frc-dpl"):
+            config = TAXONOMIES[key]
+            assert config.style == TaxonomyStyle.EXTERNAL
+            assert config.has_label_linkbase is True
+            assert "frc.org.uk" in config.base_url_template
 
-    def test_hmrc_dpl_available_years(self, manager: XBRLManager):
-        """hmrc-dpl should return the known years (no HTTP needed)."""
-        years = manager.get_available_years("hmrc-dpl")
-        assert isinstance(years, list)
-        assert 2021 in years
-        assert 2019 in years
-        assert len(years) == 2
+    def test_frc_core_available_years(self, manager: XBRLManager):
+        """frc-core covers every mapped suite year (no HTTP needed)."""
+        years = manager.get_available_years("frc-core")
+        assert years == sorted(xth._FRC_SUITE_ZIPS, reverse=True)
+        assert 2014 in years
+        assert 2026 in years
 
-    def test_hmrc_dpl_url_construction(self):
-        """Verify URL templates format correctly for HMRC DPL."""
-        config = TAXONOMIES["hmrc-dpl"]
-        base_url = config.base_url_template.format(year=2021)
-        assert base_url == "https://www.hmrc.gov.uk/schemas/ct/dpl/2021-01-01/"
+    def test_frc_dpl_available_years(self, manager: XBRLManager):
+        """frc-dpl is only published from 2022 onward (no HTTP needed)."""
+        years = manager.get_available_years("frc-dpl")
+        assert min(years) == 2022
+        assert 2021 not in years
+        assert 2019 not in years
 
-        label_url = base_url + config.label_file_pattern.format(year=2021)
-        assert label_url == (
-            "https://www.hmrc.gov.uk/schemas/ct/dpl/2021-01-01/dpl-2021-label.xml"
-        )
-
-        pres_url = base_url + config.presentation_file_template.format(year=2021)
-        assert pres_url == (
-            "https://www.hmrc.gov.uk/schemas/ct/dpl/2021-01-01/"
-            "dpl-2021-presentation.xml"
-        )
-
-    def test_hmrc_dpl_components(self, manager: XBRLManager):
-        """hmrc-dpl should have a single 'standard' component."""
-        components = manager.list_available_components("hmrc-dpl", 2021)
-        assert components == ["standard"]
+    def test_frc_components(self, manager: XBRLManager):
+        """FRC taxonomies expose a single 'standard' component (no HTTP needed)."""
+        assert manager.list_available_components("frc-core", 2024) == ["standard"]
+        assert manager.list_available_components("frc-dpl", 2024) == ["standard"]
 
 
-class TestHMRCDPLNetwork:
-    """HMRC DPL HTTP tests — sharing ``hmrc_dpl_loaded`` (fetched once).
+class TestFRCNetwork:
+    """FRC suite HTTP tests — share module-scoped fixtures (fetched once).
 
     ``get_structure`` internally calls ``_ensure_labels`` and
-    ``_ensure_element_properties``, so the returned manager has all
-    label and property state populated for verification.
+    ``_ensure_element_properties``, so the returned manager has all label
+    and property state populated for verification.
     """
 
-    def test_hmrc_dpl_labels(self, hmrc_dpl_loaded):
-        """Should parse HMRC DPL labels from the standalone label XML."""
-        mgr, _ = hmrc_dpl_loaded
+    def test_frc_dpl_labels_are_english(self, frc_dpl_loaded):
+        """DPL labels parse from the suite ZIP and are English, never Welsh."""
+        mgr, _ = frc_dpl_loaded
         dpl_labels = {
             k: v for k, v in mgr.parser.labels.items() if k.startswith("dpl_")
         }
-        assert len(dpl_labels) >= 170, (
-            f"Expected >=170 DPL labels, got {len(dpl_labels)}"
+        assert len(dpl_labels) >= 150, (
+            f"Expected >=150 DPL labels, got {len(dpl_labels)}"
         )
-        assert "dpl_AdministrativeExpenses" in mgr.parser.labels
         assert (
             mgr.parser.labels["dpl_AdministrativeExpenses"] == "Administrative expenses"
         )
+        welsh = ("pennawd", "Trosiant", "refeniw", "Incwm", "cholled")
+        leaked = [
+            v for v in mgr.parser.labels.values() if v and any(w in v for w in welsh)
+        ]
+        assert not leaked, f"Non-English labels leaked: {leaked[:3]}"
 
-    def test_hmrc_dpl_element_properties(self, hmrc_dpl_loaded):
-        """Should load element properties from dpl-2021.xsd."""
-        mgr, _ = hmrc_dpl_loaded
-        dpl_props = {
-            k: v
-            for k, v in mgr.parser.element_properties.items()
-            if k.startswith("dpl_")
-        }
-        assert len(dpl_props) >= 170, (
-            f"Expected >=170 DPL properties, got {len(dpl_props)}"
-        )
-        assert "dpl_AdministrativeExpenses" in mgr.parser.element_properties
-        props = mgr.parser.element_properties["dpl_AdministrativeExpenses"]
+    def test_frc_dpl_element_properties(self, frc_dpl_loaded):
+        """Element properties load from the DPL schema in the suite ZIP."""
+        mgr, _ = frc_dpl_loaded
+        props = mgr.parser.element_properties.get("dpl_AdministrativeExpenses")
+        assert props is not None
         assert props.get("period_type") == "duration"
 
-    def test_hmrc_dpl_structure(self, hmrc_dpl_loaded):
-        """get_structure should return presentation tree for HMRC DPL."""
-        _, nodes = hmrc_dpl_loaded
-        assert isinstance(nodes, list)
-        assert len(nodes) > 0
+    def test_frc_dpl_structure(self, frc_dpl_loaded):
+        """frc-dpl structure is the presentation tree with dpl_ and core_ items."""
+        _, nodes = frc_dpl_loaded
+        assert nodes
         assert all(isinstance(n, XBRLNode) for n in nodes)
 
         flat = _flatten_nodes(nodes)
         element_ids = {f["name"] for f in flat}
-
         assert any(eid.startswith("dpl_") for eid in element_ids)
         assert any(eid.startswith("core_") for eid in element_ids)
-        assert len(flat) >= 500, f"Expected >=500 items, got {len(flat)}"
 
-    def test_hmrc_dpl_frc_core_labels(self, hmrc_dpl_loaded):
+    def test_frc_dpl_core_labels_resolved(self, frc_dpl_loaded):
         """FRC core labels should be loaded for cross-taxonomy resolution."""
-        _, nodes = hmrc_dpl_loaded
+        _, nodes = frc_dpl_loaded
         flat = _flatten_nodes(nodes)
 
         core_items = [f for f in flat if f["name"].startswith("core_")]
@@ -1238,8 +1232,15 @@ class TestHMRCDPLNetwork:
             f for f in core_items if f.get("label") and f["label"] != f["name"]
         ]
         assert len(labeled_core) > 0, (
-            "FRC core labels not loaded — all core_* elements still show element_id as label"
+            "FRC core labels not loaded — core_* elements still show element_id as label"
         )
+
+    def test_frc_core_structure_flat_and_english(self, frc_core_loaded):
+        """frc-core returns a large flat element list with English labels."""
+        mgr, nodes = frc_core_loaded
+        assert len(nodes) > 1000
+        assert all(isinstance(n, XBRLNode) for n in nodes)
+        assert mgr.parser.labels.get("core_TurnoverRevenue") == "Turnover / revenue"
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -1422,13 +1423,19 @@ class TestGetAvailableYears:
         # reverse-sorted
         assert years == sorted(years, reverse=True)
 
-    def test_external_hmrc(self):
+    def test_external_frc_core(self):
         client = FASBClient()
-        years = client.get_available_years("hmrc-dpl", xth.TAXONOMIES["hmrc-dpl"])
-        assert years == [2021, 2019]
+        years = client.get_available_years("frc-core", xth.TAXONOMIES["frc-core"])
+        assert years == sorted(xth._FRC_SUITE_ZIPS, reverse=True)
+
+    def test_external_frc_dpl(self):
+        client = FASBClient()
+        years = client.get_available_years("frc-dpl", xth.TAXONOMIES["frc-dpl"])
+        assert years == [y for y in years if y >= 2022]
+        assert min(years) == 2022
 
     def test_external_other_returns_empty(self):
-        """An EXTERNAL taxonomy that is neither ifrs nor hmrc returns []."""
+        """An EXTERNAL taxonomy that is neither ifrs nor frc returns []."""
         cfg = xth.TaxonomyConfig(
             base_url_template="https://example.com/{year}/",
             style=TaxonomyStyle.EXTERNAL,
@@ -1492,7 +1499,7 @@ class TestGetComponentsForYear:
 
     def test_external_non_ifrs_returns_standard(self):
         client = FASBClient()
-        assert client.get_components_for_year(2021, xth.TAXONOMIES["hmrc-dpl"]) == [
+        assert client.get_components_for_year(2024, xth.TAXONOMIES["frc-dpl"]) == [
             "standard"
         ]
 
@@ -1688,6 +1695,22 @@ _LINK_HDR = (
 
 class TestParseLabelLinkbase:
     """parse_label_linkbase standard, documentation, embedded, error paths."""
+
+    def test_skips_non_english_labels(self, parser: XBRLParser):
+        """Non-English (e.g. Welsh) label resources are ignored; English wins."""
+        biling = (
+            f"<link:linkbase {_LINK_HDR}>"
+            '<link:loc xlink:href="x.xsd#ex_Item" xlink:label="l"/>'
+            '<link:label xlink:label="en" xml:lang="en"'
+            ' xlink:role="http://www.xbrl.org/2003/role/label">English</link:label>'
+            '<link:label xlink:label="cy" xml:lang="cy"'
+            ' xlink:role="http://www.xbrl.org/2003/role/label">Cymraeg</link:label>'
+            '<link:labelArc xlink:from="l" xlink:to="en"/>'
+            '<link:labelArc xlink:from="l" xlink:to="cy"/>'
+            "</link:linkbase>"
+        )
+        parser.parse_label_linkbase(_b(biling), TaxonomyStyle.SEC_EMBEDDED)
+        assert parser.labels["ex_Item"] == "English"
 
     def test_standard_label_and_documentation(self, parser: XBRLParser):
         xml = (
@@ -2450,12 +2473,31 @@ class TestEnsureElementProperties:
         assert "ex_Foo" in manager.parser.element_properties
         assert "full_ifrs-cor" in fetch.call_args[0][0]
 
-    def test_hmrc_branch(self, manager: XBRLManager):
-        with patch.object(
-            manager.client, "fetch_file", return_value=BytesIO(_PROPS_XSD)
-        ) as fetch:
-            manager._ensure_element_properties("hmrc-dpl", 2021)
-        assert fetch.call_args[0][0].endswith("dpl-2021.xsd")
+    def test_frc_branch(self, manager: XBRLManager):
+        with (
+            patch.object(manager, "_frc_member", return_value="dpl/2024/dpl.xsd"),
+            patch.object(
+                manager.client, "fetch_frc_member", return_value=BytesIO(_PROPS_XSD)
+            ),
+        ):
+            manager._ensure_element_properties("frc-dpl", 2024)
+        assert "ex_Foo" in manager.parser.element_properties
+        assert ("frc-dpl", 2024) in manager._properties_loaded_for
+
+    def test_frc_branch_no_member(self, manager: XBRLManager):
+        with patch.object(manager, "_frc_member", return_value=None):
+            manager._ensure_element_properties("frc-core", 2024)
+        assert ("frc-core", 2024) not in manager._properties_loaded_for
+
+    def test_frc_branch_fetch_error(self, manager: XBRLManager):
+        with (
+            patch.object(manager, "_frc_member", return_value="x"),
+            patch.object(
+                manager.client, "fetch_frc_member", side_effect=OSError("down")
+            ),
+        ):
+            manager._ensure_element_properties("frc-dpl", 2024)
+        assert ("frc-dpl", 2024) not in manager._properties_loaded_for
 
     def test_static_branch(self, manager: XBRLManager):
         with patch.object(
@@ -2513,16 +2555,11 @@ class TestGetRolesForTaxonomy:
             roles = manager._get_roles_for_taxonomy("dei", 2024)
         assert roles[0]["short_name"] == "Income"
 
-    def test_static_and_hmrc_branches(self, manager: XBRLManager):
+    def test_static_branch(self, manager: XBRLManager):
         with patch.object(
             manager.client, "fetch_file", return_value=BytesIO(self._ROLE_XSD)
         ):
             assert manager._get_roles_for_taxonomy("rocr", 2015)
-        mgr2 = XBRLManager()
-        with patch.object(
-            mgr2.client, "fetch_file", return_value=BytesIO(self._ROLE_XSD)
-        ):
-            assert mgr2._get_roles_for_taxonomy("hmrc-dpl", 2021)
 
     def test_no_roles_returns_empty(self, manager: XBRLManager):
         empty = b'<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"/>'
@@ -2781,7 +2818,7 @@ _LAB_XML = (
 
 
 class TestEnsureLabels:
-    """_ensure_labels across IFRS, HMRC, STATIC, FASB, SEC styles."""
+    """_ensure_labels across IFRS, FRC, STATIC, FASB, SEC styles."""
 
     def test_unknown_taxonomy_noop(self, manager: XBRLManager):
         manager._ensure_labels("nope", 2024)
@@ -2805,26 +2842,32 @@ class TestEnsureLabels:
             manager._ensure_labels("ifrs", 1900)
         assert manager.parser.labels == {}
 
-    def test_hmrc_loads_labels(self, manager: XBRLManager):
-        with patch.object(manager.client, "fetch_file", return_value=BytesIO(_LAB_XML)):
-            manager._ensure_labels("hmrc-dpl", 2021)
+    def test_frc_loads_labels(self, manager: XBRLManager):
+        with (
+            patch.object(manager, "_frc_member", return_value="dpl/2024/dpl-label.xml"),
+            patch.object(
+                manager.client, "fetch_frc_member", return_value=BytesIO(_LAB_XML)
+            ),
+        ):
+            manager._ensure_labels("frc-dpl", 2024)
         assert manager.parser.labels.get("ex_Item") == "Item Label"
-        assert ("hmrc-dpl", 2021) in manager._labels_loaded_for
+        assert ("frc-dpl", 2024) in manager._labels_loaded_for
 
-    def test_hmrc_label_fetch_error_then_doc_ok(self, manager: XBRLManager):
-        """First label fetch fails; the doc-XSD fallback still runs."""
-        calls = {"n": 0}
+    def test_frc_label_no_member(self, manager: XBRLManager):
+        with patch.object(manager, "_frc_member", return_value=None):
+            manager._ensure_labels("frc-core", 2024)
+        assert ("frc-core", 2024) not in manager._labels_loaded_for
 
-        def fetch(url):
-            calls["n"] += 1
-            if calls["n"] == 1:
-                raise OSError("label down")
-            return BytesIO(_LAB_XML)
-
-        with patch.object(manager.client, "fetch_file", side_effect=fetch):
-            manager._ensure_labels("hmrc-dpl", 2021)
-        # doc fallback populated labels even though primary failed
-        assert manager.parser.labels.get("ex_Item") == "Item Label"
+    def test_frc_label_fetch_error(self, manager: XBRLManager):
+        """A fetch error is swallowed and the taxonomy is not marked loaded."""
+        with (
+            patch.object(manager, "_frc_member", return_value="x"),
+            patch.object(
+                manager.client, "fetch_frc_member", side_effect=OSError("down")
+            ),
+        ):
+            manager._ensure_labels("frc-dpl", 2024)
+        assert ("frc-dpl", 2024) not in manager._labels_loaded_for
 
     def test_static_loads_labels(self, manager: XBRLManager):
         with patch.object(manager.client, "fetch_file", return_value=BytesIO(_LAB_XML)):
@@ -2945,25 +2988,6 @@ class TestEnsureLabels:
         ):
             manager._ensure_labels("ecd", 2024)
         assert ("ecd", 2024) not in manager._labels_loaded_for
-
-
-class TestLoadFrcCoreLabels:
-    """_load_frc_core_labels."""
-
-    def test_loads_and_caches(self, manager: XBRLManager):
-        with patch.object(
-            manager.client, "fetch_file", return_value=BytesIO(_LAB_XML)
-        ) as fetch:
-            manager._load_frc_core_labels(2021)
-            manager._load_frc_core_labels(2021)  # cached
-        assert manager.parser.labels.get("ex_Item") == "Item Label"
-        assert ("frc-core", 2021) in manager._labels_loaded_for
-        fetch.assert_called_once()
-
-    def test_fetch_error_swallowed(self, manager: XBRLManager):
-        with patch.object(manager.client, "fetch_file", side_effect=OSError("x")):
-            manager._load_frc_core_labels(2021)
-        assert ("frc-core", 2021) not in manager._labels_loaded_for
 
 
 class TestParseEntireFile:
@@ -3242,19 +3266,54 @@ class TestGetStructure:
             "https://xbrl.sec.gov/rocr/2015/ratings-pre-2015-03-31.xml"
         )
 
-    def test_external_with_presentation_template(
+    def test_frc_dpl_uses_presentation(self, manager: XBRLManager, _stub_label_loading):
+        # frc-dpl parses its compact presentation linkbase from the suite ZIP.
+        with (
+            patch.object(
+                manager, "_frc_member", return_value="dpl/dpl-presentation.xml"
+            ),
+            patch.object(manager.client, "fetch_frc_member", return_value=_b(_GS_PRE)),
+        ):
+            nodes = manager.get_structure("frc-dpl", 2024, "standard")
+        assert nodes and nodes[0].element_id == "ex_Root"
+
+    def test_frc_core_uses_flat_schema(self, manager: XBRLManager, _stub_label_loading):
+        # frc-core never attempts presentation; it returns flat schema elements.
+        with (
+            patch.object(manager, "_frc_member", return_value="core/frc-core.xsd"),
+            patch.object(
+                manager.client, "fetch_frc_member", return_value=_b(_GS_SCHEMA)
+            ),
+        ):
+            nodes = manager.get_structure("frc-core", 2024, "standard")
+        assert [n.element_id for n in nodes] == ["ex_Flat"]
+
+    def test_frc_dpl_presentation_error_falls_back_to_schema(
         self, manager: XBRLManager, _stub_label_loading
     ):
-        # hmrc-dpl is EXTERNAL *with* a presentation_file_template -> template URL,
-        # and triggers the _load_frc_core_labels branch (stubbed here).
-        with patch.object(
-            manager.client, "fetch_file", return_value=_b(_GS_PRE)
-        ) as mock_fetch:
-            nodes = manager.get_structure("hmrc-dpl", 2021, "dpl")
-        assert nodes and nodes[0].element_id == "ex_Root"
-        assert mock_fetch.call_args[0][0] == (
-            "https://www.hmrc.gov.uk/schemas/ct/dpl/2021-01-01/dpl-2021-presentation.xml"
-        )
+        # A presentation-parse failure falls back to flat schema elements.
+        def _member(_tax, _yr, kind):
+            return "dpl-presentation.xml" if kind == "presentation" else "dpl.xsd"
+
+        def _fetch(_yr, relpath):
+            if "presentation" in relpath:
+                raise OSError("bad presentation")
+            return _b(_GS_SCHEMA)
+
+        with (
+            patch.object(manager, "_frc_member", side_effect=_member),
+            patch.object(manager.client, "fetch_frc_member", side_effect=_fetch),
+        ):
+            nodes = manager.get_structure("frc-dpl", 2024, "standard")
+        assert [n.element_id for n in nodes] == ["ex_Flat"]
+
+    def test_frc_no_members_returns_empty(
+        self, manager: XBRLManager, _stub_label_loading
+    ):
+        # No resolvable members (e.g. a malformed suite) yields an empty tree.
+        with patch.object(manager, "_frc_member", return_value=None):
+            nodes = manager.get_structure("frc-dpl", 2024, "standard")
+        assert nodes == []
 
     def test_fasb_standard_progressive_find(
         self, manager: XBRLManager, _stub_label_loading
@@ -3597,3 +3656,99 @@ class TestParseCalculationEmbeddedLinkbase:
         # Calc map is keyed by the child element rolling up to ``parent_tag``.
         assert "ex_Part" in calc
         assert calc["ex_Part"]["parent_tag"] == "ex_Total"
+
+
+class TestFRCSuiteClient:
+    """FASBClient FRC suite ZIP access against a synthetic in-memory archive."""
+
+    @staticmethod
+    def _zip_bytes() -> bytes:
+        import zipfile
+
+        buf = BytesIO()
+        with zipfile.ZipFile(buf, "w") as archive:
+            archive.writestr(
+                "FRC-X/fr/2099-01-01/core/frc-core-2099-01-01.xsd", b"<xsd/>"
+            )
+            archive.writestr(
+                "FRC-X/fr/2099-01-01/core/frc-core-full-2099-01-01.xsd", b"<xsd/>"
+            )
+            archive.writestr("FRC-X/dpl/2099-01-01/dpl-2099-01-01-label.xml", b"<lab/>")
+        return buf.getvalue()
+
+    def test_missing_year_raises(self):
+        client = FASBClient()
+        with pytest.raises(OpenBBError, match="No FRC taxonomy suite"):
+            client._frc_suite_bytes(1999)
+
+    def test_bytes_memoized_in_memory(self):
+        client = FASBClient()
+        with patch(f"{CACHE_MOD}.cached_bytes", return_value=self._zip_bytes()) as cb:
+            first = client._frc_suite_bytes(2024)
+            second = client._frc_suite_bytes(2024)
+        assert first is second
+        cb.assert_called_once()
+
+    def test_find_member_honours_exclude(self):
+        client = FASBClient()
+        with patch(f"{CACHE_MOD}.cached_bytes", return_value=self._zip_bytes()):
+            found = client.find_frc_member(
+                2024, "core/", "frc-core-", ".xsd", exclude=("full",)
+            )
+        assert found == "fr/2099-01-01/core/frc-core-2099-01-01.xsd"
+
+    def test_find_member_not_found(self):
+        client = FASBClient()
+        with patch(f"{CACHE_MOD}.cached_bytes", return_value=self._zip_bytes()):
+            assert client.find_frc_member(2024, "no-such-member") is None
+
+    def test_fetch_member(self):
+        client = FASBClient()
+        with patch(f"{CACHE_MOD}.cached_bytes", return_value=self._zip_bytes()):
+            data = client.fetch_frc_member(
+                2024, "dpl/2099-01-01/dpl-2099-01-01-label.xml"
+            )
+        assert data.read() == b"<lab/>"
+
+    def test_fetch_member_missing_raises(self):
+        client = FASBClient()
+        with patch(f"{CACHE_MOD}.cached_bytes", return_value=self._zip_bytes()):
+            with pytest.raises(OpenBBError, match="has no member"):
+                client.fetch_frc_member(2024, "absent.xml")
+
+
+class TestLoadFRCCoreLabels:
+    """_load_frc_core_labels branch coverage (frc-dpl cross-namespace labels)."""
+
+    def test_already_loaded_skips(self):
+        mgr = XBRLManager()
+        mgr._labels_loaded_for.add(("frc-core", 2024))
+        with patch.object(mgr, "_frc_member", side_effect=AssertionError):
+            mgr._load_frc_core_labels(2024)
+
+    def test_no_member_returns(self):
+        mgr = XBRLManager()
+        with patch.object(mgr, "_frc_member", return_value=None):
+            mgr._load_frc_core_labels(2024)
+        assert ("frc-core", 2024) not in mgr._labels_loaded_for
+
+    def test_fetch_error_swallowed(self):
+        mgr = XBRLManager()
+        with (
+            patch.object(mgr, "_frc_member", return_value="x"),
+            patch.object(mgr.client, "fetch_frc_member", side_effect=OSError("x")),
+        ):
+            mgr._load_frc_core_labels(2024)
+        assert ("frc-core", 2024) not in mgr._labels_loaded_for
+
+    def test_loads_core_labels(self):
+        mgr = XBRLManager()
+        with (
+            patch.object(mgr, "_frc_member", return_value="core-label.xml"),
+            patch.object(
+                mgr.client, "fetch_frc_member", return_value=BytesIO(_LAB_XML)
+            ),
+        ):
+            mgr._load_frc_core_labels(2024)
+        assert ("frc-core", 2024) in mgr._labels_loaded_for
+        assert mgr.parser.labels.get("ex_Item") == "Item Label"

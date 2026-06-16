@@ -292,6 +292,7 @@ _FIXTURE_DIR = Path(__file__).parent / "record"
 
 @pytest.fixture(scope="module")
 def blk_facts():
+    """Load the BLK company-facts fixture (parsed once per module)."""
     with open(_FIXTURE_DIR / "CIK0002012383.json") as f:
         return json.load(f)
 
@@ -316,6 +317,7 @@ def _mock_get_standardized(blk_facts):
 
 
 def test_sec_income_statement_fetcher(blk_facts, credentials=test_credentials):
+    """Test the SEC Income Statement fetcher."""
     params = {"symbol": "BLK", "period": "annual", "use_cache": False}
     fetcher = SecIncomeStatementFetcher()
     with patch(
@@ -327,6 +329,7 @@ def test_sec_income_statement_fetcher(blk_facts, credentials=test_credentials):
 
 
 def test_sec_balance_sheet_fetcher(blk_facts, credentials=test_credentials):
+    """Test the SEC Balance Sheet fetcher."""
     params = {"symbol": "BLK", "period": "annual", "use_cache": False}
     fetcher = SecBalanceSheetFetcher()
     with patch(
@@ -338,6 +341,7 @@ def test_sec_balance_sheet_fetcher(blk_facts, credentials=test_credentials):
 
 
 def test_sec_cash_flow_fetcher(blk_facts, credentials=test_credentials):
+    """Test the SEC Cash Flow Statement fetcher."""
     params = {"symbol": "BLK", "period": "annual", "use_cache": False}
     fetcher = SecCashFlowStatementFetcher()
     with patch(
@@ -349,6 +353,7 @@ def test_sec_cash_flow_fetcher(blk_facts, credentials=test_credentials):
 
 
 def test_sec_income_statement_growth_fetcher(blk_facts, credentials=test_credentials):
+    """Test the SEC Income Statement Growth fetcher."""
     params = {"symbol": "BLK", "period": "annual", "use_cache": False}
     fetcher = SecIncomeStatementGrowthFetcher()
     with patch(
@@ -360,6 +365,7 @@ def test_sec_income_statement_growth_fetcher(blk_facts, credentials=test_credent
 
 
 def test_sec_balance_sheet_growth_fetcher(blk_facts, credentials=test_credentials):
+    """Test the SEC Balance Sheet Growth fetcher."""
     params = {"symbol": "BLK", "period": "annual", "use_cache": False}
     fetcher = SecBalanceSheetGrowthFetcher()
     with patch(
@@ -371,6 +377,7 @@ def test_sec_balance_sheet_growth_fetcher(blk_facts, credentials=test_credential
 
 
 def test_sec_cash_flow_growth_fetcher(blk_facts, credentials=test_credentials):
+    """Test the SEC Cash Flow Statement Growth fetcher."""
     params = {"symbol": "BLK", "period": "annual", "use_cache": False}
     fetcher = SecCashFlowStatementGrowthFetcher()
     with patch(

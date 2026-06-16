@@ -355,26 +355,45 @@ TAXONOMIES: dict[str, TaxonomyConfig] = {
         has_label_linkbase=True,
         sec_reference_url="https://www.sec.gov/data-research/taxonomies-schemas/standard-taxonomies/operating-companies",
     ),
-    # ===== UK HMRC Taxonomy =====
-    "hmrc-dpl": TaxonomyConfig(
-        base_url_template="https://www.hmrc.gov.uk/schemas/ct/dpl/{year}-01-01/",
+    # ===== UK FRC Taxonomy Suite =====
+    "frc-core": TaxonomyConfig(
+        base_url_template="https://www.frc.org.uk/library/standards-codes-policy/accounting-and-reporting/frc-taxonomies/",
         style=TaxonomyStyle.EXTERNAL,
-        label_file_pattern="dpl-{year}-label.xml",
+        label_file_pattern="",
         presentation_pattern_regex=r"",
-        presentation_file_template="dpl-{year}-presentation.xml",
-        label="HMRC Detailed Profit & Loss",
+        presentation_file_template="",
+        label="FRC Core (UK GAAP / FRS)",
         description=(
-            "UK HMRC Corporation Tax Detailed Profit & Loss taxonomy."
-            " Defines 174 elements for detailed profit and loss accounts"
-            " within UK company tax computations (CT600). Covers trading"
-            " income, cost of sales, administrative expenses, gross"
-            " profit/loss, and other income/loss categories."
-            " Published by HM Revenue & Customs. Depends on FRC core"
-            " taxonomy for shared UK accounting elements."
+            "Core UK financial reporting taxonomy from the Financial Reporting"
+            " Council taxonomy suite. Defines the shared elements (statement of"
+            " financial position, income statement, equity, cash flows, and"
+            " notes) underlying FRS 101, FRS 102, and the UK IFRS extensions"
+            " used by UK and Irish companies. Published annually; the basis the"
+            " FRC Detailed Profit & Loss and HMRC CT600 computations build on."
         ),
         category=TaxonomyCategory.COMMON_REFERENCE,
         has_label_linkbase=True,
-        sec_reference_url="",
+        sec_reference_url="https://www.frc.org.uk/library/standards-codes-policy/accounting-and-reporting/frc-taxonomies/",
+    ),
+    "frc-dpl": TaxonomyConfig(
+        base_url_template="https://www.frc.org.uk/library/standards-codes-policy/accounting-and-reporting/frc-taxonomies/",
+        style=TaxonomyStyle.EXTERNAL,
+        label_file_pattern="",
+        presentation_pattern_regex=r"",
+        presentation_file_template="",
+        label="FRC Detailed Profit & Loss",
+        description=(
+            "UK Detailed Profit & Loss taxonomy from the Financial Reporting"
+            " Council taxonomy suite, referenced by HMRC Corporation Tax"
+            " computations (CT600). Defines the detailed trading, cost-of-sales,"
+            " administrative-expense, and other income/expense line items that"
+            " expand the FRC core profit-and-loss statement. Bundled in the FRC"
+            " suite from 2022 onward; depends on the FRC core taxonomy for"
+            " shared UK accounting elements."
+        ),
+        category=TaxonomyCategory.COMMON_REFERENCE,
+        has_label_linkbase=True,
+        sec_reference_url="https://www.frc.org.uk/library/standards-codes-policy/accounting-and-reporting/frc-taxonomies/",
     ),
     # ===== SEC Taxonomies — Investment Companies =====
     "cef": TaxonomyConfig(
@@ -627,11 +646,7 @@ TAXONOMY_LABEL_URLS: dict[str, Any] = {
     "xbrl.sec.gov/fnd": lambda url: url.replace(".xsd", "_lab.xsd"),
     # Taxonomies without separate label files (labels are in element names only):
     # ecd, cyd, ffd, rxp, spac, cef, oef, vip, sro, sbs
-    # HMRC DPL / FRC core taxonomies
-    "www.hmrc.gov.uk/schemas/ct/dpl": lambda url: url.replace(
-        ".xsd", "-label.xml"
-    ).replace("-label-label", "-label"),
-    "xbrl.frc.org.uk/fr": lambda url: url.replace(".xsd", "-label.xml"),
+    # FRC core/dpl labels are read from the suite ZIP, not derived from a URL.
 }
 
 
@@ -649,9 +664,46 @@ _IFRS_VERSION_DATES_FALLBACK: dict[int, str] = {
     2020: "2020-03-16",
 }
 
-# HMRC DPL taxonomy: only two published versions exist.
-# No directory listing is available, so years are hardcoded.
-_HMRC_DPL_YEARS: list[int] = [2021, 2019]
+# FRC taxonomy suites are published as one ZIP archive per year on frc.org.uk.
+# The document identifiers are opaque, so each year's archive is mapped here.
+_FRC_SUITE_ZIPS: dict[int, str] = {
+    2014: "https://www.frc.org.uk/documents/5849/FRC_Taxomomies_2014_Zip_File.zip",
+    2018: "https://www.frc.org.uk/documents/3917/FRC_2018_Taxonomy_v1-0-0_December-2017_Zip_File.zip",
+    2019: "https://www.frc.org.uk/documents/5687/FRC_2019_Taxonomy_v1-1-0_Zip_File.zip",
+    2021: "https://www.frc.org.uk/documents/3923/FRC_2021_Taxonomy_v1-0-0_Zip_File.zip",
+    2022: "https://www.frc.org.uk/documents/969/FRC-2022-Taxonomy.zip",
+    2023: "https://www.frc.org.uk/documents/372/The_2023_Taxonomy_suite_v1.0.1.zip",
+    2024: "https://www.frc.org.uk/documents/6566/FRC-2024-Taxonomy-v1.0.0_GJp67Do.zip",
+    2025: "https://www.frc.org.uk/documents/7759/FRC-2025-Taxonomy-v1.0.0_LK4mek8.zip",
+    2026: "https://www.frc.org.uk/documents/8907/FRC-2026-Taxonomy-v1.0.0.zip",
+}
+
+# frc-core ships in every suite; the Detailed Profit & Loss (dpl) taxonomy only
+# entered the suite in 2022.
+_FRC_CORE_YEARS: list[int] = sorted(_FRC_SUITE_ZIPS, reverse=True)
+_FRC_DPL_YEARS: list[int] = [year for year in _FRC_CORE_YEARS if year >= 2022]
+
+_FRC_TAXONOMIES: frozenset[str] = frozenset({"frc-core", "frc-dpl"})
+
+# Suite archives are immutable once published; cache them for a week.
+_FRC_SUITE_CACHE_TTL: int = 3600 * 24 * 7
+
+# Member resolution within a suite, keyed by taxonomy then file kind. Each value
+# is (required-substrings, excluded-substrings) matched against member paths.
+# File names vary across releases (e.g. dpl-2022.xsd vs dpl-2024-01-01.xsd, and
+# the 2014 core uses a 2014-09-01 date), so members are matched by fragment.
+_FRC_MEMBER_FRAGMENTS: dict[str, dict[str, tuple[tuple[str, ...], tuple[str, ...]]]] = {
+    "frc-core": {
+        "schema": (("core/", "frc-core-", ".xsd"), ("full",)),
+        "label": (("core/", "frc-core-", "-label.xml"), ("full",)),
+        "presentation": (("core/", "frc-core-", "-presentation.xml"), ("full",)),
+    },
+    "frc-dpl": {
+        "schema": (("dpl/", "dpl-", ".xsd"), ("dpl-core", "full")),
+        "label": (("dpl/", "dpl-", "-label.xml"), ("dpl-core", "full")),
+        "presentation": (("dpl/", "dpl-", "-presentation.xml"), ("dpl-core", "full")),
+    },
+}
 
 # Module-level cache populated on first access
 _ifrs_version_dates_cache: dict[int, str] | None = None
@@ -975,6 +1027,8 @@ class FASBClient:
         """Initialize the client."""
         # Cache: dir_url → list of filenames (just the filename, not full URL)
         self._dir_cache: dict[str, list[str]] = {}
+        # Cache: year → raw FRC suite ZIP bytes (members read lazily on demand)
+        self._frc_suite_cache: dict[int, bytes] = {}
 
     def list_files(self, dir_url: str) -> list[str]:
         """Return the list of filenames in a remote directory.
@@ -1061,9 +1115,11 @@ class FASBClient:
             # IFRS uses date-based versioning; discover from edgartaxonomies.xml
             if taxonomy == "ifrs":
                 return sorted(get_ifrs_version_dates().keys(), reverse=True)
-            # HMRC DPL: no directory listing, hardcoded known years
-            if taxonomy == "hmrc-dpl":
-                return list(_HMRC_DPL_YEARS)
+            # FRC suites: years sourced from the per-year suite ZIP map.
+            if taxonomy == "frc-core":
+                return list(_FRC_CORE_YEARS)
+            if taxonomy == "frc-dpl":
+                return list(_FRC_DPL_YEARS)
             return []
 
         base_root = config.base_url_template.split("{year}")[0]
@@ -1108,7 +1164,7 @@ class FASBClient:
                     raise OpenBBError(
                         f"Failed to fetch IFRS components for {year}: {e}"
                     ) from e
-            # Non-IFRS external taxonomies (e.g. HMRC DPL): single component
+            # Non-IFRS external taxonomies (e.g. FRC core/dpl): single component
             return ["standard"]
 
         base_url = config.base_url_template.format(year=year)
@@ -1179,6 +1235,99 @@ class FASBClient:
         from openbb_sec.utils.cache import cached_text
 
         return cached_text(url, expire=3600 * 24 * 7)
+
+    def _frc_suite_bytes(self, year: int) -> bytes:
+        """Return the FRC taxonomy suite ZIP bytes for ``year``.
+
+        The compressed archive is persisted in the SEC disk cache (shared across
+        processes) and memoized in-memory per client. The in-memory copy avoids
+        re-reading ~5 MB from disk on each of the many member lookups a single
+        ``get_structure`` call performs; members are decompressed lazily so the
+        unused FRS/IFRS/reports trees are never expanded.
+
+        Parameters
+        ----------
+        year : int
+            The FRC suite year to load.
+
+        Returns
+        -------
+        bytes
+            The raw ZIP archive bytes.
+        """
+        from openbb_sec.utils.cache import cached_bytes
+
+        if year in self._frc_suite_cache:
+            return self._frc_suite_cache[year]
+
+        url = _FRC_SUITE_ZIPS.get(year)
+        if not url:
+            raise OpenBBError(f"No FRC taxonomy suite is mapped for year {year}.")
+
+        raw = cached_bytes(url, expire=_FRC_SUITE_CACHE_TTL)
+        self._frc_suite_cache[year] = raw
+        return raw
+
+    @staticmethod
+    def _frc_relpath(name: str) -> str:
+        """Strip the release-specific suite root directory from a member name."""
+        parts = name.split("/", 1)
+        return parts[1] if len(parts) == 2 else parts[0]
+
+    def find_frc_member(
+        self, year: int, *fragments: str, exclude: tuple[str, ...] = ()
+    ) -> str | None:
+        """Find a suite member whose relative path contains all ``fragments``.
+
+        Parameters
+        ----------
+        year : int
+            The FRC suite year.
+        *fragments : str
+            Substrings that must all appear in the member's relative path.
+        exclude : tuple[str, ...]
+            Substrings that must not appear in the member's relative path.
+
+        Returns
+        -------
+        str | None
+            The matching member's relative path, or ``None`` if not found.
+        """
+        import zipfile
+
+        with zipfile.ZipFile(BytesIO(self._frc_suite_bytes(year))) as archive:
+            for name in sorted(archive.namelist()):
+                rel = self._frc_relpath(name)
+                if (
+                    rel
+                    and all(frag in rel for frag in fragments)
+                    and not any(bad in rel for bad in exclude)
+                ):
+                    return rel
+        return None
+
+    def fetch_frc_member(self, year: int, relpath: str) -> BytesIO:
+        """Return a suite member as an in-memory byte stream.
+
+        Parameters
+        ----------
+        year : int
+            The FRC suite year.
+        relpath : str
+            The member's path relative to the suite root.
+
+        Returns
+        -------
+        BytesIO
+            The member's bytes.
+        """
+        import zipfile
+
+        with zipfile.ZipFile(BytesIO(self._frc_suite_bytes(year))) as archive:
+            for name in archive.namelist():
+                if self._frc_relpath(name) == relpath:
+                    return BytesIO(archive.read(name))
+        raise OpenBBError(f"FRC suite {year} has no member {relpath!r}.")
 
 
 # Additional namespaces for XSD parsing
@@ -1444,8 +1593,15 @@ class XBRLParser:
                 if href and "#" in href:
                     loc_map[label_key] = href.split("#")[1]
 
+            xml_lang_attr = "{http://www.w3.org/XML/1998/namespace}lang"
             resource_map: dict[str | None, dict[str, str | None]] = {}
             for res in target_root.findall(".//link:label", NS):
+                # English-only: skip non-English label resources (e.g. the Welsh
+                # entries in the bilingual UK FRC linkbases). Resources with no
+                # xml:lang (most US/SEC taxonomies) are kept.
+                lang = res.get(xml_lang_attr)
+                if lang and not lang.lower().startswith("en"):
+                    continue
                 role = res.get(f"{{{NS['xlink']}}}role")
                 # Simplify role to short name (e.g. terseLabel)
                 role_short = role.split("/")[-1] if role else "label"
@@ -2396,6 +2552,26 @@ class XBRLManager:
         self._labels_loaded_for: set[tuple[str, int]] = set()
         self._properties_loaded_for: set[tuple[str, int]] = set()
 
+    def _frc_member(self, taxonomy: str, year: int, kind: str) -> str | None:
+        """Resolve an FRC suite member path for a taxonomy and file kind.
+
+        Parameters
+        ----------
+        taxonomy : str
+            Either ``"frc-core"`` or ``"frc-dpl"``.
+        year : int
+            The FRC suite year.
+        kind : str
+            One of ``"schema"``, ``"label"``, or ``"presentation"``.
+
+        Returns
+        -------
+        str | None
+            The matching member's relative path, or ``None`` if absent.
+        """
+        fragments, exclude = _FRC_MEMBER_FRAGMENTS[taxonomy][kind]
+        return self.client.find_frc_member(year, *fragments, exclude=exclude)
+
     def _ensure_element_properties(self, taxonomy: str, year: int):
         """Load element properties (type, periodType, balance, etc.) for a taxonomy.
 
@@ -2409,6 +2585,17 @@ class XBRLManager:
         if not config:
             return
 
+        if config.style == TaxonomyStyle.EXTERNAL and taxonomy in _FRC_TAXONOMIES:
+            member = self._frc_member(taxonomy, year, "schema")
+            if member:
+                try:
+                    content = self.client.fetch_frc_member(year, member)
+                    if self.parser.load_schema_element_properties(content) > 0:
+                        self._properties_loaded_for.add((taxonomy, year))
+                except Exception:  # noqa: S110
+                    pass
+            return
+
         urls: list[str] = []
 
         if config.style == TaxonomyStyle.EXTERNAL and taxonomy == "ifrs":
@@ -2418,9 +2605,6 @@ class XBRLManager:
                     f"https://xbrl.ifrs.org/taxonomy/{date}"
                     f"/full_ifrs/full_ifrs-cor_{date}.xsd"
                 )
-        elif config.style == TaxonomyStyle.EXTERNAL and taxonomy == "hmrc-dpl":
-            base_url = config.base_url_template.format(year=year)
-            urls.append(f"{base_url}dpl-{year}.xsd")
         elif config.style == TaxonomyStyle.STATIC:
             urls.append(config.base_url_template + config.label_file_pattern)
         else:
@@ -2492,9 +2676,6 @@ class XBRLManager:
                     urls.append(found)
         elif config.style == TaxonomyStyle.STATIC:
             urls.append(config.base_url_template + config.label_file_pattern)
-        elif config.style == TaxonomyStyle.EXTERNAL and taxonomy == "hmrc-dpl":
-            base_url = config.base_url_template.format(year=year)
-            urls.append(f"{base_url}dpl-{year}.xsd")
 
         for url in urls:
             try:
@@ -2801,37 +2982,21 @@ class XBRLManager:
 
             return
 
-        # --- HMRC DPL: use template URL directly (no directory listing) ---
-        if config.style == TaxonomyStyle.EXTERNAL and taxonomy == "hmrc-dpl":
-            base_url = config.base_url_template.format(year=year)
-            label_url = base_url + config.label_file_pattern.format(year=year)
-            try:
-                content = self.client.fetch_file(label_url)
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    self.parser.parse_label_linkbase(
-                        content, TaxonomyStyle.SEC_EMBEDDED
-                    )
-                if self.parser.labels:
-                    self._labels_loaded_for.add((taxonomy, year))
-            except Exception:  # noqa: S110
-                pass
-
-            # Also load doc XSD and main schema for fallback labels
-            for suffix in [
-                f"hmrc-dpl-{year}.xsd",
-                f"hmrc-dpl-{year}_doc.xsd",
-                f"dpl-{year}.xsd",
-            ]:
+        # --- FRC core / dpl: read the label linkbase from the suite ZIP ---
+        if config.style == TaxonomyStyle.EXTERNAL and taxonomy in _FRC_TAXONOMIES:
+            member = self._frc_member(taxonomy, year, "label")
+            if member:
                 try:
-                    content = self.client.fetch_file(base_url + suffix)
+                    content = self.client.fetch_frc_member(year, member)
                     with warnings.catch_warnings():
                         warnings.simplefilter("ignore")
                         self.parser.parse_label_linkbase(
                             content, TaxonomyStyle.SEC_EMBEDDED
                         )
-                except Exception:  # noqa: S112
-                    continue
+                    if self.parser.labels:
+                        self._labels_loaded_for.add((taxonomy, year))
+                except Exception:  # noqa: S110
+                    pass
 
             return
 
@@ -2955,26 +3120,25 @@ class XBRLManager:
                     pass
 
     def _load_frc_core_labels(self, year: int):
-        """Load FRC core taxonomy labels for HMRC DPL cross-namespace resolution.
+        """Load FRC core taxonomy labels for frc-dpl cross-namespace resolution.
 
-        The HMRC Detailed Profit & Loss taxonomy references elements from the
-        UK Financial Reporting Council's core taxonomy (``core_*`` prefix).
-        This method fetches the FRC core label linkbase so those elements
-        get human-readable labels in the presentation output.
+        The Detailed Profit & Loss taxonomy references elements from the FRC
+        core taxonomy (``core_*`` prefix). This loads the FRC core label
+        linkbase from the suite ZIP so those elements get human-readable
+        labels in the presentation output.
         """
         frc_key = ("frc-core", year)
 
         if frc_key in self._labels_loaded_for:
             return
 
-        label_url = (
-            f"https://xbrl.frc.org.uk/fr/{year}-01-01"
-            f"/core/frc-core-{year}-01-01-label.xml"
-        )
+        member = self._frc_member("frc-core", year, "label")
+        if not member:
+            return
 
         try:
             labels_before = len(self.parser.labels)
-            content = self.client.fetch_file(label_url)
+            content = self.client.fetch_frc_member(year, member)
 
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
@@ -3059,6 +3223,49 @@ class XBRLManager:
             except Exception:  # noqa: S112
                 continue
         return all_nodes
+
+    def _get_frc_structure(self, taxonomy: str, year: int) -> list[XBRLNode]:
+        """Parse an FRC taxonomy's structure from the suite ZIP.
+
+        frc-dpl uses its compact presentation linkbase for hierarchy. frc-core's
+        presentation linkbase spans the entire UK GAAP suite and is too large to
+        traverse, so its elements are returned as a flat list from the schema.
+        Labels and element properties are loaded beforehand by ``get_structure``.
+
+        Parameters
+        ----------
+        taxonomy : str
+            Either ``"frc-core"`` or ``"frc-dpl"``.
+        year : int
+            The FRC suite year.
+
+        Returns
+        -------
+        list[XBRLNode]
+            A presentation tree (frc-dpl) or a flat element list (frc-core).
+        """
+        nodes: list[XBRLNode] = []
+
+        if taxonomy == "frc-dpl":
+            presentation = self._frc_member(taxonomy, year, "presentation")
+            if presentation:
+                try:
+                    content = self.client.fetch_frc_member(year, presentation)
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore")
+                        nodes = self.parser.parse_presentation(
+                            content, TaxonomyStyle.SEC_EMBEDDED
+                        )
+                except Exception:  # noqa: S110
+                    pass
+
+        if not nodes:
+            schema = self._frc_member(taxonomy, year, "schema")
+            if schema:
+                content = self.client.fetch_frc_member(year, schema)
+                nodes = self.parser.parse_schema_elements(content)
+
+        return nodes
 
     def _get_ifrs_structure(self, year: int, component: str) -> list[XBRLNode]:
         """Get the parsed IFRS presentation structure for a given component.
@@ -3192,26 +3399,23 @@ class XBRLManager:
                     self._ensure_labels(dep, year)
                     self._ensure_element_properties(dep, year)
 
-        # HMRC DPL references elements from FRC core (core_* namespace);
+        # FRC dpl references elements from FRC core (core_* namespace);
         # load FRC core labels so cross-taxonomy references resolve.
-        if taxonomy == "hmrc-dpl":
+        if taxonomy == "frc-dpl":
             self._load_frc_core_labels(year)
 
         # --- IFRS: per-standard or flat-element structure ---
         if config.style == TaxonomyStyle.EXTERNAL and taxonomy == "ifrs":
             return self._get_ifrs_structure(year, component)
 
+        # --- FRC core / dpl: parse the presentation/schema from the suite ZIP ---
+        if config.style == TaxonomyStyle.EXTERNAL and taxonomy in _FRC_TAXONOMIES:
+            return self._get_frc_structure(taxonomy, year)
+
         # --- Determine the URL to fetch ---
 
         if config.style == TaxonomyStyle.STATIC:
             full_url = config.base_url_template + config.presentation_file_template
-        elif (
-            config.style == TaxonomyStyle.EXTERNAL and config.presentation_file_template
-        ):
-            # EXTERNAL taxonomies with known presentation templates
-            # (e.g. HMRC DPL) — use template URL directly, no directory listing.
-            base_url = config.base_url_template.format(year=year)
-            full_url = base_url + config.presentation_file_template.format(year=year)
         elif config.style == TaxonomyStyle.FASB_STANDARD:
             base_url = config.base_url_template.format(year=year)
             stm_url = f"{base_url}stm/"

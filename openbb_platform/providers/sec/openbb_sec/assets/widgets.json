@@ -336,8 +336,12 @@
             "value": "ifrs"
           },
           {
-            "label": "hmrc-dpl",
-            "value": "hmrc-dpl"
+            "label": "frc-core",
+            "value": "frc-core"
+          },
+          {
+            "label": "frc-dpl",
+            "value": "frc-dpl"
           },
           {
             "label": "rxp",

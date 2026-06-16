@@ -2136,6 +2136,8 @@ class TestCashBridgePeriodCarryover:
 
 
 class TestTTM:
+    """Tests for trailing-twelve-month (TTM) aggregation."""
+
     @staticmethod
     def _quarterly_revenue(years_quarters):
         entries = []
@@ -2378,6 +2380,8 @@ class TestTTM:
 
 
 class TestPctChange:
+    """Tests for period-over-period percent-change calculation."""
+
     @staticmethod
     def _annual_revenue(year_vals):
         entries = []
@@ -2622,6 +2626,8 @@ class TestPctChange:
 
 
 class TestPeriodType:
+    """Tests for period_type handling in standardized records."""
+
     def test_period_type_in_records(self):
         mock = create_mock_facts(
             [
