@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import os
 import sys
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -24,8 +25,8 @@ class TestResolveCacheDirectory:
 
     def test_explicit_argument_wins(self):
         out = cli.resolve_cache_directory("~/x/sec", discover=False)
-        assert out.endswith("/x/sec")
-        assert out.startswith("/")
+        assert out.endswith(os.path.join("x", "sec"))
+        assert os.path.isabs(out)
 
     def test_env_var_override(self, monkeypatch, tmp_path):
         monkeypatch.setenv(cache.CACHE_DIR_ENV_VAR, str(tmp_path / "envcache"))
@@ -41,7 +42,7 @@ class TestResolveCacheDirectory:
             lambda: SimpleNamespace(default_user_settings=settings),
         )
         out = cli.resolve_cache_directory(discover=False)
-        assert out == "/data/openbb/sec"
+        assert out == os.path.join(cli._abs("/data/openbb"), "sec")
 
     def test_discover_loads_layered_config(self, monkeypatch, tmp_path):
         called = {}
