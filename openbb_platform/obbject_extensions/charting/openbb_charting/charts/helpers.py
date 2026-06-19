@@ -53,7 +53,9 @@ def should_share_axis(
         ratio = max(range1, range2) / min(range1, range2)
         if ratio == 1:
             return True
-        return ratio < threshold
+        # Coerce to a built-in bool: callers use ``is True`` / ``is False``
+        # identity checks, which a numpy bool would always fail.
+        return bool(ratio < threshold)
     except Exception:
         return False
 

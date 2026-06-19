@@ -2,12 +2,90 @@
 
 from __future__ import annotations
 
+import sys
+import types
+
 import numpy as np
 import pandas as pd
 import pytest
 from openbb_core.provider.abstract.data import Data
 
 SYMBOLS = ("AAA", "BBB", "CCC", "DDD")
+
+
+def _install_fake_pywry() -> None:
+    """Install a minimal fake ``pywry`` so the GUI backend runs headlessly.
+
+    ``pywry`` is an optional GUI dependency with no wheels for every supported
+    Python (e.g. 3.14), so CI cannot install it. It is the one true external
+    boundary — the window/websocket layer — so a faithful in-memory stand-in is
+    the correct test double. Installing it unconditionally keeps backend tests
+    deterministic across every environment.
+    """
+    pywry = types.ModuleType("pywry")
+    pywry._OPENBB_FAKE = True  # type: ignore[attr-defined]
+
+    class _Component:
+        def __init__(self, **kwargs):
+            self.__dict__.update(kwargs)
+
+    class Toolbar(_Component):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            self.items = kwargs.get("items", [])
+
+    class _App:
+        def __init__(self, **kwargs):
+            self.__dict__.update(kwargs)
+            self.theme = kwargs.get("theme")
+
+        def show_plotly(self, **kwargs):
+            return None
+
+        def show_dataframe(self, **kwargs):
+            return None
+
+        def show(self, **kwargs):
+            return None
+
+        def emit(self, *args, **kwargs):
+            return None
+
+        def close(self, *args, **kwargs):
+            return None
+
+    class ThemeMode:
+        DARK = "dark"
+        LIGHT = "light"
+
+    pywry.PyWry = _App  # type: ignore[attr-defined]
+    pywry.ThemeMode = ThemeMode  # type: ignore[attr-defined]
+    pywry.Toolbar = Toolbar  # type: ignore[attr-defined]
+    pywry.Button = _Component  # type: ignore[attr-defined]
+    pywry.Div = _Component  # type: ignore[attr-defined]
+    pywry.TextArea = _Component  # type: ignore[attr-defined]
+    pywry.PlotlyConfig = _Component  # type: ignore[attr-defined]
+
+    grid = types.ModuleType("pywry.grid")
+
+    class _GridData:
+        def __init__(self, frame):
+            self.columns = list(frame.columns)
+            self.index_columns = []
+            self.column_types = {col: "text" for col in frame.columns}
+            self.row_data = frame.to_dict(orient="records")
+
+    grid.normalize_data = _GridData  # type: ignore[attr-defined]
+    grid.build_column_defs = lambda columns, index_columns, column_types: [  # type: ignore[attr-defined]
+        {"field": col} for col in columns
+    ]
+    pywry.grid = grid  # type: ignore[attr-defined]
+
+    sys.modules["pywry"] = pywry
+    sys.modules["pywry.grid"] = grid
+
+
+_install_fake_pywry()
 
 
 def _make_ohlcv(

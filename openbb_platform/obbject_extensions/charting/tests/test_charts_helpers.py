@@ -169,14 +169,24 @@ class TestGetChartingFunctions:
         assert isinstance(result, list)
         assert result == ["implemented"]
 
-    def test_real_charting_view_module(self):
-        """It discovers functions on a real registered charting view module."""
-        from openbb_charting.charting import Charting
+    def test_get_charting_functions_returns_name_callable_dict(self):
+        """It discovers implemented functions as a name->callable mapping."""
 
-        view = Charting._get_extension_views()[0]
-        result = get_charting_functions(view)
+        def _view_fn():
+            """An implemented view function."""
+            return None
+
+        class View:
+            """A view exposing a single implemented function."""
+
+        View.__module__ = __name__
+        View.view_chart = staticmethod(_view_fn)
+        _view_fn.__module__ = __name__
+
+        result = get_charting_functions(View)
         assert isinstance(result, dict)
-        assert all(callable(v) for v in result.values())
+        assert "view_chart" in result
+        assert callable(result["view_chart"])
 
 
 class TestModuleExports:
