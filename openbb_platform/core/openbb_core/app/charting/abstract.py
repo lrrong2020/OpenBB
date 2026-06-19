@@ -25,11 +25,11 @@ class ChartingExtension(Protocol):
         Names are the command route with slashes replaced by underscores and
         the leading underscore stripped, e.g. ``equity_price_historical``.
         """
-        ...
+        ...  # pragma: no cover - Protocol stub, never executed
 
     def show(self, render: bool = True, **kwargs: Any) -> Chart | None:
         """Create the chart for the bound OBBject and store it on it."""
-        ...
+        ...  # pragma: no cover - Protocol stub, never executed
 
 
 @runtime_checkable
@@ -43,12 +43,12 @@ class AbstractChartingBackend(Protocol):
 
     def __init__(self, charting_settings: Any) -> None:
         """Initialize the backend with the resolved charting settings."""
-        ...
+        ...  # pragma: no cover - Protocol stub, never executed
 
     def send_table(self, *args: Any, **kwargs: Any) -> Any:
         """Display an interactive table."""
-        ...
+        ...  # pragma: no cover - Protocol stub, never executed
 
     def send_url(self, *args: Any, **kwargs: Any) -> Any:
         """Display a URL."""
-        ...
+        ...  # pragma: no cover - Protocol stub, never executed

@@ -247,7 +247,7 @@ class PlotlyTA(PltTA):
 
     def calculate_indicators(self):
         """Return dataframe with all indicators."""
-        return self.indicators.to_dataframe(self.df_stock.copy(), self.ma_mode)
+        return self.indicators.to_dataframe(self.df_stock.copy(), self.ma_mode)  # ty: ignore[invalid-argument-type]
 
     def get_subplot(self, subplot: str) -> bool:
         """Return True if subplots will be able to be plotted with current data."""
@@ -271,7 +271,7 @@ class PlotlyTA(PltTA):
                 return False
 
             output = self.indicators.get_indicator_data(
-                self.df_stock.copy(),
+                self.df_stock.copy(),  # ty: ignore[invalid-argument-type]
                 indicator,
                 **self.indicators.get_options_dict(indicator.name) or {},
             )

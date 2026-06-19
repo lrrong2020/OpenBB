@@ -124,7 +124,7 @@ class PltTA(metaclass=PluginMeta):
 
         for item in cls.__indicators__:
             if not hasattr(self, item.name):
-                setattr(self, item.name, item.func.__get__(self, cls))
+                setattr(self, item.name, item.func.__get__(self, cls))  # ty: ignore[unresolved-attribute]
 
         for attr, value in cls.__dict__.items():
             if attr in [

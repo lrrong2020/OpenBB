@@ -419,7 +419,7 @@ def bar_chart(  # noqa: PLR0912
     if isinstance(data, (Data, list, dict)):
         data = basemodel_to_df(convert_to_basemodel(data), index=None)
 
-    bar_df = data.copy().set_index(x)
+    bar_df = data.copy().set_index(x)  # ty: ignore[unresolved-attribute]
     y = y.split(",") if isinstance(y, str) else y
     hovertemplate = bar_kwargs.pop("hovertemplate", None)
     width = bar_kwargs.pop("width", None)

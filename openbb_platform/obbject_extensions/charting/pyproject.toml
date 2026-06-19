@@ -78,6 +78,10 @@ exclude = ["tests", "integration"]
 
 [tool.ty.rules]
 unresolved-import = "ignore"
+# ty's pandas/plotly inference is environment-sensitive (pandas/numpy version,
+# Python version), so a `# ty: ignore` needed under one interpreter can be
+# unused under another. Tolerate that mismatch instead of churning per-line.
+unused-ignore-comment = "ignore"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

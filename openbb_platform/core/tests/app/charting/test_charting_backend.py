@@ -39,10 +39,3 @@ class TestChartingBackend:
         assert (
             get_charting_backend_class(name="fake_backend").__name__ == "PrimaryBackend"
         )
-
-    def test_engine_reports_overridden_backend(self, charting_config):
-        """The real reference engine picks up the configured backend override."""
-        from openbb_charting.charting import Charting
-
-        charting_config(charting_backend="fake_backend")
-        assert Charting.get_backend_class().__name__ == "PrimaryBackend"

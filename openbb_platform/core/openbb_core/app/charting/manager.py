@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from openbb_core.app.charting.abstract import ChartingExtension
     from openbb_core.app.model.extension import Extension
 
 DEFAULT_CHARTING_ACCESSOR = "charting"
@@ -74,7 +75,7 @@ class ChartingManager:
         )
 
     @classmethod
-    def get_charting_class(cls) -> type | None:
+    def get_charting_class(cls) -> type[ChartingExtension] | None:
         """Return the engine accessor class (e.g. ``Charting``), if installed.
 
         Class-level attribute access returns the registered accessor class

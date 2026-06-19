@@ -63,7 +63,7 @@ class Custom(PltTA):
 
         if interval <= 15:
             cut_days = 1 if interval < 15 else 2
-            dt_unique_days = df_ta2.index.normalize().unique()
+            dt_unique_days = df_ta2.index.normalize().unique()  # ty: ignore[unresolved-attribute]
             df_ta2 = df_ta2.loc[
                 (df_ta2.index >= pd.to_datetime(dt_unique_days[-cut_days], unit="ns"))
                 & (df_ta2.index < today)
@@ -203,7 +203,7 @@ class Custom(PltTA):
         interval = 1440
         if df_ta2.index[-2].date() == df_ta2.index[-1].date():
             interval = (df_ta2.index[1] - df_ta2.index[0]).seconds / 60
-            dt_unique_days = df_ta2.index.normalize().unique()
+            dt_unique_days = df_ta2.index.normalize().unique()  # ty: ignore[unresolved-attribute]
 
             if interval not in [15, 30, 60] and len(dt_unique_days) <= 3:
                 df_ta2 = df_ta2.loc[
