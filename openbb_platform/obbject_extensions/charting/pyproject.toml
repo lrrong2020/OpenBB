@@ -23,7 +23,7 @@ Homepage = "https://openbb.co"
 Repository = "https://github.com/OpenBB-finance/OpenBB"
 
 [dependency-groups]
-dev = ["openbb-devtools>=2.0.0"]
+dev = ["openbb-devtools>=2.0.0", "openbb-technical>=2.0.0"]
 
 [build-system]
 requires = ["hatchling>=1.25"]
@@ -35,6 +35,7 @@ packages = ["openbb_charting"]
 [tool.uv.sources]
 openbb-core = { path = "../../core", editable = true }
 openbb-devtools = { path = "../../extensions/devtools", editable = true }
+openbb-technical = { path = "../../extensions/technical", editable = true }
 
 [tool.ruff]
 line-length = 88
