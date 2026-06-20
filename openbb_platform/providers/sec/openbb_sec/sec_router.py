@@ -1554,13 +1554,21 @@ async def get_widgets_json() -> dict:
         }
     try:
         from openbb_core.api.rest_api import app as rest_app
+        from openbb_core.app.service.system_service import SystemService
         from openbb_platform_api.utils.widgets import build_json
 
+        # Derive the API prefix rather than hard-coding "/api/v1": it is
+        # "/api/v{version}" and the version is configurable, so a literal path
+        # silently matches nothing — dropping every generated SEC widget —
+        # whenever the prefix differs from the default.
+        sec_prefix = (
+            f"{SystemService().system_settings.api_settings.prefix}/sec/"
+        )
         generated = build_json(rest_app.openapi(), [])
         widgets = {
             key: value
             for key, value in generated.items()
-            if "/api/v1/sec/" in value.get("endpoint", "")
+            if value.get("endpoint", "").startswith(sec_prefix)
         }
         widgets.update(curated)
         return widgets

@@ -43,7 +43,7 @@ class SecPayVersusPerformanceData(Data):
 
     year: int = Field(
         description="Fiscal year.",
-        json_schema_extra={"formatterFn": "none"},
+        json_schema_extra={"x-widget_config": {"formatterFn": "none"}},
     )
     peo_total_compensation: float | None = Field(
         default=None,
