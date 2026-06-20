@@ -1233,10 +1233,9 @@ class TestGetFiscalMetaEdges:
         meta = get_fiscal_meta(facts, "quarterly", {"2023-09-30"})
         assert meta["2023-09-30"] == {"fiscal_year": 2023, "fiscal_period": "Q3"}
 
-    def test_semi_annual_entry_missing_fy_fp_skipped(self):
-        # A 6-K interim that is in filing_dates but lacks fy/fp is skipped at
-        # the SEMI_ANNUAL branch (line 280-281); the date then falls through
-        # to the H2/Q4 default for the period.
+    def test_semi_annual_half_year_classified_as_h1(self):
+        # A 6-K half-year (~181-day) interim is classified as H1 from its
+        # duration alone; the unreliable fy/fp fields are not required.
         facts = _facts(
             [
                 (
@@ -1256,8 +1255,7 @@ class TestGetFiscalMetaEdges:
             ]
         )
         meta = get_fiscal_meta(facts, "quarterly", {"2023-06-30"})
-        # No usable semi metadata -> falls through to the final Q4 default.
-        assert meta["2023-06-30"] == {"fiscal_year": 2023, "fiscal_period": "Q4"}
+        assert meta["2023-06-30"] == {"fiscal_year": 2023, "fiscal_period": "H1"}
 
     def test_preliminary_without_fy_fp_derives_calendar_quarter(self):
         # An 8-K with no fy/fp derives a calendar quarter from the end
@@ -1663,10 +1661,9 @@ class TestExtractRowValuesEdges:
         vals, _ = extract_row_values(facts, row, "quarterly", "USD")
         assert vals.get("2023-06-30") == 400.0
 
-    def test_semi_annual_out_of_window_skipped(self):
-        # A 6-K with a ~273-day duration is neither a quarter (60..135) nor a
-        # half-year (150..200) -> rejected by the SEMI_ANNUAL window guard
-        # (line 330-331). With no standalone quarter the date is absent.
+    def test_semi_annual_nine_month_extracted(self):
+        # A 6-K with a ~273-day (9-month) duration falls in the SEMI_ANNUAL
+        # window (240..310) and is extracted as a cumulative interim value.
         facts = _facts(
             [
                 (
@@ -1679,7 +1676,7 @@ class TestExtractRowValuesEdges:
         )
         row = _rd("total_revenue", xbrl=[("Revenues", "us-gaap")])
         vals, _ = extract_row_values(facts, row, "quarterly", "USD")
-        assert "2023-09-30" not in vals
+        assert vals.get("2023-09-30") == 700.0
 
     def test_none_value_skipped_after_window(self):
         # A within-window annual entry whose val is None is skipped (348-349).
@@ -1871,9 +1868,9 @@ class TestComputeRefFilingsEdges:
         ref = compute_ref_filings(facts, [row], "quarterly", "USD")
         assert ref["2023-06-30"] == "2023-08-01"
 
-    def test_semi_annual_out_of_window_skipped(self):
-        # A 6-K with a ~273-day duration is rejected by the SEMI_ANNUAL
-        # window guard in compute_ref_filings (line 650-652).
+    def test_semi_annual_nine_month_produces_ref(self):
+        # A 6-K with a ~273-day (9-month) duration falls in the SEMI_ANNUAL
+        # window (240..310) and contributes a reference filing.
         facts = _facts(
             [
                 (
@@ -1889,7 +1886,9 @@ class TestComputeRefFilingsEdges:
             ]
         )
         row = _rd("total_revenue", xbrl=[("Revenues", "us-gaap")])
-        assert compute_ref_filings(facts, [row], "quarterly", "USD") == {}
+        assert compute_ref_filings(facts, [row], "quarterly", "USD") == {
+            "2023-09-30": "2023-11-01"
+        }
 
     def test_out_of_window_quarterly_duration_skipped(self):
         # A 10-Q-vintage duration of ~273 days is neither 60..135 (quarter)

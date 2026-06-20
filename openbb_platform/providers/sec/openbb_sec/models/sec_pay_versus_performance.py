@@ -41,25 +41,32 @@ class SecPayVersusPerformanceQueryParams(QueryParams):
 class SecPayVersusPerformanceData(Data):
     """SEC Pay Versus Performance Data."""
 
-    year: int = Field(description="Fiscal year.")
+    year: int = Field(
+        description="Fiscal year.",
+        json_schema_extra={"formatterFn": "none"},
+    )
     peo_total_compensation: float | None = Field(
         default=None,
         description="Principal executive officer total compensation (Summary"
         " Compensation Table total).",
+        title="PEO Total Compensation",
     )
     peo_compensation_actually_paid: float | None = Field(
         default=None,
         description="Principal executive officer compensation actually paid.",
+        title="PEO Compensation Actually Paid",
     )
     average_neo_total_compensation: float | None = Field(
         default=None,
         description="Average total compensation of the non-PEO named executive"
         " officers.",
+        title="Average Non-PEO Total Compensation",
     )
     average_neo_compensation_actually_paid: float | None = Field(
         default=None,
         description="Average compensation actually paid to the non-PEO named"
         " executive officers.",
+        title="Average Non-PEO Compensation Actually Paid",
     )
     total_shareholder_return: float | None = Field(
         default=None,
