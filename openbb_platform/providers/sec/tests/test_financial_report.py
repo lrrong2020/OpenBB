@@ -92,6 +92,18 @@ class TestCollectInlineScripts:
         html = "<script>doToggle();</script   >"
         assert financial_report._collect_inline_scripts(html) == "doToggle();"
 
+    def test_matches_script_end_tag_with_whitespace_and_trailing_text(self):
+        html = "<script>doToggle();</script\t\n bar>"
+        assert financial_report._collect_inline_scripts(html) == "doToggle();"
+
+
+class TestStripScripts:
+    """Removing script nodes from body fragments."""
+
+    def test_strips_inline_scripts_from_fragment(self):
+        html = "<div>A</div><script>doToggle();</script\t\n bar><div>B</div>"
+        assert financial_report._strip_scripts(html) == "<div>A</div><div>B</div>"
+
 
 class TestGet:
     """The cached, error-suppressing byte fetch."""
@@ -128,6 +140,7 @@ class TestRenderFinancialReport:
         assert "Cash" in html
         assert "Operations" in html
         assert "Head content here" in html
+        assert "<section class=ob-sec data-name=\"Balance Sheet\"><script" not in html
         # Empty and body-less reports contribute no section.
         assert 'data-name="Empty"' not in html
         assert 'data-name="No Body"' not in html

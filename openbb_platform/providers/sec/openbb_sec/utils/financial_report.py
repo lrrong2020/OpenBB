@@ -11,12 +11,13 @@ import asyncio
 import re
 from html import escape
 
+from lxml import html as lhtml
+
 _REPORT_RE = re.compile(r"<Report\b.*?</Report>", re.S)
 _HTML_FILE_RE = re.compile(r"<HtmlFileName>\s*([^<]+?)\s*</HtmlFileName>")
 _SHORT_NAME_RE = re.compile(r"<ShortName>\s*([^<]*?)\s*</ShortName>")
 _BODY_RE = re.compile(r"<body[^>]*>(.*?)</body>", re.S | re.I)
 _HEAD_RE = re.compile(r"</head>(.*?)</html>", re.S | re.I)
-_SCRIPT_RE = re.compile(r"(?is)<script\b[^>]*>.*?</script\s*>")
 
 # EDGAR's canonical renderer assets; the R-files are authored against these.
 _GLOBAL_CSS = "https://www.sec.gov/include/report.css"
@@ -46,18 +47,47 @@ def _extract_body(html: str) -> "str | None":
     return match.group(1) if match else None
 
 
+def _parse_fragment(html: str):
+    """Parse an HTML fragment under a synthetic container element."""
+    return lhtml.fragment_fromstring(html, create_parent="div")
+
+
+def _serialize_fragment(root) -> str:
+    """Serialize a synthetic fragment container back to inner HTML."""
+    parts = [(root.text or "")]
+    for child in root:
+        parts.append(lhtml.tostring(child, encoding="unicode"))
+    return "".join(parts)
+
+
 def _collect_inline_scripts(html: str) -> str:
     """Concatenate the JS of inline (non-``src``) script tags — the row toggles."""
+    root = _parse_fragment(html)
     out = []
-    for match in _SCRIPT_RE.finditer(html):
-        block = match.group(0)
-        open_tag = block[: block.find(">") + 1]
-        if "src=" in open_tag.lower():
+    for script in root.iter("script"):
+        if script.get("src"):
             continue
-        inner = block[block.find(">") + 1 : block.rfind("<")]
+        inner = script.text or ""
         if inner.strip():
             out.append(inner.strip())
     return "\n".join(out)
+
+
+def _strip_scripts(html: str) -> str:
+    """Remove script elements from an HTML fragment."""
+    root = _parse_fragment(html)
+    for script in list(root.iter("script")):
+        parent = script.getparent()
+        if parent is None:
+            continue
+        tail = script.tail or ""
+        prev = script.getprevious()
+        if prev is not None:
+            prev.tail = (prev.tail or "") + tail
+        else:
+            parent.text = (parent.text or "") + tail
+        parent.remove(script)
+    return _serialize_fragment(root)
 
 
 async def render_financial_report(
@@ -98,7 +128,7 @@ async def render_financial_report(
         body = _extract_body(html)
         if body and body.strip():
             # Drop the R-file's own scripts; the row-toggle JS is added once below.
-            body = _SCRIPT_RE.sub("", body)
+            body = _strip_scripts(body)
             sections.append(
                 f'<section class=ob-sec data-name="{escape(name)}">{body}</section>'
             )
