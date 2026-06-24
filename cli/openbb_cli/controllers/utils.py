@@ -7,6 +7,7 @@ import random
 import re
 import shutil
 import sqlite3
+import subprocess
 import sys
 from contextlib import contextmanager
 from datetime import (
@@ -992,7 +993,9 @@ def export_data(  # noqa: PLR0912
 
 def system_clear():
     """Clear screen."""
-    os.system("cls||clear")  # noqa: S605, S607
+    subprocess.run(  # noqa: S602
+        "cls" if os.name == "nt" else "clear", shell=True, check=False
+    )
 
 
 def request(

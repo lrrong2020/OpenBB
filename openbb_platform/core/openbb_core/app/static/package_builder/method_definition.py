@@ -132,7 +132,7 @@ class MethodDefinition:
         bool
             True if charting is installed and exposes a matching function.
         """
-        if not CHARTING_INSTALLED:
+        if not CHARTING_INSTALLED or Charting is None:
             return False
         try:
             return path.replace("/", "_")[1:] in Charting.functions()
