@@ -140,7 +140,7 @@ class TestRenderFinancialReport:
         assert "Cash" in html
         assert "Operations" in html
         assert "Head content here" in html
-        assert "<section class=ob-sec data-name=\"Balance Sheet\"><script" not in html
+        assert '<section class=ob-sec data-name="Balance Sheet"><script' not in html
         # Empty and body-less reports contribute no section.
         assert 'data-name="Empty"' not in html
         assert 'data-name="No Body"' not in html
