@@ -88,6 +88,10 @@ class TestCollectInlineScripts:
         )
         assert financial_report._collect_inline_scripts(html) == "doToggle();"
 
+    def test_matches_script_end_tag_with_whitespace(self):
+        html = "<script>doToggle();</script   >"
+        assert financial_report._collect_inline_scripts(html) == "doToggle();"
+
 
 class TestGet:
     """The cached, error-suppressing byte fetch."""

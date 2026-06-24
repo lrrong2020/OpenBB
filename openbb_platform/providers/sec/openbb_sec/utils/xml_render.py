@@ -52,6 +52,11 @@ def _text(elem) -> str:
     return (elem.text or "").strip()
 
 
+def _tail_text(elem) -> str:
+    """Trimmed tail text that follows an element (e.g., CDATA notes)."""
+    return (elem.tail or "").strip()
+
+
 def _records_table(members: list) -> str:
     """Render a list of like records as an HTML table (columns = fields)."""
     members = members[:MAX_ROWS]
@@ -94,9 +99,13 @@ def _render_element(elem, parts: list, depth: int) -> None:
     """Walk an element, appending HTML fragments for its child structure."""
     groups: dict = {}
     order: list = []
+    pending_comments: list = []
     for child in elem:
         name = _local(child.tag)
         if name is None:
+            note = (child.text or "").strip()
+            if note:
+                pending_comments.append(note)
             continue
         if name not in groups:
             groups[name] = []
@@ -109,6 +118,9 @@ def _render_element(elem, parts: list, depth: int) -> None:
         if pending:
             parts.append(_kv_table(list(pending)))
             pending.clear()
+
+    for i, note in enumerate(pending_comments, start=1):
+        pending.append((f"comment{i}", note))
 
     for name in order:
         members = groups[name]
@@ -130,7 +142,14 @@ def _render_element(elem, parts: list, depth: int) -> None:
             )
             parts.append(f"<table class=ob-tbl><tbody>{cells}</tbody></table>")
         elif len(members) == 1 and _is_leaf(members[0]):
-            pending.append((name, _text(members[0])))
+            value = _text(members[0])
+            tail = _tail_text(members[0])
+            if tail and value:
+                pending.append((value, tail))
+            elif tail:
+                pending.append((name, tail))
+            else:
+                pending.append((name, value))
         elif depth < MAX_DEPTH:
             flush()
             for member in members[:MAX_ROWS]:

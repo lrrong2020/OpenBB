@@ -33,6 +33,7 @@ def parse_records_stream(stream) -> "tuple[list[str], list[tuple]]":
     columns: list[str] = []
     col_index: dict[str, int] = {}
     raw_rows: list[dict] = []
+    saw_definition_tail = False
     context = etree.iterparse(
         stream,
         events=("start", "end"),
@@ -56,6 +57,9 @@ def parse_records_stream(stream) -> "tuple[list[str], list[tuple]]":
             name = _local(child.tag)
             if name is None:
                 continue
+            tail = (child.tail or "").strip()
+            if tail:
+                saw_definition_tail = True
             if name not in col_index:
                 col_index[name] = len(columns)
                 columns.append(name)
@@ -67,6 +71,9 @@ def parse_records_stream(stream) -> "tuple[list[str], list[tuple]]":
         if parent is not None:
             while elem.getprevious() is not None:
                 del parent[0]
+
+    if saw_definition_tail:
+        return [], []
 
     rows = [tuple(r.get(c, "") for c in columns) for r in raw_rows]
     return columns, rows

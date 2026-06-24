@@ -128,6 +128,28 @@ class TestRenderAssetData:
         assert "<h2>Inner</h2>" in html
         assert "<td>v</td>" in html
 
+    def test_leaf_tail_text_renders_as_mapped_text_item(self):
+        html = _render(
+            "<assetData><assets>"
+            "<newEx103tag1>assetTypeNumber</newEx103tag1>"
+            "<![CDATA[Asset Number Type - HCA indicates Hyundai Capital America.]]>"
+            "</assets></assetData>"
+        )
+        assert "ob-kv" in html
+        assert "<th>Asset Type Number</th>" in html
+        assert "Asset Number Type - HCA indicates Hyundai Capital America." in html
+
+    def test_leaf_tail_only_uses_element_name_as_key(self):
+        html = _render(
+            "<assetData><assets>"
+            "<newEx103tag1/>"
+            "<![CDATA[Asset Number Type - HCA indicates Hyundai Capital America.]]>"
+            "</assets></assetData>"
+        )
+        assert "ob-kv" in html
+        assert "<th>New Ex103tag1</th>" in html
+        assert "Asset Number Type - HCA indicates Hyundai Capital America." in html
+
     def test_mixed_group_recurses_each_member(self):
         html = _render("<assetData><m><a>1</a></m><m>plain</m></assetData>")
         assert html.count("<h2>M</h2>") == 2
@@ -159,6 +181,12 @@ class TestRenderComments:
         )
         assert "Document notes (1)" in html
         assert "ob-note open" not in html
+
+    def test_nested_comment_is_rendered(self):
+        html = _render(
+            "<assetData><assets><!--inline note--><item>value</item></assets></assetData>"
+        )
+        assert "inline note" in html
 
 
 class TestRenderPreviewAndGuards:

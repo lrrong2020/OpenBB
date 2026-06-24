@@ -68,6 +68,21 @@ class TestParseRecordsStream:
         assert columns[3] == "asset"
         assert rows[2] == ("", "", "", "")
 
+    def test_tail_text_definitions_disable_tabular_parsing(self):
+        xml = (
+            b"<assetData><assets>"
+            b"<assetTypeNumber>HCA</assetTypeNumber>"
+            b"<!--  commments  -->"
+            b"<newEx103tag1>assetTypeNumber</newEx103tag1>"
+            b"<![CDATA[ Asset Number Type - HCA indicates Hyundai Capital America. ]]>"
+            b"<newEx103tag2>originatorName</newEx103tag2>"
+            b"<![CDATA[ Originator - HCA indicates Hyundai Capital America. ]]>"
+            b"</assets></assetData>"
+        )
+        columns, rows = asset_data.parse_records_stream(BytesIO(xml))
+        assert columns == []
+        assert rows == []
+
     def test_non_asset_data_root_yields_nothing(self):
         columns, rows = asset_data.parse_records_stream(
             BytesIO(b"<xbrl><x>1</x></xbrl>")

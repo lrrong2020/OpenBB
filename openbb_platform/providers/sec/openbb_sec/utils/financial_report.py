@@ -16,7 +16,7 @@ _HTML_FILE_RE = re.compile(r"<HtmlFileName>\s*([^<]+?)\s*</HtmlFileName>")
 _SHORT_NAME_RE = re.compile(r"<ShortName>\s*([^<]*?)\s*</ShortName>")
 _BODY_RE = re.compile(r"<body[^>]*>(.*?)</body>", re.S | re.I)
 _HEAD_RE = re.compile(r"</head>(.*?)</html>", re.S | re.I)
-_SCRIPT_RE = re.compile(r"(?is)<script\b.*?</script>")
+_SCRIPT_RE = re.compile(r"(?is)<script\b[^>]*>.*?</script\s*>")
 
 # EDGAR's canonical renderer assets; the R-files are authored against these.
 _GLOBAL_CSS = "https://www.sec.gov/include/report.css"
