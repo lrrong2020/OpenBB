@@ -104,6 +104,25 @@ class TestStripScripts:
         html = "<div>A</div><script>doToggle();</script\t\n bar><div>B</div>"
         assert financial_report._strip_scripts(html) == "<div>A</div><div>B</div>"
 
+    def test_ignores_script_without_parent(self, monkeypatch):
+        class _Script:
+            text = "ignored()"
+            tail = ""
+
+            def getparent(self):
+                return None
+
+        class _Root:
+            def iter(self, tag):
+                assert tag == "script"
+                return iter([_Script()])
+
+        monkeypatch.setattr(financial_report, "_parse_fragment", lambda html: _Root())
+        monkeypatch.setattr(
+            financial_report, "_serialize_fragment", lambda root: "<div/>"
+        )
+        assert financial_report._strip_scripts("<div/>") == "<div/>"
+
 
 class TestGet:
     """The cached, error-suppressing byte fetch."""
