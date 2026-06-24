@@ -72,7 +72,7 @@ class TestParseRecordsStream:
         xml = (
             b"<assetData><assets>"
             b"<assetTypeNumber>HCA</assetTypeNumber>"
-            b"<!--  commments  -->"
+            b"<!--  comments  -->"
             b"<newEx103tag1>assetTypeNumber</newEx103tag1>"
             b"<![CDATA[ Asset Number Type - HCA indicates Hyundai Capital America. ]]>"
             b"<newEx103tag2>originatorName</newEx103tag2>"
