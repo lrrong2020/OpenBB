@@ -10,6 +10,12 @@ if TYPE_CHECKING:
     from pandas import DataFrame, Series  # noqa
     from openbb_core.provider.abstract.data import Data  # noqa
 
+from importlib.util import find_spec
+
+from openbb_core.app.model.stream import OBBStream
+
+CHARTING_INSTALLED = find_spec("openbb_charting") is not None
+
 try:
     _HAS_FCNTL = True
 except Exception:  # pragma: no cover  # noqa
@@ -94,6 +100,14 @@ class ClassDefinition:
                         if hasattr(route, "openapi_extra")
                         and getattr(route, "openapi_extra", None) is not None
                         else []
+                    ),
+                    response_model=(
+                        OBBStream
+                        if getattr(
+                            getattr(route, "response_class", None), "media_type", None
+                        )
+                        == "text/event-stream"
+                        else getattr(route, "response_model", None)
                     ),
                 )
                 continue
